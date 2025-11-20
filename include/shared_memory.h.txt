@@ -1,0 +1,147 @@
+#ifndef SHARED_MEMORY_H
+#define SHARED_MEMORY_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "postgres.h"
+#include "storage/dsm.h"
+#include "storage/lwlock.h"
+#include "storage/proc.h"
+
+/* Maximum relation name length */
+#define RELATION_NAME_MAX 64
+#define RELATION_COUNT_MAX 64
+#define MAX_PENDING_REQUESTS 256
+
+/* Request Status */
+typedef enum {
+    REQ_STATUS_PENDING = 0,
+    REQ_STATUS_COMPLETED = 1,
+    REQ_STATUS_ERROR = 2
+} RequestStatus;
+
+/* gRPC Request Queue Entry (shared memory structure) */
+typedef struct {
+    /* Request identification */
+    uint32 request_id;
+    RequestStatus status;
+
+    /* Backend information */
+    pid_t backend_pid;
+    volatile uint32 *backend_latch;  /* Pointer to backend's Latch */
+
+    /* Permission check parameters */
+    char object_type[RELATION_NAME_MAX];
+    char object_id[RELATION_NAME_MAX];
+    char subject_type[RELATION_NAME_MAX];
+    char subject_id[RELATION_NAME_MAX];
+    char relation[RELATION_NAME_MAX];
+
+    /* Result */
+    bool allowed;
+    uint32 error_code;
+
+    /* Timestamp */
+    TimestampTz created_at;
+} GrpcRequest;
+
+/* ACL Cache Key Structure */
+typedef struct {
+    char object_type[RELATION_NAME_MAX];
+    char object_id[RELATION_NAME_MAX];
+    char subject_type[RELATION_NAME_MAX];
+    char subject_id[RELATION_NAME_MAX];
+} AclCacheKey;
+
+/* Relation Bitmap Entry */
+typedef struct {
+    char relation_name[RELATION_NAME_MAX];
+    uint8 bit_index;
+} RelationBitMapEntry;
+
+/* ACL Cache Entry */
+typedef struct {
+    AclCacheKey key;
+
+    /* Generation counters for invalidation */
+    uint64 object_type_gen;
+    uint64 object_gen;
+    uint64 subject_type_gen;
+    uint64 subject_gen;
+
+    /* Relation bitmasks */
+    uint64 allow_bits;
+    uint64 deny_bits;
+
+    /* Timestamps */
+    TimestampTz last_updated;
+    TimestampTz expire_at;
+} AclCacheEntry;
+
+/* Generation Map Entry */
+typedef struct {
+    char scope_key[RELATION_NAME_MAX * 2];  /* key for generation tracking */
+    uint64 generation;
+} GenerationEntry;
+
+/* Shared Memory State */
+typedef struct {
+    /* Synchronization */
+    LWLock *lock;                       /* Master lock for all shared data */
+    volatile uint32 *bgw_latch;         /* Background worker's Latch pointer */
+
+    /* Request queue (FDW → BGW) */
+    GrpcRequest pending_requests[MAX_PENDING_REQUESTS];
+    volatile uint32 pending_request_count;
+    volatile uint32 next_request_id;
+
+    /* Hash tables */
+    HTAB *relation_bitmap_map;          /* RelationBitMapEntry hash table */
+    HTAB *acl_cache;                    /* AclCacheEntry hash table */
+    HTAB *object_type_gen_map;          /* Generation tracking by object_type */
+    HTAB *object_gen_map;               /* Generation tracking by object_id */
+    HTAB *subject_type_gen_map;         /* Generation tracking by subject_type */
+    HTAB *subject_gen_map;              /* Generation tracking by subject_id */
+    uint64 next_generation;             /* Global generation counter */
+} AclSharedState;
+
+/* Shared memory functions */
+Size get_shared_memory_size(void);
+void init_shared_memory(void);
+AclSharedState *get_shared_state(void);
+void cleanup_shared_memory(void);
+
+/* Request queue functions (Latch-based request-response mechanism) */
+uint32 enqueue_grpc_request(const char *object_type, const char *object_id,
+                            const char *subject_type, const char *subject_id,
+                            const char *relation);
+bool dequeue_grpc_requests(GrpcRequest *requests, uint32 *count);
+bool wait_for_grpc_result(uint32 request_id, bool *allowed, uint32 *error_code);
+void set_grpc_result(uint32 request_id, bool allowed, uint32 error_code);
+
+/* Cache management functions */
+bool cache_lookup(const AclCacheKey *key, AclCacheEntry *entry);
+void cache_insert(const AclCacheEntry *entry);
+void cache_delete(const AclCacheKey *key);
+void cache_invalidate_by_scope(const char *scope_key);
+
+/* Generation functions */
+uint64 get_generation(const char *scope_key);
+void increment_generation(const char *scope_key);
+bool is_cache_stale(const AclCacheEntry *entry);
+
+/* Relation bitmap functions */
+uint8 get_relation_bit_index(const char *relation_name);
+void register_relation(const char *relation_name, uint8 bit_index);
+
+/* BGW coordination */
+void set_bgw_latch(volatile uint32 *latch);
+void notify_bgw_of_pending_work(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* SHARED_MEMORY_H */

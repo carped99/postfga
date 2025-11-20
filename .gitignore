@@ -1,0 +1,81 @@
+# Build artifacts
+*.o
+*.so
+*.a
+*.la
+*.lo
+*.dylib
+*.exe
+*.dll
+
+# Build directories
+build/
+cmake-build-debug/
+cmake-build-release/
+dist/
+target/
+
+# PostgreSQL build
+sql_install/
+sql_release/
+
+# IDE artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Test artifacts
+test_output/
+.pytest_cache/
+coverage/
+*.gcov
+*.gcda
+*.gcno
+
+# Docker
+docker-compose.override.yml
+.env.local
+
+# Misc
+*.log
+tags
+TAGS
+.tags
+cscope.*
+Session.vim
+
+# IDE specific
+.clangd/
+compile_commands.json
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+.#*
+
+# Dependencies
+node_modules/
+vendor/
+.cargo/
+
+# Protocol Buffers
+proto/buf.lock
+src/grpc/generated/
+gen/

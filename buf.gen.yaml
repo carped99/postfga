@@ -1,0 +1,14 @@
+version: v2
+clean: true
+managed:
+  enabled: true
+plugins:
+  - remote: buf.build/grpc/cpp:v1.51.1
+    out: ./api
+  - remote: buf.build/protocolbuffers/cpp:v21.12
+    out: ./api
+inputs:
+  - module: buf.build/openfga/api
+  - module: buf.build/googleapis/googleapis
+  - module: buf.build/grpc-ecosystem/grpc-gateway
+  - module: buf.build/envoyproxy/protoc-gen-validate

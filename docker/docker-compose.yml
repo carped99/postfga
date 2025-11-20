@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with PostFGA extension
+  postgres:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.production
+      args:
+        PG_MAJOR: 18
+        GRPC_VERSION: v1.60.0
+        PROTOBUF_VERSION: 25.1
+    image: postfga/postgres:18-1.0.0
+    container_name: postfga-postgres
+    environment:
+      # PostgreSQL configuration
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+
+      # PostFGA configuration
+      POSTFGA_AUTO_INSTALL: ${POSTFGA_AUTO_INSTALL:-true}
+      POSTFGA_ENDPOINT: ${POSTFGA_ENDPOINT:-dns:///openfga:8081}
+      POSTFGA_STORE_ID: ${POSTFGA_STORE_ID:-}
+      POSTFGA_RELATIONS: ${POSTFGA_RELATIONS:-read,write,edit,delete,download,owner}
+      POSTFGA_CACHE_TTL_MS: ${POSTFGA_CACHE_TTL_MS:-60000}
+      POSTFGA_MAX_CACHE_ENTRIES: ${POSTFGA_MAX_CACHE_ENTRIES:-10000}
+      POSTFGA_BGW_WORKERS: ${POSTFGA_BGW_WORKERS:-1}
+      POSTFGA_FALLBACK_TO_GRPC: ${POSTFGA_FALLBACK_TO_GRPC:-true}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Persistent data
+      - postgres_data:/var/lib/postgresql/data
+      # Custom configuration (optional)
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      # Additional init scripts (optional)
+      - ./custom-init:/docker-entrypoint-initdb.d/custom:ro
+    networks:
+      - postfga_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # OpenFGA server (optional - for testing)
+  openfga:
+    image: openfga/openfga:latest
+    container_name: postfga-openfga
+    command: run
+    environment:
+      OPENFGA_DATASTORE_ENGINE: memory
+      OPENFGA_LOG_FORMAT: json
+      OPENFGA_PLAYGROUND_ENABLED: true
+    ports:
+      - "${OPENFGA_HTTP_PORT:-8080}:8080"  # HTTP API
+      - "${OPENFGA_GRPC_PORT:-8081}:8081"  # gRPC API
+      - "${OPENFGA_PLAYGROUND_PORT:-3000}:3000"  # Playground UI
+    networks:
+      - postfga_network
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr=:8081"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # pgAdmin (optional - for database management)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: postfga-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - postfga_network
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  postfga_network:
+    driver: bridge

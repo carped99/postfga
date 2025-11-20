@@ -1,0 +1,7 @@
+version: 3
+
+tasks:
+  generate:
+    desc: Generate the protobuf and gRPC stubs
+    cmds:
+      - docker run --rm -v "{{.TASKFILE_DIR}}:/workspace" -w /workspace bufbuild/buf generate

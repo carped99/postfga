@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(tree:*)",
+      "Bash(chmod:*)",
+      "Bash(pg_config:*)",
+      "Bash(cmake --build:*)",
+      "Bash(echo:*)",
+      "Bash(node --version:*)",
+      "Bash(npm --version:*)",
+      "Bash(dpkg:*)",
+      "Bash(cmake --install:*)",
+      "Bash(pg_ctl:*)",
+      "Bash(su - postgres -c \"pg_ctl -D /tmp/pgdata stop -m fast 2>&1\":*)",
+      "Bash(su - postgres -c \"initdb -D /tmp/pgdata 2>&1 | head -10\")",
+      "Bash(/tmp/pgdata/postgresql.conf)",
+      "Bash(su - postgres -c \"pg_ctl -D /tmp/pgdata -l /tmp/pgdata/logfile start\")",
+      "Bash(su - postgres:*)",
+      "Bash(ls:*)",
+      "Bash(xargs:*)",
+      "Bash(gcc -c -fPIC -I/usr/include/postgresql/18/server -I/usr/include/postgresql/internal src/shmem.c -o /tmp/shmem.o:*)",
+      "Bash(make clean:*)",
+      "Bash(make:*)",
+      "Bash(cmake:*)",
+      "Bash(1)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

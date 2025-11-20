@@ -1,0 +1,88 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+.clangd
+compile_commands.json
+
+# Build artifacts
+build/
+cmake-build-*/
+*.o
+*.so
+*.a
+*.la
+*.lo
+*.dylib
+*.exe
+*.dll
+
+# Dependencies
+node_modules/
+vendor/
+.cargo/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Test/Coverage
+.pytest_cache/
+coverage/
+*.gcov
+*.gcda
+*.gcno
+
+# Docker
+docker-compose.override.yml
+.env.local
+
+# Documentation
+docs/
+*.md
+CHANGELOG.md
+LICENSE
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Development
+.devcontainer/
+.vscode/
+.claude/
+*.tmp
+*.bak
+.tags
+Session.vim
+
+# Generated files (will regenerate in container)
+proto/buf.lock
+src/grpc/generated/
+
+# Node/NPM (if used for tooling)
+package-lock.json
+yarn.lock
+node_modules/
+
+# Python (if used for scripts)
+*.pyc
+__pycache__/
+.venv/
+venv/
+
+# Misc
+.DS_Store
+Thumbs.db
+.env
+.env.local
+*.log
+debug.log

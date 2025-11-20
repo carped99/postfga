@@ -1,0 +1,5 @@
+# postfga extension control file
+comment = 'OpenFGA extension for PostgreSQL'
+default_version = '1.0.0'
+module_pathname = '$libdir/postfga'
+relocatable = false
