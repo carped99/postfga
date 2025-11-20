@@ -10,8 +10,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(FetchContent)
 include(cmake/postgresql.cmake)
 include(cmake/asio.cmake)
-# include(cmake/grpc.cmake)
-# include(cmake/protobuf.cmake)
 include(cmake/openfga.cmake)
 
 # Extension source files
@@ -19,12 +17,13 @@ set(SOURCES
     src/init.c
     src/bgw.c
     src/cache.c
+    src/client.cpp
     src/generation.c
     src/guc.c
+    src/queue.c
     src/relation.c
     src/state.c
     src/stats.c
-    src/grpc_client.cpp
 )
 
 # Create PostgreSQL extension shared library (MODULE → .so)
@@ -32,7 +31,7 @@ add_library(postfga MODULE ${SOURCES})
 
 # Include directories
 target_include_directories(postfga PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    # ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
@@ -106,35 +105,34 @@ add_custom_target(uninstall
     COMMENT "Uninstalling postfga extension"
 )
 
-# Test executable for gRPC client (optional)
-option(BUILD_GRPC_TEST "Build gRPC client test program" OFF)
+# Test executable for standalone client test (optional)
+option(BUILD_CLIENT_TEST "Build standalone client test program" OFF)
 
-if(BUILD_GRPC_TEST)
-    add_executable(test_grpc_client
-        tests/test_grpc_client.c
-        src/grpc_client.cpp
+if(BUILD_CLIENT_TEST)
+    add_executable(test_client
+        tests/test_client.c
+        src/client.cpp
     )
 
-    target_include_directories(test_grpc_client PRIVATE
+    target_include_directories(test_client PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${OPENFGA_PROTO_INCLUDE_DIR}
-        ${OPENFGA_GRPC_INCLUDE_DIR}
-        ${ASIO_INCLUDE_DIR}
     )
 
-    target_compile_definitions(test_grpc_client PRIVATE
+    target_compile_definitions(test_client PRIVATE
         ASIO_STANDALONE
         ASIO_NO_DEPRECATED
     )
 
-    target_link_libraries(test_grpc_client PRIVATE
-        openfga_api
+    target_link_libraries(test_client PRIVATE
+        openfga
         gRPC::grpc++
+        gRPC::grpc
         protobuf::libprotobuf
         pthread
     )
 
-    install(TARGETS test_grpc_client
+    install(TARGETS test_client
         RUNTIME DESTINATION bin
     )
 endif()

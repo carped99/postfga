@@ -17,7 +17,7 @@ extern "C" {
 /* Opaque handle for gRPC client */
 typedef struct GrpcClient GrpcClient;
 
-/* Check request parameters */
+/* Check request parameters for gRPC API */
 typedef struct {
     const char *store_id;
     const char *authorization_model_id;  /* Optional, can be NULL */
@@ -28,7 +28,7 @@ typedef struct {
     const char *relation;
     const char *subject_type;
     const char *subject_id;
-} CheckRequest;
+} GrpcCheckRequest;
 
 /* Check response */
 typedef struct {
@@ -59,7 +59,7 @@ void grpc_client_shutdown(GrpcClient *client);
  * Returns: true if successful, false on error
  */
 bool grpc_client_check_sync(GrpcClient *client,
-                            const CheckRequest *request,
+                            const GrpcCheckRequest *request,
                             CheckResponse *response);
 
 /*
@@ -70,7 +70,7 @@ bool grpc_client_check_sync(GrpcClient *client,
  * Returns: true if request queued successfully, false on error
  */
 bool grpc_client_check_async(GrpcClient *client,
-                             const CheckRequest *request,
+                             const GrpcCheckRequest *request,
                              CheckCallback callback,
                              void *user_data);
 

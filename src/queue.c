@@ -155,7 +155,7 @@ enqueue_grpc_request(const char *object_type, const char *object_id,
         LWLockRelease(state->lock);
         elog(WARNING, "PostFGA: Request queue is full (%u/%u)",
              queue_size(state), MAX_PENDING_REQ);
-        stats_inc_queue_full(&state->stats);
+        /* TODO: Add queue_full stats counter if needed */
         return 0;
     }
 
@@ -163,16 +163,19 @@ enqueue_grpc_request(const char *object_type, const char *object_id,
     tail = pg_atomic_read_u32(&state->queue_tail);
 
     /* Get pointer to queue entry */
-    req = &state->request_queue[tail];
+    RequestPayload *payload = &state->request_queue[tail];
+    req = &payload->check;  /* Use check request type */
 
     /* Initialize request */
-    memset(req, 0, sizeof(GrpcRequest));
+    memset(payload, 0, sizeof(RequestPayload));
 
     request_id = get_next_request_id(state);
-    req->request_id = request_id;
-    req->status = REQ_STATUS_PENDING;
-    req->backend_pid = MyProcPid;
-    req->backend_id = MyBackendId;
+    req->base.request_id = request_id;
+    req->base.type = REQ_TYPE_CHECK;  /* Set request type */
+    req->base.status = REQ_STATUS_PENDING;
+    req->base.backend_pid = MyProcPid;
+    req->base.backend_id = MyBackendType;
+    req->base.backend_latch = MyLatch;  /* Store backend latch for wakeup */
 
     /* Copy strings (with bounds checking) */
     strncpy(req->object_type, object_type, NAME_MAX_LEN - 1);
@@ -191,11 +194,12 @@ enqueue_grpc_request(const char *object_type, const char *object_id,
     req->relation[RELATION_MAX_LEN - 1] = '\0';
 
     /* Set timestamp */
-    req->created_at = GetCurrentTimestamp();
+    req->base.created_at = GetCurrentTimestamp();
 
     /* Initialize result fields */
     req->allowed = false;
-    req->error_code = 0;
+    req->base.error_code = 0;
+    req->base.success = false;
 
     /* Advance tail pointer (circular) */
     tail = (tail + 1) % MAX_PENDING_REQ;
@@ -205,7 +209,7 @@ enqueue_grpc_request(const char *object_type, const char *object_id,
     pg_atomic_fetch_add_u32(&state->queue_size, 1);
 
     /* Update statistics */
-    stats_inc_queue_enqueue(&state->stats);
+    stats_inc_request_enqueued(&state->stats);
 
     /* Release lock */
     LWLockRelease(state->lock);
@@ -278,8 +282,23 @@ dequeue_grpc_requests(GrpcRequest *requests, uint32 *count)
     /* Dequeue up to max_count requests */
     for (i = 0; i < max_count && !queue_is_empty(state); i++)
     {
-        /* Copy request to output buffer */
-        memcpy(&requests[i], &state->request_queue[head], sizeof(GrpcRequest));
+        /* Copy request to output buffer (only CHECK requests for now) */
+        RequestPayload *payload = &state->request_queue[head];
+
+        /* For backward compatibility, only copy check requests */
+        if (payload->base.type == REQ_TYPE_CHECK)
+        {
+            memcpy(&requests[i], &payload->check, sizeof(GrpcRequest));
+        }
+        else
+        {
+            elog(WARNING, "PostFGA: Unsupported request type %d", payload->base.type);
+            /* Skip this request for now */
+            head = (head + 1) % MAX_PENDING_REQ;
+            pg_atomic_write_u32(&state->queue_head, head);
+            pg_atomic_fetch_sub_u32(&state->queue_size, 1);
+            continue;
+        }
 
         /* Advance head pointer (circular) */
         head = (head + 1) % MAX_PENDING_REQ;
@@ -291,7 +310,7 @@ dequeue_grpc_requests(GrpcRequest *requests, uint32 *count)
         dequeued++;
 
         /* Update statistics */
-        stats_inc_queue_dequeue(&state->stats);
+        stats_inc_request_processed(&state->stats);
     }
 
     /* Release lock */
@@ -363,24 +382,33 @@ wait_for_grpc_result(uint32 request_id, bool *allowed, uint32 *error_code)
         /* Linear search through queue (inefficient but simple) */
         for (uint32 j = 0; j < MAX_PENDING_REQ; j++)
         {
-            GrpcRequest *req = &state->request_queue[j];
+            RequestPayload *payload = &state->request_queue[j];
+            BaseRequest *base = &payload->base;
 
-            if (req->request_id == request_id)
+            if (base->request_id == request_id)
             {
-                if (req->status == REQ_STATUS_COMPLETED)
+                if (base->status == REQ_STATUS_COMPLETED)
                 {
-                    *allowed = req->allowed;
-                    *error_code = req->error_code;
+                    /* For CHECK requests, extract allowed field */
+                    if (base->type == REQ_TYPE_CHECK)
+                    {
+                        *allowed = payload->check.allowed;
+                    }
+                    else
+                    {
+                        *allowed = base->success;
+                    }
+                    *error_code = base->error_code;
                     LWLockRelease(state->lock);
 
                     elog(DEBUG2, "PostFGA: Result received for request %u: allowed=%d",
                          request_id, *allowed);
                     return true;
                 }
-                else if (req->status == REQ_STATUS_ERROR)
+                else if (base->status == REQ_STATUS_ERROR)
                 {
                     *allowed = false;
-                    *error_code = req->error_code;
+                    *error_code = base->error_code;
                     LWLockRelease(state->lock);
 
                     elog(WARNING, "PostFGA: Request %u failed with error %u",
@@ -399,7 +427,7 @@ wait_for_grpc_result(uint32 request_id, bool *allowed, uint32 *error_code)
 
     /* Timeout */
     elog(WARNING, "PostFGA: Timeout waiting for request %u result", request_id);
-    stats_inc_queue_timeout(&state->stats);
+    /* TODO: Add queue_timeout stats counter if needed */
     return false;
 }
 
@@ -445,14 +473,27 @@ set_grpc_result(uint32 request_id, bool allowed, uint32 error_code)
     /* Linear search for matching request_id */
     for (uint32 i = 0; i < MAX_PENDING_REQ; i++)
     {
-        GrpcRequest *req = &state->request_queue[i];
+        RequestPayload *payload = &state->request_queue[i];
+        BaseRequest *base = &payload->base;
 
-        if (req->request_id == request_id && req->status == REQ_STATUS_PENDING)
+        if (base->request_id == request_id && base->status == REQ_STATUS_PENDING)
         {
-            /* Update result */
-            req->allowed = allowed;
-            req->error_code = error_code;
-            req->status = (error_code == 0) ? REQ_STATUS_COMPLETED : REQ_STATUS_ERROR;
+            /* Update result based on request type */
+            if (base->type == REQ_TYPE_CHECK)
+            {
+                payload->check.allowed = allowed;
+            }
+
+            base->success = allowed;
+            base->error_code = error_code;
+            base->status = (error_code == 0) ? REQ_STATUS_COMPLETED : REQ_STATUS_ERROR;
+            base->completed_at = GetCurrentTimestamp();
+
+            /* Wake up waiting backend if latch is set */
+            if (base->backend_latch != NULL)
+            {
+                SetLatch(base->backend_latch);
+            }
 
             found = true;
             break;
@@ -537,20 +578,21 @@ clear_completed_requests(void)
     /* Scan queue and clear completed/error entries */
     for (uint32 i = 0; i < MAX_PENDING_REQ; i++)
     {
-        GrpcRequest *req = &state->request_queue[i];
+        RequestPayload *payload = &state->request_queue[i];
+        BaseRequest *base = &payload->base;
 
-        if (req->status == REQ_STATUS_COMPLETED || req->status == REQ_STATUS_ERROR)
+        if (base->status == REQ_STATUS_COMPLETED || base->status == REQ_STATUS_ERROR)
         {
             /* Check if result is old enough to clear (e.g., > 60 seconds) */
             TimestampTz now = GetCurrentTimestamp();
             long secs;
             int microsecs;
 
-            TimestampDifference(req->created_at, now, &secs, &microsecs);
+            TimestampDifference(base->created_at, now, &secs, &microsecs);
 
             if (secs > 60)  /* 60 seconds threshold */
             {
-                memset(req, 0, sizeof(GrpcRequest));
+                memset(payload, 0, sizeof(RequestPayload));
                 cleared++;
             }
         }

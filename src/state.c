@@ -21,6 +21,7 @@
 #include "cache.h"
 #include "state.h"
 #include "relation.h"
+#include "queue.h"
 
 /* -------------------------------------------------------------------------
  * Module-level state
@@ -168,8 +169,8 @@ calculate_shared_memory_size(void)
     size = add_size(size, hash_estimate_size(max_cache_entries,
                                              sizeof(GenerationEntry)));
 
-    /* Request queue (for future use) */
-    size = add_size(size, mul_size(MAX_PENDING_REQ, sizeof(GrpcRequest)));
+    /* Request queue (tagged union for multiple request types) */
+    size = add_size(size, mul_size(MAX_PENDING_REQ, sizeof(RequestPayload)));
 
     return size;
 }
@@ -238,6 +239,15 @@ initialize_shared_state(bool found)
                          NAME_MAX_LEN * 2,
                          sizeof(GenerationEntry));
 
+    /* Initialize request queue (tagged union) */
+    shared_state->request_queue = (RequestPayload *)ShmemAlloc(
+        mul_size(MAX_PENDING_REQ, sizeof(RequestPayload)));
+
+    if (shared_state->request_queue == NULL)
+        elog(ERROR, "PostFGA: Failed to allocate request queue");
+
+    memset(shared_state->request_queue, 0, mul_size(MAX_PENDING_REQ, sizeof(RequestPayload)));
+
     /* Initialize atomic counters */
     initialize_atomic_counters();
 
@@ -286,10 +296,12 @@ initialize_hash_table(HTAB **htab, const char *name,
 static void
 initialize_atomic_counters(void)
 {
-    // pg_atomic_init_u32(&shared_state->queue_head, 0);
-    // pg_atomic_init_u32(&shared_state->queue_tail, 0);
-    // pg_atomic_init_u32(&shared_state->queue_size, 0);
+    /* Initialize queue atomic counters */
+    pg_atomic_init_u32(&shared_state->queue_head, 0);
+    pg_atomic_init_u32(&shared_state->queue_tail, 0);
+    pg_atomic_init_u32(&shared_state->queue_size, 0);
 
+    /* Initialize statistics */
     stats_init(&shared_state->stats);
 
     elog(DEBUG2, "PostFGA: Atomic counters initialized");

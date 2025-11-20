@@ -16,9 +16,140 @@
 #include "bgw.h"
 #include "state.h"
 #include "guc.h"
+#include "queue.h"
+#include "client.h"
 
 static volatile sig_atomic_t shutdown_requested = false;
 static volatile sig_atomic_t config_reload_requested = false;
+static GrpcClient *grpc_client = NULL;
+
+#define MAX_BATCH_SIZE 32
+
+/*
+ * grpc_check_callback - Callback invoked when async gRPC Check completes
+ */
+static void
+grpc_check_callback(const CheckResponse *response, void *user_data)
+{
+    uint32 request_id = *(uint32 *)user_data;
+
+    if (!response)
+    {
+        elog(WARNING, "PostFGA BGW: NULL response for request %u", request_id);
+        set_grpc_result(request_id, false, 9999);  /* Internal error */
+        return;
+    }
+
+    /* Set result in shared memory queue */
+    set_grpc_result(request_id, response->allowed, response->error_code);
+
+    if (response->error_code != 0)
+    {
+        elog(LOG, "PostFGA BGW: Request %u completed with error: %s",
+             request_id, response->error_message);
+    }
+    else
+    {
+        elog(DEBUG2, "PostFGA BGW: Request %u completed: allowed=%d",
+             request_id, response->allowed);
+    }
+
+    /* Free user_data */
+    pfree(user_data);
+}
+
+/*
+ * process_pending_requests - Dequeue and process gRPC requests
+ */
+static void
+process_pending_requests(void)
+{
+    GrpcRequest requests[MAX_BATCH_SIZE];
+    uint32 count = MAX_BATCH_SIZE;
+    uint32 i;
+
+    /* Initialize gRPC client if not already done */
+    if (!grpc_client)
+    {
+        const char *endpoint = GetConfigOption("postfga.endpoint", false, false);
+        if (!endpoint || endpoint[0] == '\0')
+        {
+            elog(WARNING, "PostFGA BGW: No endpoint configured");
+            return;
+        }
+
+        grpc_client = postfga_client_init(endpoint);
+        if (!grpc_client)
+        {
+            elog(ERROR, "PostFGA BGW: Failed to initialize gRPC client");
+            return;
+        }
+
+        elog(LOG, "PostFGA BGW: gRPC client initialized with endpoint: %s", endpoint);
+    }
+
+    /* Check if client is healthy */
+    if (!postfga_client_is_healthy(grpc_client))
+    {
+        elog(WARNING, "PostFGA BGW: gRPC client is not healthy");
+        /* Could attempt reconnection here */
+        return;
+    }
+
+    /* Dequeue requests */
+    if (!dequeue_grpc_requests(requests, &count))
+    {
+        /* No requests to process */
+        return;
+    }
+
+    elog(DEBUG1, "PostFGA BGW: Processing %u requests", count);
+
+    /* Process each request asynchronously */
+    for (i = 0; i < count; i++)
+    {
+        GrpcRequest *req = &requests[i];
+        GrpcCheckRequest check_req = {0};
+        uint32 *request_id_ptr;
+
+        /* Get store ID and authorization model from GUC */
+        const char *store_id = GetConfigOption("postfga.store_id", false, false);
+        const char *auth_model_id = GetConfigOption("postfga.authorization_model_id", false, false);
+
+        if (!store_id || store_id[0] == '\0')
+        {
+            elog(WARNING, "PostFGA BGW: No store_id configured");
+            set_grpc_result(req->base.request_id, false, 8888);  /* Configuration error */
+            continue;
+        }
+
+        /* Build GrpcCheckRequest */
+        check_req.store_id = store_id;
+        check_req.authorization_model_id = auth_model_id;  /* Can be NULL */
+        check_req.object_type = req->object_type;
+        check_req.object_id = req->object_id;
+        check_req.relation = req->relation;
+        check_req.subject_type = req->subject_type;
+        check_req.subject_id = req->subject_id;
+
+        /* Allocate request ID for callback */
+        request_id_ptr = (uint32 *)palloc(sizeof(uint32));
+        *request_id_ptr = req->base.request_id;
+
+        /* Submit async gRPC request */
+        if (!postfga_client_check_async(grpc_client, &check_req,
+                                     grpc_check_callback, request_id_ptr))
+        {
+            elog(WARNING, "PostFGA BGW: Failed to submit async request %u",
+                 req->base.request_id);
+            set_grpc_result(req->base.request_id, false, 7777);  /* Submit error */
+            pfree(request_id_ptr);
+        }
+    }
+
+    /* Poll for completed async operations */
+    postfga_client_poll(grpc_client, 0);  /* Non-blocking */
+}
 
 /*
  * bgw_sigterm_handler - Handle SIGTERM signal
@@ -131,12 +262,8 @@ postfga_bgw_main(Datum arg)
             // ProcessConfigFile(PGC_SIGHUP);
         }            
 
-        elog(LOG, "PostFGA BGW: processing tasks");
-
-        /* TODO: Process pending FDW OpenFGA requests */
-        /* TODO: handle queued ACL batch requests */
-        /* TODO: monitor and invalidate shared-memory cache */
-        /* TODO: perform batch-grpc to OpenFGA server */
+        /* Process pending gRPC requests */
+        process_pending_requests();
 
         pgstat_report_activity(STATE_IDLE, NULL);
     }
@@ -144,7 +271,15 @@ postfga_bgw_main(Datum arg)
     /* Cleanup */
     LWLockAcquire(state->lock, LW_EXCLUSIVE);
     state->bgw_latch = NULL;
-    LWLockRelease(state->lock);    
+    LWLockRelease(state->lock);
+
+    /* Shutdown gRPC client */
+    if (grpc_client)
+    {
+        postfga_client_fini(grpc_client);
+        grpc_client = NULL;
+        elog(LOG, "PostFGA BGW: gRPC client shut down");
+    }
 
     proc_exit(0);
 }

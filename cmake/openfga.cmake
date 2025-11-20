@@ -12,6 +12,11 @@ add_library(openfga STATIC
     ${OPENFGA_SRCS}
 )
 
+# Enable -fPIC for shared library linking
+set_target_properties(openfga PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
+
 target_include_directories(openfga
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/api

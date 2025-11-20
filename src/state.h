@@ -19,8 +19,10 @@
 
 #include "common.h"
 #include "cache.h"
-#include "queue.h"
 #include "stats.h"
+
+/* Forward declarations */
+typedef union RequestPayload RequestPayload;
 
 
 /* Default hash table sizes */
@@ -48,8 +50,11 @@ typedef struct PostfgaShmemState
     HTAB                *subject_type_gen_map;   /* subject_type -> generation */
     HTAB                *subject_gen_map;        /* subject_type:subject_id -> generation */
 
-    /* ---- Request queue (for future use) ---- */
-    GrpcRequest  req_queue;
+    /* ---- Request queue (ring buffer) ---- */
+    pg_atomic_uint32    queue_head;              /* Ring buffer head index */
+    pg_atomic_uint32    queue_tail;              /* Ring buffer tail index */
+    pg_atomic_uint32    queue_size;              /* Current queue size */
+    RequestPayload      *request_queue;          /* Array of MAX_PENDING_REQ elements (tagged union) */
 
     /* ---- Statistics ---- */
     Stats               stats;

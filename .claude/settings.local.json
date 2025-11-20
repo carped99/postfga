@@ -23,7 +23,14 @@
       "Bash(make clean:*)",
       "Bash(make:*)",
       "Bash(cmake:*)",
-      "Bash(1)"
+      "Bash(1)",
+      "Bash(ldd:*)",
+      "Bash(nm -S:*)",
+      "Bash(size:*)",
+      "Bash(strip:*)",
+      "Bash(nm:*)",
+      "Bash(sudo cmake:*)",
+      "Bash(psql:*)"
     ],
     "deny": [],
     "ask": []
