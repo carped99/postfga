@@ -28,7 +28,25 @@ typedef struct CheckResponse {
     char     error_message[256];        /* '\0' 로 끝나는 문자열 */
 } CheckResponse;
 
+/* Write request parameters */
+typedef struct GrpcWriteRequest {
+    const char *store_id;
+    const char *authorization_model_id;
+    const char *object_type;
+    const char *object_id;
+    const char *relation;
+    const char *subject_type;
+    const char *subject_id;
+} GrpcWriteRequest;
+
+typedef struct WriteResponse {
+    bool     success;
+    uint32_t error_code;
+    char     error_message[256];
+} WriteResponse;
+
 typedef void (*CheckCallback)(const CheckResponse *response, void *user_data);
+typedef void (*WriteCallback)(const WriteResponse *response, void *user_data);
 
 /* Lifecycle */
 GrpcClient *postfga_client_init(const char *endpoint);
@@ -42,6 +60,16 @@ bool postfga_client_check_sync(GrpcClient *client,
 bool postfga_client_check_async(GrpcClient *client,
                              const GrpcCheckRequest *request,
                              CheckCallback callback,
+                             void *user_data);
+
+/* Sync / Async Write */
+bool postfga_client_write_sync(GrpcClient *client,
+                            const GrpcWriteRequest *request,
+                            WriteResponse *response);
+
+bool postfga_client_write_async(GrpcClient *client,
+                             const GrpcWriteRequest *request,
+                             WriteCallback callback,
                              void *user_data);
 
 /* Health check / 기타 헬퍼 */

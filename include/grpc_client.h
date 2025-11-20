@@ -37,8 +37,31 @@ typedef struct {
     char error_message[256];
 } CheckResponse;
 
+/* Write request parameters for gRPC API */
+typedef struct {
+    const char *store_id;
+    const char *authorization_model_id;  /* Optional, can be NULL */
+
+    /* Tuple to write */
+    const char *object_type;
+    const char *object_id;
+    const char *relation;
+    const char *subject_type;
+    const char *subject_id;
+} GrpcWriteRequest;
+
+/* Write response */
+typedef struct {
+    bool success;
+    uint32_t error_code;
+    char error_message[256];
+} WriteResponse;
+
 /* Callback for async check completion */
 typedef void (*CheckCallback)(const CheckResponse *response, void *user_data);
+
+/* Callback for async write completion */
+typedef void (*WriteCallback)(const WriteResponse *response, void *user_data);
 
 /*
  * Initialize gRPC client
@@ -86,6 +109,27 @@ int grpc_client_poll(GrpcClient *client, int timeout_ms);
  * Check if client is connected and healthy
  */
 bool grpc_client_is_healthy(GrpcClient *client);
+
+/*
+ * Perform synchronous Write API call
+ *
+ * Returns: true if successful, false on error
+ */
+bool grpc_client_write_sync(GrpcClient *client,
+                            const GrpcWriteRequest *request,
+                            WriteResponse *response);
+
+/*
+ * Perform asynchronous Write API call
+ *
+ * callback: Function to call when request completes
+ * user_data: User data passed to callback
+ * Returns: true if request queued successfully, false on error
+ */
+bool grpc_client_write_async(GrpcClient *client,
+                             const GrpcWriteRequest *request,
+                             WriteCallback callback,
+                             void *user_data);
 
 #ifdef __cplusplus
 }

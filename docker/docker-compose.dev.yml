@@ -1,24 +1,20 @@
-version: '3.8'
-
 services:
   postgres:
     build:
-      context: ..
-      dockerfile: docker/Dockerfile.dev
-    container_name: openfga_fdw_dev
+      context: .
+      dockerfile: Dockerfile
+      target: dev-builder
+      args:
+        PG_MAJOR: "18"      
     environment:
       POSTGRES_PASSWORD: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_DB: openfga_test
+      POSTFGA_ENDPOINT: "openfga:8081"
+      POSTFGA_STORE_ID: "changeme"
+    working_dir: /workspace      
+    volumes:
+      - ..:/workspace:cached    
     ports:
       - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ..:/workspace
-    command:
-      - "postgres"
-      - "-c"
-      - "shared_preload_libraries=openfga_fdw"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -27,7 +23,6 @@ services:
 
   openfga:
     image: openfga/openfga:latest
-    container_name: openfga_test
     ports:
       - "8080:8080"
       - "8081:8081"
@@ -35,6 +30,3 @@ services:
     environment:
       - LOG_LEVEL=debug
     command: run
-
-volumes:
-  postgres_data:

@@ -42,7 +42,12 @@ void
 _PG_init(void)
 {
     if (!process_shared_preload_libraries_in_progress)
-        elog(ERROR, "postfga must be loaded via shared_preload_libraries");
+    {
+        ereport(ERROR,
+                (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+                 errmsg("postfga must be loaded via shared_preload_libraries"),
+                 errhidestmt(true)));
+    }
 
     elog(LOG, "PostFGA: Initializing extension");
 

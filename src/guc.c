@@ -36,10 +36,42 @@ static PostfgaGuc config = {0};
 #define DEFAULT_BGW_WORKERS            1
 #define DEFAULT_FALLBACK_TO_GRPC       true
 
-/* -------------------------------------------------------------------------
- * GUC Variable Definitions
- * -------------------------------------------------------------------------
- */
+static bool
+validate_endpoint(char **newval, void **extra, GucSource source)
+{
+    (void) extra;
+    (void) source;
+
+    if (newval == NULL || *newval == NULL || (*newval)[0] == '\0')
+    {
+        GUC_check_errmsg("postfga.endpoint must not be empty");
+        GUC_check_errdetail("Set the gRPC endpoint address for OpenFGA server.");
+    }
+
+    return true;
+}
+
+static bool
+validate_store_id(char **newval, void **extra, GucSource source)
+{
+    (void) extra;
+    (void) source;
+
+    /*
+     * newval == NULL 이면 RESET 등일 수 있으니, 여기서 허용할지 여부 결정
+     * "무조건 있어야 한다"면 NULL/빈 문자열 둘 다 막는 게 맞음.
+     */
+    if (newval == NULL || *newval == NULL || (*newval)[0] == '\0')
+    {
+        GUC_check_errmsg("postfga.store_id must not be empty");
+        GUC_check_errdetail("Set the store ID for OpenFGA.");
+        return false;
+    }
+
+    return true;
+}
+
+
 
 /*
  * init_guc_variables
@@ -50,37 +82,40 @@ static PostfgaGuc config = {0};
 void
 postfga_guc_init(void)
 {
-    /* openfga.endpoint */
+    const char *env_endpoint = getenv("POSTFGA_ENDPOINT");
+    const char *env_store_id = getenv("POSTFGA_STORE_ID");
+
+    /* postfga.endpoint */
     DefineCustomStringVariable(
-        "openfga.endpoint",
+        "postfga.endpoint",
         "OpenFGA gRPC endpoint address",
         "Specifies the gRPC endpoint for OpenFGA server (e.g., 'dns:///openfga:8081')",
         &config.endpoint,
-        DEFAULT_ENDPOINT,
+        env_endpoint ? env_endpoint : DEFAULT_ENDPOINT,
         PGC_SUSET,
-        0,
-        NULL,  /* check_hook */
+        GUC_SUPERUSER_ONLY,
+        validate_endpoint,
         NULL,  /* assign_hook */
         NULL   /* show_hook */
     );
 
-    /* openfga.store_id */
+    /* postfga.store_id */
     DefineCustomStringVariable(
-        "openfga.store_id",
+        "postfga.store_id",
         "OpenFGA store ID",
         "Specifies the store ID to use in OpenFGA",
         &config.store_id,
-        DEFAULT_STORE_ID,
+        env_store_id ? env_store_id : NULL,
         PGC_SUSET,
-        0,
-        NULL,
+        GUC_SUPERUSER_ONLY,
+        validate_store_id,
         NULL,
         NULL
     );
 
-    /* openfga.authorization_model_id */
+    /* postfga.authorization_model_id */
     DefineCustomStringVariable(
-        "openfga.authorization_model_id",
+        "postfga.authorization_model_id",
         "OpenFGA authorization model ID (optional)",
         "Specifies the authorization model ID to use. If empty, uses the latest model.",
         &config.authorization_model_id,
@@ -92,9 +127,9 @@ postfga_guc_init(void)
         NULL
     );
 
-    /* openfga.relations */
+    /* postfga.relations */
     DefineCustomStringVariable(
-        "openfga.relations",
+        "postfga.relations",
         "Comma-separated list of relation names",
         "Defines the relations to track in the cache (e.g., 'read,write,edit,delete,owner'). "
         "Maximum 64 relations supported.",
@@ -107,9 +142,9 @@ postfga_guc_init(void)
         NULL
     );
 
-    /* openfga.cache_ttl_ms */
+    /* postfga.cache_ttl_ms */
     DefineCustomIntVariable(
-        "openfga.cache_ttl_ms",
+        "postfga.cache_ttl_ms",
         "Cache entry time-to-live in milliseconds",
         "Specifies how long cache entries remain valid (in milliseconds)",
         &config.cache_ttl_ms,

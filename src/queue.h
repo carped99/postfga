@@ -137,6 +137,9 @@ uint32 enqueue_grpc_request(const char *object_type, const char *object_id,
 /* Dequeue gRPC requests for processing */
 bool dequeue_grpc_requests(GrpcRequest *requests, uint32 *count);
 
+/* Dequeue requests as RequestPayload (for BGW with multi-type support) */
+bool dequeue_requests(RequestPayload *requests, uint32 *count);
+
 /* Wait for gRPC result */
 bool wait_for_grpc_result(uint32 request_id, bool *allowed, uint32 *error_code);
 
@@ -149,5 +152,10 @@ void notify_bgw_of_pending_work(void);
 /* Queue management functions */
 uint32 clear_completed_requests(void);
 bool get_queue_stats(uint32 *size, uint32 *capacity);
+
+/* Write tuple request */
+uint32 enqueue_write_request(const char *object_type, const char *object_id,
+                             const char *subject_type, const char *subject_id,
+                             const char *relation);
 
 #endif /* POSTFGA_QUEUE_H */

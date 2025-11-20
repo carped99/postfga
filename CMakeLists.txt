@@ -24,6 +24,7 @@ set(SOURCES
     src/relation.c
     src/state.c
     src/stats.c
+    src/func_check.c
 )
 
 # Create PostgreSQL extension shared library (MODULE → .so)

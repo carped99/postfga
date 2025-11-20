@@ -224,6 +224,120 @@ enqueue_grpc_request(const char *object_type, const char *object_id,
 }
 
 /*
+ * enqueue_write_request
+ *
+ * Enqueue a Write tuple request for background processing.
+ *
+ * Args:
+ *   object_type   - Object type (e.g., "document")
+ *   object_id     - Object ID (e.g., "123")
+ *   subject_type  - Subject type (e.g., "user")
+ *   subject_id    - Subject ID (e.g., "alice")
+ *   relation      - Relation name (e.g., "reader")
+ *
+ * Returns: Request ID (0 if queue is full)
+ */
+uint32
+enqueue_write_request(const char *object_type, const char *object_id,
+                     const char *subject_type, const char *subject_id,
+                     const char *relation)
+{
+    PostfgaShmemState *state;
+    WriteRequest *req;
+    uint32 tail;
+    uint32 request_id = 0;
+
+    /* Validate input */
+    if (!object_type || !object_id || !subject_type || !subject_id || !relation)
+    {
+        elog(WARNING, "PostFGA: Invalid parameters for enqueue_write_request");
+        return 0;
+    }
+
+    /* Get shared state */
+    state = get_shared_state();
+    if (!state || !state->request_queue)
+    {
+        elog(WARNING, "PostFGA: Queue not initialized");
+        return 0;
+    }
+
+    /* Acquire lock for queue modification */
+    LWLockAcquire(state->lock, LW_EXCLUSIVE);
+
+    /* Check if queue is full */
+    if (queue_is_full(state))
+    {
+        LWLockRelease(state->lock);
+        elog(WARNING, "PostFGA: Request queue is full (%u/%u)",
+             queue_size(state), MAX_PENDING_REQ);
+        return 0;
+    }
+
+    /* Get current tail position */
+    tail = pg_atomic_read_u32(&state->queue_tail);
+
+    /* Get pointer to queue entry */
+    RequestPayload *payload = &state->request_queue[tail];
+    req = &payload->write;  /* Use write request type */
+
+    /* Initialize request */
+    memset(payload, 0, sizeof(RequestPayload));
+
+    request_id = get_next_request_id(state);
+    req->base.request_id = request_id;
+    req->base.type = REQ_TYPE_WRITE;  /* Set request type */
+    req->base.status = REQ_STATUS_PENDING;
+    req->base.backend_pid = MyProcPid;
+    req->base.backend_id = MyBackendType;
+    req->base.backend_latch = MyLatch;  /* Store backend latch for wakeup */
+
+    /* Copy strings (with bounds checking) */
+    strncpy(req->object_type, object_type, NAME_MAX_LEN - 1);
+    req->object_type[NAME_MAX_LEN - 1] = '\0';
+
+    strncpy(req->object_id, object_id, NAME_MAX_LEN - 1);
+    req->object_id[NAME_MAX_LEN - 1] = '\0';
+
+    strncpy(req->subject_type, subject_type, NAME_MAX_LEN - 1);
+    req->subject_type[NAME_MAX_LEN - 1] = '\0';
+
+    strncpy(req->subject_id, subject_id, NAME_MAX_LEN - 1);
+    req->subject_id[NAME_MAX_LEN - 1] = '\0';
+
+    strncpy(req->relation, relation, RELATION_MAX_LEN - 1);
+    req->relation[RELATION_MAX_LEN - 1] = '\0';
+
+    /* Set timestamp */
+    req->base.created_at = GetCurrentTimestamp();
+
+    /* Initialize result fields */
+    req->base.error_code = 0;
+    req->base.success = false;
+
+    /* Advance tail pointer (circular) */
+    tail = (tail + 1) % MAX_PENDING_REQ;
+    pg_atomic_write_u32(&state->queue_tail, tail);
+
+    /* Increment size counter */
+    pg_atomic_fetch_add_u32(&state->queue_size, 1);
+
+    /* Update statistics */
+    stats_inc_request_enqueued(&state->stats);
+
+    /* Release lock */
+    LWLockRelease(state->lock);
+
+    elog(DEBUG2, "PostFGA: Enqueued write request %u (queue size: %u/%u)",
+         request_id, queue_size(state), MAX_PENDING_REQ);
+
+    /* Notify background worker */
+    notify_bgw_of_pending_work();
+
+    return request_id;
+}
+
+/*
  * dequeue_grpc_requests
  *
  * Dequeue gRPC requests for processing.
@@ -299,6 +413,88 @@ dequeue_grpc_requests(GrpcRequest *requests, uint32 *count)
             pg_atomic_fetch_sub_u32(&state->queue_size, 1);
             continue;
         }
+
+        /* Advance head pointer (circular) */
+        head = (head + 1) % MAX_PENDING_REQ;
+        pg_atomic_write_u32(&state->queue_head, head);
+
+        /* Decrement size counter */
+        pg_atomic_fetch_sub_u32(&state->queue_size, 1);
+
+        dequeued++;
+
+        /* Update statistics */
+        stats_inc_request_processed(&state->stats);
+    }
+
+    /* Release lock */
+    LWLockRelease(state->lock);
+
+    *count = dequeued;
+
+    elog(DEBUG2, "PostFGA: Dequeued %u requests (queue size: %u/%u)",
+         dequeued, queue_size(state), MAX_PENDING_REQ);
+
+    return (dequeued > 0);
+}
+
+/*
+ * dequeue_requests
+ *
+ * Dequeue requests as RequestPayload (supports all request types).
+ *
+ * Args:
+ *   requests  - Buffer to store dequeued requests
+ *   count     - In: max requests to dequeue, Out: actual count dequeued
+ *
+ * Returns: true if any requests were dequeued, false otherwise
+ */
+bool
+dequeue_requests(RequestPayload *requests, uint32 *count)
+{
+    PostfgaShmemState *state;
+    uint32 head;
+    uint32 max_count;
+    uint32 dequeued = 0;
+    uint32 i;
+
+    /* Validate input */
+    if (!requests || !count || *count == 0)
+    {
+        elog(WARNING, "PostFGA: Invalid parameters for dequeue_requests");
+        return false;
+    }
+
+    max_count = *count;
+    *count = 0;
+
+    /* Get shared state */
+    state = get_shared_state();
+    if (!state || !state->request_queue)
+    {
+        elog(WARNING, "PostFGA: Queue not initialized");
+        return false;
+    }
+
+    /* Acquire lock for queue modification */
+    LWLockAcquire(state->lock, LW_EXCLUSIVE);
+
+    /* Check if queue is empty */
+    if (queue_is_empty(state))
+    {
+        LWLockRelease(state->lock);
+        return false;
+    }
+
+    /* Get current head position */
+    head = pg_atomic_read_u32(&state->queue_head);
+
+    /* Dequeue up to max_count requests */
+    for (i = 0; i < max_count && !queue_is_empty(state); i++)
+    {
+        /* Copy request to output buffer */
+        RequestPayload *payload = &state->request_queue[head];
+        memcpy(&requests[i], payload, sizeof(RequestPayload));
 
         /* Advance head pointer (circular) */
         head = (head + 1) % MAX_PENDING_REQ;

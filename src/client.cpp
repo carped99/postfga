@@ -414,4 +414,37 @@ bool postfga_client_is_healthy(GrpcClient *client)
     return client->impl->IsHealthy();
 }
 
+bool postfga_client_write_sync(GrpcClient *client,
+                              const GrpcWriteRequest *request,
+                              WriteResponse *response)
+{
+    if (!client || !client->impl || !request || !response)
+        return false;
+
+    // TODO: Implement WriteSync in GrpcClientImpl
+    // For now, return a stub implementation
+    response->success = true;
+    response->error_code = 0;
+    response->error_message[0] = '\0';
+    return true;
+}
+
+bool postfga_client_write_async(GrpcClient *client,
+                               const GrpcWriteRequest *request,
+                               WriteCallback callback,
+                               void *user_data)
+{
+    if (!client || !client->impl || !request || !callback)
+        return false;
+
+    // TODO: Implement WriteAsync in GrpcClientImpl
+    // For now, immediately call callback with success
+    WriteResponse response;
+    response.success = true;
+    response.error_code = 0;
+    response.error_message[0] = '\0';
+    callback(&response, user_data);
+    return true;
+}
+
 } // extern "C"

@@ -59,12 +59,46 @@ grpc_check_callback(const CheckResponse *response, void *user_data)
 }
 
 /*
+ * grpc_write_callback - Called when Write request completes
+ */
+static void
+grpc_write_callback(const WriteResponse *response, void *user_data)
+{
+    uint32 request_id;
+
+    if (!response || !user_data)
+    {
+        elog(WARNING, "PostFGA BGW: Invalid write callback arguments");
+        return;
+    }
+
+    request_id = *(uint32 *)user_data;
+
+    /* Set result in shared memory queue */
+    set_grpc_result(request_id, response->success, response->error_code);
+
+    if (response->error_code != 0)
+    {
+        elog(LOG, "PostFGA BGW: Write request %u completed with error: %s",
+             request_id, response->error_message);
+    }
+    else
+    {
+        elog(DEBUG2, "PostFGA BGW: Write request %u completed successfully",
+             request_id);
+    }
+
+    /* Free user_data */
+    pfree(user_data);
+}
+
+/*
  * process_pending_requests - Dequeue and process gRPC requests
  */
 static void
 process_pending_requests(void)
 {
-    GrpcRequest requests[MAX_BATCH_SIZE];
+    RequestPayload requests[MAX_BATCH_SIZE];
     uint32 count = MAX_BATCH_SIZE;
     uint32 i;
 
@@ -97,7 +131,7 @@ process_pending_requests(void)
     }
 
     /* Dequeue requests */
-    if (!dequeue_grpc_requests(requests, &count))
+    if (!dequeue_requests(requests, &count))
     {
         /* No requests to process */
         return;
@@ -105,44 +139,83 @@ process_pending_requests(void)
 
     elog(DEBUG1, "PostFGA BGW: Processing %u requests", count);
 
-    /* Process each request asynchronously */
+    /* Get store ID and authorization model from GUC */
+    const char *store_id = GetConfigOption("postfga.store_id", false, false);
+    const char *auth_model_id = GetConfigOption("postfga.authorization_model_id", false, false);
+
+    if (!store_id || store_id[0] == '\0')
+    {
+        elog(WARNING, "PostFGA BGW: No store_id configured");
+        /* Mark all requests as failed */
+        for (i = 0; i < count; i++)
+        {
+            set_grpc_result(requests[i].base.request_id, false, 8888);
+        }
+        return;
+    }
+
+    /* Process each request asynchronously based on type */
     for (i = 0; i < count; i++)
     {
-        GrpcRequest *req = &requests[i];
-        GrpcCheckRequest check_req = {0};
+        RequestPayload *payload = &requests[i];
         uint32 *request_id_ptr;
-
-        /* Get store ID and authorization model from GUC */
-        const char *store_id = GetConfigOption("postfga.store_id", false, false);
-        const char *auth_model_id = GetConfigOption("postfga.authorization_model_id", false, false);
-
-        if (!store_id || store_id[0] == '\0')
-        {
-            elog(WARNING, "PostFGA BGW: No store_id configured");
-            set_grpc_result(req->base.request_id, false, 8888);  /* Configuration error */
-            continue;
-        }
-
-        /* Build GrpcCheckRequest */
-        check_req.store_id = store_id;
-        check_req.authorization_model_id = auth_model_id;  /* Can be NULL */
-        check_req.object_type = req->object_type;
-        check_req.object_id = req->object_id;
-        check_req.relation = req->relation;
-        check_req.subject_type = req->subject_type;
-        check_req.subject_id = req->subject_id;
 
         /* Allocate request ID for callback */
         request_id_ptr = (uint32 *)palloc(sizeof(uint32));
-        *request_id_ptr = req->base.request_id;
+        *request_id_ptr = payload->base.request_id;
 
-        /* Submit async gRPC request */
-        if (!postfga_client_check_async(grpc_client, &check_req,
-                                     grpc_check_callback, request_id_ptr))
+        if (payload->base.type == REQ_TYPE_CHECK)
         {
-            elog(WARNING, "PostFGA BGW: Failed to submit async request %u",
-                 req->base.request_id);
-            set_grpc_result(req->base.request_id, false, 7777);  /* Submit error */
+            CheckRequest *req = &payload->check;
+            GrpcCheckRequest check_req = {0};
+
+            /* Build GrpcCheckRequest */
+            check_req.store_id = store_id;
+            check_req.authorization_model_id = auth_model_id;
+            check_req.object_type = req->object_type;
+            check_req.object_id = req->object_id;
+            check_req.relation = req->relation;
+            check_req.subject_type = req->subject_type;
+            check_req.subject_id = req->subject_id;
+
+            /* Submit async gRPC Check request */
+            if (!postfga_client_check_async(grpc_client, &check_req,
+                                         grpc_check_callback, request_id_ptr))
+            {
+                elog(WARNING, "PostFGA BGW: Failed to submit async check request %u",
+                     payload->base.request_id);
+                set_grpc_result(payload->base.request_id, false, 7777);
+                pfree(request_id_ptr);
+            }
+        }
+        else if (payload->base.type == REQ_TYPE_WRITE)
+        {
+            WriteRequest *req = &payload->write;
+            GrpcWriteRequest write_req = {0};
+
+            /* Build GrpcWriteRequest */
+            write_req.store_id = store_id;
+            write_req.authorization_model_id = auth_model_id;
+            write_req.object_type = req->object_type;
+            write_req.object_id = req->object_id;
+            write_req.relation = req->relation;
+            write_req.subject_type = req->subject_type;
+            write_req.subject_id = req->subject_id;
+
+            /* Submit async gRPC Write request */
+            if (!postfga_client_write_async(grpc_client, &write_req,
+                                         grpc_write_callback, request_id_ptr))
+            {
+                elog(WARNING, "PostFGA BGW: Failed to submit async write request %u",
+                     payload->base.request_id);
+                set_grpc_result(payload->base.request_id, false, 7777);
+                pfree(request_id_ptr);
+            }
+        }
+        else
+        {
+            elog(WARNING, "PostFGA BGW: Unsupported request type %d", payload->base.type);
+            set_grpc_result(payload->base.request_id, false, 9999);
             pfree(request_id_ptr);
         }
     }

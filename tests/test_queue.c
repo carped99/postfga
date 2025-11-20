@@ -173,3 +173,109 @@ postfga_test_clear_queue(PG_FUNCTION_ARGS)
 
     PG_RETURN_INT32(cleared);
 }
+
+/*
+ * SQL function: postfga_write_tuple(object_type, object_id, subject_type, subject_id, relation)
+ *
+ * Write a tuple to OpenFGA via BGW queue
+ */
+PG_FUNCTION_INFO_V1(postfga_write_tuple);
+Datum
+postfga_write_tuple(PG_FUNCTION_ARGS)
+{
+    char *object_type;
+    char *object_id;
+    char *subject_type;
+    char *subject_id;
+    char *relation;
+    uint32 request_id;
+    bool allowed;
+    uint32 error_code;
+
+    /* Get arguments */
+    object_type = text_to_cstring(PG_GETARG_TEXT_PP(0));
+    object_id = text_to_cstring(PG_GETARG_TEXT_PP(1));
+    subject_type = text_to_cstring(PG_GETARG_TEXT_PP(2));
+    subject_id = text_to_cstring(PG_GETARG_TEXT_PP(3));
+    relation = text_to_cstring(PG_GETARG_TEXT_PP(4));
+
+    elog(LOG, "PostFGA: Writing tuple %s:%s#%s@%s:%s",
+         object_type, object_id, relation, subject_type, subject_id);
+
+    /* Enqueue write request */
+    request_id = enqueue_write_request(object_type, object_id, subject_type, subject_id, relation);
+
+    if (request_id == 0)
+    {
+        elog(ERROR, "PostFGA: Failed to enqueue write request");
+    }
+
+    elog(LOG, "PostFGA: Enqueued write request #%u, waiting for result...", request_id);
+
+    /* Wait for result from BGW */
+    if (!wait_for_grpc_result(request_id, &allowed, &error_code))
+    {
+        elog(ERROR, "PostFGA: Write request timed out");
+    }
+
+    if (!allowed)
+    {
+        elog(ERROR, "PostFGA: Write request returned false (error_code: %u)", error_code);
+    }
+
+    elog(LOG, "PostFGA: Write tuple completed successfully");
+
+    PG_RETURN_BOOL(true);
+}
+
+/*
+ * SQL function: postfga_check(object_type, object_id, subject_type, subject_id, relation)
+ *
+ * Check permission via BGW queue
+ */
+PG_FUNCTION_INFO_V1(postfga_check);
+Datum
+postfga_check(PG_FUNCTION_ARGS)
+{
+    char *object_type;
+    char *object_id;
+    char *subject_type;
+    char *subject_id;
+    char *relation;
+    uint32 request_id;
+    bool allowed;
+    uint32 error_code;
+
+    /* Get arguments */
+    object_type = text_to_cstring(PG_GETARG_TEXT_PP(0));
+    object_id = text_to_cstring(PG_GETARG_TEXT_PP(1));
+    subject_type = text_to_cstring(PG_GETARG_TEXT_PP(2));
+    subject_id = text_to_cstring(PG_GETARG_TEXT_PP(3));
+    relation = text_to_cstring(PG_GETARG_TEXT_PP(4));
+
+    elog(DEBUG1, "PostFGA: Checking permission %s:%s#%s@%s:%s",
+         object_type, object_id, relation, subject_type, subject_id);
+
+    /* Enqueue check request */
+    request_id = enqueue_grpc_request(object_type, object_id, subject_type, subject_id, relation);
+
+    if (request_id == 0)
+    {
+        elog(ERROR, "PostFGA: Failed to enqueue check request");
+    }
+
+    elog(DEBUG2, "PostFGA: Enqueued check request #%u, waiting for result...", request_id);
+
+    /* Wait for result from BGW */
+    if (!wait_for_grpc_result(request_id, &allowed, &error_code))
+    {
+        elog(ERROR, "PostFGA: Check request timed out");
+    }
+
+    if (error_code != 0)
+    {
+        elog(ERROR, "PostFGA: Check request failed with error_code: %u", error_code);
+    }
+
+    PG_RETURN_BOOL(allowed);
+}

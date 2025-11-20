@@ -22,6 +22,8 @@ RETURNS int
 AS 'MODULE_PATHNAME', 'postfga_test_clear_queue'
 LANGUAGE C STRICT;
 
+
+
 -- Test 1: Check initial queue state
 SELECT postfga_test_queue_stats() AS "Initial Queue State";
 
