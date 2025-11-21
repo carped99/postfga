@@ -24,17 +24,35 @@
  */
 
 /* Global configuration structure */
-static PostfgaGuc config = {0};
+static PostfgaConfig config = {0};
 
-/* Default values */
+
+// GUC names
+#define GUC_ENDPOINT          "postfga.endpoint"
+#define GUC_STORE_ID          "postfga.store_id"
+#define GUC_AUTH_MODEL_ID     "postfga.authorization_model_id"
+#define GUC_RELATIONS         "postfga.relations"
+#define GUC_CACHE_TTL_MS      "postfga.cache_ttl_ms"
+#define GUC_MAX_CACHE_ENTRIES "postfga.max_cache_entries"
+#define GUC_BGW_WORKERS       "postfga.bgw_workers"
+#define GUC_FALLBACK_ON_MISS  "postfga.fallback_to_grpc_on_miss"
+
+// Default values
 #define DEFAULT_ENDPOINT               "dns:///localhost:8081"
-#define DEFAULT_STORE_ID               ""
+#define DEFAULT_STORE_ID               "changeme"
 #define DEFAULT_AUTH_MODEL_ID          ""
 #define DEFAULT_RELATIONS              "read,write,edit,delete,owner"
 #define DEFAULT_CACHE_TTL_MS           60000
 #define DEFAULT_MAX_CACHE_ENTRIES      10000
 #define DEFAULT_BGW_WORKERS            1
 #define DEFAULT_FALLBACK_TO_GRPC       true
+
+static const char *
+env_or_default(const char *env_name, const char *default_value)
+{
+    const char *val = getenv(env_name);
+    return (val && val[0] != '\0') ? val : default_value;
+}
 
 static bool
 validate_endpoint(char **newval, void **extra, GucSource source)
@@ -57,10 +75,6 @@ validate_store_id(char **newval, void **extra, GucSource source)
     (void) extra;
     (void) source;
 
-    /*
-     * newval == NULL 이면 RESET 등일 수 있으니, 여기서 허용할지 여부 결정
-     * "무조건 있어야 한다"면 NULL/빈 문자열 둘 다 막는 게 맞음.
-     */
     if (newval == NULL || *newval == NULL || (*newval)[0] == '\0')
     {
         GUC_check_errmsg("postfga.store_id must not be empty");
@@ -71,28 +85,22 @@ validate_store_id(char **newval, void **extra, GucSource source)
     return true;
 }
 
-
-
 /*
- * init_guc_variables
+ * postfga_guc_init
  *
- * Initialize all GUC variables for the extension.
- * Called from _PG_init.
+ * Define all GUC variables and bind them to the global config struct.
+ * Must be called from _PG_init().
  */
 void
 postfga_guc_init(void)
 {
-    const char *env_endpoint = getenv("POSTFGA_ENDPOINT");
-    const char *env_store_id = getenv("POSTFGA_STORE_ID");
-    const char *env_auth_model_id = getenv("POSTFGA_AUTH_MODEL_ID");
-
     /* postfga.endpoint */
     DefineCustomStringVariable(
         "postfga.endpoint",
         "OpenFGA gRPC endpoint address",
         "Specifies the gRPC endpoint for OpenFGA server (e.g., 'dns:///openfga:8081')",
         &config.endpoint,
-        env_endpoint ? env_endpoint : DEFAULT_ENDPOINT,
+        env_or_default("POSTFGA_ENDPOINT", DEFAULT_ENDPOINT),
         PGC_SUSET,
         GUC_SUPERUSER_ONLY,
         validate_endpoint,
@@ -106,7 +114,7 @@ postfga_guc_init(void)
         "OpenFGA store ID",
         "Specifies the store ID to use in OpenFGA",
         &config.store_id,
-        env_store_id ? env_store_id : NULL,
+        env_or_default("POSTFGA_STORE_ID", DEFAULT_STORE_ID),
         PGC_SUSET,
         GUC_SUPERUSER_ONLY,
         validate_store_id,
@@ -120,7 +128,7 @@ postfga_guc_init(void)
         "OpenFGA authorization model ID (optional)",
         "Specifies the authorization model ID to use. If empty, uses the latest model.",
         &config.authorization_model_id,
-        env_auth_model_id ? env_auth_model_id : DEFAULT_AUTH_MODEL_ID,
+        env_or_default("POSTFGA_AUTH_MODEL_ID", DEFAULT_AUTH_MODEL_ID),
         PGC_SUSET,
         GUC_SUPERUSER_ONLY,
         NULL,
@@ -192,8 +200,8 @@ postfga_guc_fini(void)
  *
  * Returns: Pointer to OpenFGAFdwConfig
  */
-PostfgaGuc *
-postfga_get_guc(void)
+PostfgaConfig *
+postfga_get_config(void)
 {
     return &config;
 }
@@ -219,34 +227,6 @@ validate_guc_values(void)
     if (!config.store_id || config.store_id[0] == '\0')
     {
         elog(WARNING, "PostFGA: openfga_fdw.store_id is not set");
-    }
-
-    /* Validate relations */
-    if (!config.relations || config.relations[0] == '\0')
-    {
-        elog(WARNING, "PostFGA: openfga_fdw.relations is empty, no relations will be tracked");
-    }
-    else
-    {
-        /* Count relations to ensure we don't exceed 64 */
-        int relation_count = 1;  /* Start at 1 for the first relation */
-        const char *p = config.relations;
-
-        while (*p != '\0')
-        {
-            if (*p == ',')
-                relation_count++;
-            p++;
-        }
-
-        if (relation_count > 64)
-        {
-            elog(WARNING, "PostFGA: openfga_fdw.relations contains %d relations, "
-                 "but maximum is 64. Excess relations will be ignored.",
-                 relation_count);
-        }
-
-        elog(DEBUG1, "PostFGA: Configuration has %d relations defined", relation_count);
     }
 
     /* Validate cache_ttl_ms */
@@ -282,7 +262,6 @@ validate_guc_values(void)
     elog(DEBUG1, "  authorization_model_id: %s",
          config.authorization_model_id && config.authorization_model_id[0]
          ? config.authorization_model_id : "(empty)");
-    elog(DEBUG1, "  relations: %s", config.relations ? config.relations : "(null)");
     elog(DEBUG1, "  cache_ttl_ms: %d", config.cache_ttl_ms);
     elog(DEBUG1, "  max_cache_entries: %d", config.max_cache_entries);
     elog(DEBUG1, "  bgw_workers: %d", config.bgw_workers);

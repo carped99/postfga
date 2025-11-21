@@ -1,24 +1,19 @@
 extern "C" {
-#include <postgres.h>
-#include <utils/guc.h>
-}
-
 #include "state.h"
 #include "queue.h"
+}
+
+#include <utility>
 #include "processor.hpp"
 
 namespace postfga::bgw {
 
-bool Processor::load_config()
+Processor::Processor(PostfgaShmemState *state, const postfga::client::Config &config)
+      : state_(state)
+      , client_(config)
 {
-    store_id_ = GetConfigOption("postfga.store_id", false, false);
-    auth_model_id_ = GetConfigOption("postfga.authorization_model_id", false, false);
-
-    if (!store_id_ || store_id_[0] == '\0') {
-        elog(WARNING, "PostFGA BGW: No store_id configured");
-        return false;
-    }
-    return true;
+    Assert(state != nullptr);
+    // 추가 초기화가 필요하면 여기에 작성
 }
 
 void Processor::execute()
@@ -67,5 +62,14 @@ void Processor::handle_single_request(RequestPayload &payload)
             break;
     }
 }
+
+void Processor::handle_check(RequestPayload &payload)
+{
+}
+
+void Processor::handle_write(RequestPayload &payload)
+{
+}
+
 
 } // namespace postfga::bgw

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(postfga VERSION 1.0.0 LANGUAGES C CXX)
 
 # C++20 standard required
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -16,17 +16,11 @@ include(cmake/openfga.cmake)
 set(SOURCES
     src/init.c
     src/shmem.c
+    src/guc.c
     src/bgw/main.cpp
     src/bgw/worker.cpp
     src/bgw/processor.cpp
-    src/cache.c
-    src/client.cpp
-    src/generation.c
-    src/guc.c
-    src/queue.c
-    src/relation.c
-    src/stats.c
-    src/func_check.c
+    src/client/client.cpp
 )
 
 # Create PostgreSQL extension shared library (MODULE → .so)

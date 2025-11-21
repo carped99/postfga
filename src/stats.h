@@ -9,6 +9,10 @@
 #ifndef POSTFGA_STATS_H
 #define POSTFGA_STATS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <postgres.h>
 #include <port/atomics.h>
 
@@ -53,5 +57,9 @@ void stats_inc_request_processed(Stats *stats);
 uint64 stats_get_cache_hits(Stats *stats);
 uint64 stats_get_cache_misses(Stats *stats);
 uint64 stats_get_cache_entries(Stats *stats);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* POSTFGA_STATS_H */

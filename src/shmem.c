@@ -20,7 +20,6 @@
 #include <storage/shmem.h>
 #include <utils/hsearch.h>
 
-
 #include "common.h"
 #include "shmem.h"
 #include "generation.h"

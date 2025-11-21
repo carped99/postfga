@@ -1,10 +1,14 @@
+
+extern "C" {
 #include <postgres.h>
 #include <storage/ipc.h>
 #include <postmaster/bgworker.h>
-#include <string.h>
-
-#include "worker.hpp"
 #include "shmem.h"
+}
+
+#include <string.h>
+#include <exception>
+#include "worker.hpp"
 
 extern "C" void
 postfga_bgw_init(void)
@@ -31,21 +35,36 @@ postfga_bgw_fini(void)
     // noop
 }
 
-extern "C" void
+extern "C" PGDLLEXPORT void
 postfga_bgw_main(Datum arg)
 {
     (void)arg;
+    
     PG_TRY();
     {
-        postfga::bgw::Worker worker(postfga_get_shared_state());
-        ereport(DEBUG1, (errmsg("postfga background worker running")));
-        worker.run();
-        ereport(DEBUG1, (errmsg("postfga background worker finished")));
-        proc_exit(0);
+        PostfgaShmemState *state = postfga_get_shared_state();
+        if (state == nullptr)
+            ereport(ERROR, (errmsg("postfga bgw: shared memory state is not initialized")));
+
+        try
+        {
+            postfga::bgw::Worker worker(state);
+            ereport(DEBUG1, (errmsg("postfga bgw: running")));
+            worker.run();
+            ereport(DEBUG1, (errmsg("postfga bgw: finished")));
+            proc_exit(0);
+        }
+        catch (const std::exception &ex)
+        {
+            ereport(ERROR, (errmsg("postfga bgw: exception: %s", ex.what())));
+        }
+        catch (...)
+        {
+            ereport(ERROR, (errmsg("postfga bgw: unknown exception")));
+        }
     }
     PG_CATCH();
     {
-        /* 로그 출력 후 종료 */
         EmitErrorReport();
         FlushErrorState();
         proc_exit(1);

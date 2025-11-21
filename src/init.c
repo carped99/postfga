@@ -3,30 +3,34 @@
  *
  * PostgreSQL extension initialization and cleanup
  */
+
 #include <postgres.h>
 #include <fmgr.h>
 #include <miscadmin.h>
 #include <storage/ipc.h>
 #include <postmaster/bgworker.h>
 
-// #include "state.h"
-// #include "bgw/main.h"
-// #include "guc.h"
+#include "guc.h"
+#include "shmem.h"
+#include "bgw/main.h"
 
 /* Module magic */
 PG_MODULE_MAGIC;
 
 /* Hook variables */
-shmem_request_hook_type prev_shmem_request_hook = NULL;
-shmem_startup_hook_type prev_shmem_startup_hook = NULL;
+static shmem_request_hook_type prev_shmem_request_hook = NULL;
+static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
 
+/* ------------------------------------------------------------------------- */
+/* Hook implementations                                                      */
+/* ------------------------------------------------------------------------- */
 static void
 postfga_shmem_request_hook(void)
 {
     if (prev_shmem_request_hook)
         prev_shmem_request_hook();
 
-    // postfga_shmem_request();
+    postfga_shmem_request();
 }
 
 static void
@@ -35,9 +39,13 @@ postfga_shmem_startup_hook(void)
     if (prev_shmem_startup_hook)
         prev_shmem_startup_hook();
 
-    // postfga_shmem_startup();
+    postfga_shmem_startup();
 }
 
+
+/* ------------------------------------------------------------------------- */
+/* Module load / unload                                                      */
+/* ------------------------------------------------------------------------- */
 void
 _PG_init(void)
 {
@@ -49,30 +57,32 @@ _PG_init(void)
                  errhidestmt(true)));
     }
 
-    elog(LOG, "PostFGA: Initializing extension");
+    ereport(LOG, (errmsg("PostFGA: initializing extension")));
 
-    /* Register shared memory hooks */
-    // prev_shmem_request_hook = shmem_request_hook;
-    // shmem_request_hook = postfga_shmem_request_hook;
+    // Initialize GUC parameters first (may affect shmem size/config)
+    postfga_guc_init();
 
-    // prev_shmem_startup_hook = shmem_startup_hook;
-    // shmem_startup_hook = postfga_shmem_startup_hook;
+    // Register shared memory hooks, preserving existing hook chain
+    prev_shmem_request_hook = shmem_request_hook;
+    shmem_request_hook = postfga_shmem_request_hook;
 
-    // postfga_guc_init();
-    // postfga_bgw_init();
+    prev_shmem_startup_hook = shmem_startup_hook;
+    shmem_startup_hook = postfga_shmem_startup_hook;
+    
+    postfga_bgw_init();
 
-    elog(LOG, "PostFGA: Extension initialized");
+    ereport(LOG, (errmsg("PostFGA: Extension initialized")));
 }
 
 void
 _PG_fini(void)
 {
-    elog(LOG, "PostFGA: Extension unloading");
+    ereport(LOG, (errmsg("PostFGA: Extension unloading")));
 
-    // postfga_bgw_fini();
-    // postfga_guc_fini();
+    postfga_bgw_fini();
+    postfga_guc_fini();
 
-    /* Restore hooks */
+    // Restore previous hooks so other extensions in the chain keep working
     shmem_request_hook = prev_shmem_request_hook;
     shmem_startup_hook = prev_shmem_startup_hook;
 }

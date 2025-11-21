@@ -18,7 +18,7 @@ void postfga_bgw_fini(void);
 /**
  * postfga_bgw_main - Background Worker main loop
  */
-void postfga_bgw_main(Datum arg);
+PGDLLEXPORT void postfga_bgw_main(Datum arg);
 
 #ifdef __cplusplus
 }

@@ -8,17 +8,19 @@ extern "C" {
 #include <storage/lwlock.h>
 #include <utils/guc.h>
 #include <pgstat.h>
+
+#include "guc.h"
 }
 
 #include "worker.hpp"
 #include "processor.hpp"
-#include "state.h"   // get_shared_state(), PostfgaShmemState
 
 namespace {
+    // signal flags
     volatile sig_atomic_t shutdown_requested = false;
     volatile sig_atomic_t reload_requested   = false;
 
-    /* ---- signal handler ---- */
+    // SIGTERM handler: request shutdown
     void bgw_sigterm_handler(SIGNAL_ARGS) {
         int save_errno = errno;
         shutdown_requested = true;
@@ -27,6 +29,7 @@ namespace {
         errno = save_errno;
     }
 
+    // SIGHUP handler: request config reload
     void bgw_sighup_handler(SIGNAL_ARGS) {
         int save_errno = errno;
         reload_requested = true;
@@ -35,6 +38,18 @@ namespace {
         errno = save_errno;
     }
 
+    /* Local helper: convert GUC → Config */
+    postfga::client::Config make_client_config_from_guc()
+    {
+        auto guc = postfga_get_config();
+        postfga::client::Config cfg;
+        cfg.endpoint               = guc->endpoint ? guc->endpoint : "";
+        cfg.store_id               = guc->store_id ? guc->store_id : "";
+        cfg.authorization_model_id = guc->authorization_model_id ? guc->authorization_model_id : "";
+        cfg.timeout_ms             = static_cast<std::uint32_t>(guc->cache_ttl_ms);
+        cfg.use_tls                = false;
+        return cfg;
+    }
 } // anonymous namespace
 
 namespace postfga::bgw {
@@ -43,21 +58,21 @@ Worker::Worker(PostfgaShmemState *state)
     : state_(state)
 {
     Assert(state_ != nullptr);
+
+    initialize();
 }
 
 void Worker::run()
 {
-    // initialize();
-
-    /* shared state 안에 latch 등록 */
+    /* register latch in shared state */
     LWLockAcquire(state_->lock, LW_EXCLUSIVE);
     state_->bgw_latch = MyLatch;
     LWLockRelease(state_->lock);
 
-    /* 메인 루프 진입 */
+    /* enter main loop */
     process();
 
-    /* 종료 시 latch 등록 해제 */
+    /* unregister latch on exit */
     LWLockAcquire(state_->lock, LW_EXCLUSIVE);
     state_->bgw_latch = NULL;
     LWLockRelease(state_->lock);
@@ -65,21 +80,22 @@ void Worker::run()
 
 void Worker::initialize()
 {
-    /* PostgreSQL 스타일 시그널 핸들러 등록 */
+    // install signal handlers
     pqsignal(SIGTERM, bgw_sigterm_handler);
-    pqsignal(SIGHUP, bgw_sighup_handler);
+    pqsignal(SIGHUP,  bgw_sighup_handler);
 
-    /* block 되어 있던 signal 해제 */
+    // allow signals to be delivered
     BackgroundWorkerUnblockSignals();
 
-    /* 필요시 DB 연결 (지금은 주석 처리, 나중에 원하면 사용)
+    /* optional: connect to database
      * BackgroundWorkerInitializeConnection(NULL, NULL, 0);
      */
 }
 
 void Worker::process()
 {
-    Processor processor;
+    auto config = make_client_config_from_guc();
+    Processor processor(state_, config);
 
     while (!shutdown_requested)
     {
@@ -88,26 +104,31 @@ void Worker::process()
                            -1,
                            PG_WAIT_EXTENSION);
 
-        /* latch reset */
+        // latch reset
         ResetLatch(MyLatch);
 
-        /* postmaster 죽음 감지 시 곧바로 종료 */
+        // exit if postmaster dies
         if (rc & WL_POSTMASTER_DEATH)
             proc_exit(1);
 
-        /* SIGHUP 처리: config reload */
+        // handle config reload
         if (reload_requested)
         {
             reload_requested = false;
             ProcessConfigFile(PGC_SIGHUP);
         }
 
-        /* 큐에 쌓인 gRPC 요청 처리 */
-        processor.execute();
+        // report activity: processing requests
+        pgstat_report_activity(STATE_RUNNING, "postfga bgw: processing requests");
 
-        /* pg_stat_activity 보고 (큰 의미는 없지만 관례상) */
+        processor.execute();
+        
+        // report activity: idle
         pgstat_report_activity(STATE_IDLE, NULL);
     }
+
+    // report activity: stopped
+    pgstat_report_activity(STATE_IDLE, "postfga bgw: stopped");
 }
 
 } // namespace postfga::bgw
