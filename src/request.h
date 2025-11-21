@@ -11,6 +11,19 @@
 
 #include "common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <postgres.h>
+#include <datatype/timestamp.h>
+#include <storage/latch.h>
+
+#ifdef __cplusplus
+}
+#endif
+
+
 typedef enum
 {
     REQ_STATUS_PENDING   = 0,

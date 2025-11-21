@@ -1,6 +1,7 @@
 // openfga.cpp
-#include "openfga.hpp"
+#include "request.h"
 
+#include "openfga.hpp"
 #include <algorithm>
 #include <cstring>
 #include <thread>
@@ -295,34 +296,34 @@ int OpenFgaGrpcClient::next_backoff_ms(int attempt) const
 void OpenFgaGrpcClient::fill_check_request(const GrpcCheckRequest& in,
                                            openfga::v1::CheckRequest& out) const
 {
-    auto* tuple_key = out.mutable_tuple_key();
-    tuple_key->set_user(make_user(in));
-    tuple_key->set_relation(in.relation);
-    tuple_key->set_object(make_object(in));
+    // auto* tuple_key = out.mutable_tuple_key();
+    // tuple_key->set_user(make_user(in));
+    // tuple_key->set_relation(in.relation);
+    // tuple_key->set_object(make_object(in));
 
-    if (in.store_id && in.store_id[0] != '\0')
-        out.set_store_id(in.store_id);
-    else if (!config_.default_store_id.empty())
-        out.set_store_id(config_.default_store_id);
+    // if (in.store_id && in.store_id[0] != '\0')
+    //     out.set_store_id(in.store_id);
+    // else if (!config_.default_store_id.empty())
+    //     out.set_store_id(config_.default_store_id);
 
-    if (in.authorization_model_id && in.authorization_model_id[0] != '\0')
-        out.set_authorization_model_id(in.authorization_model_id);
-    else if (!config_.default_auth_model_id.empty())
-        out.set_authorization_model_id(config_.default_auth_model_id);
+    // if (in.authorization_model_id && in.authorization_model_id[0] != '\0')
+    //     out.set_authorization_model_id(in.authorization_model_id);
+    // else if (!config_.authorization_model_id.empty())
+    //     out.set_authorization_model_id(config_.authorization_model_id);
 }
 
 void OpenFgaGrpcClient::fill_write_request(const GrpcWriteRequest& in,
                                            openfga::v1::WriteRequest& out) const
 {
-    if (in.store_id && in.store_id[0] != '\0')
-        out.set_store_id(in.store_id);
-    else if (!config_.default_store_id.empty())
-        out.set_store_id(config_.default_store_id);
+    // if (in.store_id && in.store_id[0] != '\0')
+    //     out.set_store_id(in.store_id);
+    // else if (!config_.default_store_id.empty())
+    //     out.set_store_id(config_.default_store_id);
 
-    if (in.authorization_model_id && in.authorization_model_id[0] != '\0')
-        out.set_authorization_model_id(in.authorization_model_id);
-    else if (!config_.default_auth_model_id.empty())
-        out.set_authorization_model_id(config_.default_auth_model_id);
+    // if (in.authorization_model_id && in.authorization_model_id[0] != '\0')
+    //     out.set_authorization_model_id(in.authorization_model_id);
+    // else if (!config_.authorization_model_id.empty())
+    //     out.set_authorization_model_id(config_.authorization_model_id);
 
     // TODO: in.tuples_json 을 실제 proto 구조로 파싱해서 매핑
     //   out.mutable_writes()->mutable_tuple_keys()->Add(...);

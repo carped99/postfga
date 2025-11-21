@@ -31,7 +31,7 @@ typedef struct Stats
 } Stats;
 
 /* Initialize statistics counters */
-void stats_init(Stats *stats);
+void postfga_init_stats(Stats *stats);
 
 /* Increment cache hit counter */
 void stats_inc_cache_hit(Stats *stats);

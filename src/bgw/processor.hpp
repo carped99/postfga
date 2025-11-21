@@ -1,6 +1,12 @@
 // processor.hpp
 #pragma once
 
+extern "C" {
+#include "state.h"
+}
+
+#include <memory>
+#include "client/config.hpp"
 #include "client/client.hpp"
 
 namespace postfga::bgw {
@@ -20,7 +26,7 @@ private:
     void handle_write(RequestPayload &payload);
 
     PostfgaShmemState *state_ = nullptr;
-    postfga::client::Client client_;
+    std::unique_ptr<postfga::client::Client> client_;
 };
 
 } // namespace postfga::bgw

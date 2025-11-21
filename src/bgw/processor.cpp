@@ -1,23 +1,35 @@
 extern "C" {
+#include <postgres.h>
+#include <storage/lwlock.h>
+
 #include "state.h"
 #include "queue.h"
 }
 
 #include <utility>
 #include "processor.hpp"
+#include "client/factory.hpp"
 
 namespace postfga::bgw {
 
 Processor::Processor(PostfgaShmemState *state, const postfga::client::Config &config)
       : state_(state)
-      , client_(config)
 {
     Assert(state != nullptr);
+    this->client_ = postfga::client::make_client(config);
     // 추가 초기화가 필요하면 여기에 작성
 }
 
 void Processor::execute()
 {
+    RequestPayload payload = {0};
+    LWLockAcquire(state_->lock, LW_EXCLUSIVE);
+    bool ok = postfga_queue_enqueue(&state_->request_queue, &payload);
+    LWLockRelease(state_->lock);
+
+    if (ok && state_->bgw_latch)
+        SetLatch(state_->bgw_latch);
+
     // RequestPayload requests[MAX_BATCH_SIZE];
     // uint32_t count = MAX_BATCH_SIZE;
 

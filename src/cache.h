@@ -1,69 +1,40 @@
-/*-------------------------------------------------------------------------
- *
- * cache.h
- *    ACL cache operations for PostFGA extension.
- *
- *-------------------------------------------------------------------------
- */
-
 #ifndef POSTFGA_CACHE_H
 #define POSTFGA_CACHE_H
 
 #include <postgres.h>
-#include <datatype/timestamp.h>
-
-#include "common.h"
-
-#define NAME_MAX_LEN 64
+#include <utils/hsearch.h>
+#include <c.h>
 
 /*
- * ACL Cache Key / Entry
+ * Cache
+ *
+ * - ACL 캐시 + generation 맵을 하나로 묶은 구조체
+ * - shared memory 안에 그대로 들어감 (포인터만 저장)
  */
-typedef struct AclCacheKey
+typedef struct Cache
 {
-    char object_type[OBJECT_TYPE_MAX_LEN];
-    char object_id[OBJECT_ID_MAX_LEN];
-    char subject_type[SUBJECT_TYPE_MAX_LEN];
-    char subject_id[SUBJECT_ID_MAX_LEN];
-} AclCacheKey;
+    /* ---- Global generation counter ---- */
+    uint64      next_generation;        /* cache invalidation용 전역 generation */
 
-typedef struct AclCacheEntry
+    /* ---- Hash tables ---- */
+    HTAB       *relation_bitmap_map;    /* relation name -> bit index */
+    HTAB       *acl_cache;              /* ACL cache entries */
+    HTAB       *object_type_gen_map;    /* object_type            -> generation */
+    HTAB       *object_gen_map;         /* object_type:object_id  -> generation */
+    HTAB       *subject_type_gen_map;   /* subject_type           -> generation */
+    HTAB       *subject_gen_map;        /* subject_type:subject_id-> generation */
+} Cache;
+
+/* 필요한 경우 헬퍼 함수들 (선택) */
+
+static inline uint64
+postfga_cache_next_generation(Cache *cache)
 {
-    AclCacheKey  key;
+    return ++cache->next_generation;
+}
 
-    /* Generation counters for invalidation */
-    uint64       object_type_gen;
-    uint64       object_gen;
-    uint64       subject_type_gen;
-    uint64       subject_gen;
 
-    /* Relation bitmasks */
-    uint64       allow_bits;
-    uint64       deny_bits;
+Size postfga_cache_estimate_size(int max_cache_entries);
 
-    /* Timestamps */
-    TimestampTz  last_updated;
-    TimestampTz  expire_at;
-} AclCacheEntry;
-
-/* -------------------------------------------------------------------------
- * Cache operations
- * -------------------------------------------------------------------------
- */
-
-/* Lookup cache entry by key */
-bool cache_lookup(const AclCacheKey *key, AclCacheEntry *entry);
-
-/* Insert or update cache entry */
-void cache_insert(const AclCacheEntry *entry);
-
-/* Delete cache entry by key */
-void cache_delete(const AclCacheKey *key);
-
-/* Check if cache entry is stale based on generation counters */
-bool cache_is_stale(const AclCacheEntry *entry);
-
-/* Invalidate cache by scope */
-void cache_invalidate_by_scope(const char *scope_key);
-
+void postfga_init_cache(Cache *cache, int max_cache_entries);
 #endif /* POSTFGA_CACHE_H */

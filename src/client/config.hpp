@@ -2,6 +2,7 @@
 
 #include <string>
 #include <cstdint>
+#include <thread>
 
 namespace postfga::client {
 

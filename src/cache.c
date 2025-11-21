@@ -1,275 +1,107 @@
-/*-------------------------------------------------------------------------
- *
- * cache.c
- *    ACL cache operations for PostFGA extension.
- *
- * This module implements:
- *   - Cache lookup, insert, delete operations
- *   - Cache staleness checking based on generation counters
- *   - Cache invalidation by scope
- *
- *-------------------------------------------------------------------------
- */
+// cache.c (참고용, 필요한 부분만 발췌)
 
-#include <postgres.h>
-
-#include <storage/lwlock.h>
-#include <utils/hsearch.h>
-#include <string.h>
-
-#include "shmem.h"
 #include "cache.h"
-#include "generation.h"
-#include "stats.h"
 
-/* -------------------------------------------------------------------------
- * Cache Operations
- * -------------------------------------------------------------------------
- */
+#include "common.h"   // DEFAULT_RELATION_COUNT, DEFAULT_GEN_MAP_SIZE, NAME_MAX_LEN 등
 
-/*
- * cache_lookup
- *
- * Lookup cache entry by key.
- *
- * Args:
- *   key   - Cache key to lookup
- *   entry - Output parameter for cache entry (if found)
- *
- * Returns: true if entry found, false otherwise
- *
- * Thread safety: Acquires shared lock on shared state lock
- */
-bool
-cache_lookup(const AclCacheKey *key, AclCacheEntry *entry)
+static void
+init_hash(HTAB      **htab,
+          const char *name,
+          int         nelem,
+          Size        keysize,
+          Size        entrysize)
 {
-    PostfgaShmemState *shared_state;
-    AclCacheEntry *found_entry;
-    bool result = false;
+    HASHCTL ctl;
 
-    shared_state = postfga_get_shared_state();
-    if (!shared_state || !shared_state->acl_cache)
-    {
-        elog(WARNING, "PostFGA: Cache lookup called before initialization");
-        return false;
-    }
+    memset(&ctl, 0, sizeof(ctl));
+    ctl.keysize   = keysize;
+    ctl.entrysize = entrysize;
 
-    if (!key || !entry)
-    {
-        elog(WARNING, "PostFGA: Invalid parameters for cache lookup");
-        return false;
-    }
+    *htab = ShmemInitHash(name,
+                          nelem,
+                          nelem,
+                          &ctl,
+                          HASH_ELEM | HASH_BLOBS);
 
-    LWLockAcquire(shared_state->lock, LW_SHARED);
-
-    found_entry = (AclCacheEntry *) hash_search(shared_state->acl_cache,
-                                                key,
-                                                HASH_FIND,
-                                                NULL);
-
-    if (found_entry)
-    {
-        memcpy(entry, found_entry, sizeof(AclCacheEntry));
-        result = true;
-        stats_inc_cache_hit(&shared_state->stats);
-    }
-    else
-    {
-        stats_inc_cache_miss(&shared_state->stats);
-    }
-
-    LWLockRelease(shared_state->lock);
-
-    return result;
+    if (*htab == NULL)
+        elog(ERROR, "PostFGA cache: failed to create hash '%s'", name);
 }
 
-/*
- * cache_insert
- *
- * Insert or update cache entry.
- *
- * Args:
- *   entry - Cache entry to insert/update
- *
- * Thread safety: Acquires exclusive lock on shared state lock
- *
- * Note: If entry already exists, it will be overwritten.
- */
+Size
+postfga_response_cache_estimate_size(int max_cache_entries)
+{
+    Size size = 0;
+
+    /* relation bitmap map */
+    size = add_size(size,
+                    hash_estimate_size(DEFAULT_RELATION_COUNT,
+                                       sizeof(RelationBitMapEntry)));
+
+    /* ACL cache */
+    size = add_size(size,
+                    hash_estimate_size(max_cache_entries,
+                                       sizeof(AclCacheEntry)));
+
+    /* Generation maps (object/subject 타입 & 값) */
+    size = add_size(size,
+                    hash_estimate_size(DEFAULT_GEN_MAP_SIZE,
+                                       sizeof(GenerationEntry))); /* object_type */
+    size = add_size(size,
+                    hash_estimate_size(max_cache_entries,
+                                       sizeof(GenerationEntry))); /* object */
+    size = add_size(size,
+                    hash_estimate_size(DEFAULT_GEN_MAP_SIZE,
+                                       sizeof(GenerationEntry))); /* subject_type */
+    size = add_size(size,
+                    hash_estimate_size(max_cache_entries,
+                                       sizeof(GenerationEntry))); /* subject */
+
+    return size;
+}
+
 void
-cache_insert(const AclCacheEntry *entry)
+postfga_init_cache(Cache *cache, int max_cache_entries)
 {
-    PostfgaShmemState *shared_state;
-    AclCacheEntry *new_entry;
-    bool found;
+    Assert(cache != NULL);
 
-    shared_state = postfga_get_shared_state();
-    if (!shared_state || !shared_state->acl_cache)
-    {
-        elog(WARNING, "PostFGA: Cache insert called before initialization");
-        return;
-    }
+    memset(cache, 0, sizeof(Cache));
+    
+    /* Relation bitmap hash */
+    init_hash(&cache->relation_bitmap_map,
+              "PostFGA Relation Bitmap",
+              DEFAULT_RELATION_COUNT,
+              RELATION_MAX_LEN,
+              sizeof(RelationBitMapEntry));
 
-    if (!entry)
-    {
-        elog(WARNING, "PostFGA: Invalid entry for cache insert");
-        return;
-    }
+    /* ACL cache */
+    init_hash(&cache->acl_cache,
+              "PostFGA ACL Cache",
+              max_cache_entries,
+              sizeof(AclCacheKey),
+              sizeof(AclCacheEntry));
 
-    LWLockAcquire(shared_state->lock, LW_EXCLUSIVE);
+    /* Generation maps */
+    init_hash(&cache->object_type_gen_map,
+              "PostFGA Object Type Gen",
+              DEFAULT_GEN_MAP_SIZE,
+              NAME_MAX_LEN * 2,
+              sizeof(GenerationEntry));
 
-    new_entry = (AclCacheEntry *) hash_search(shared_state->acl_cache,
-                                              &entry->key,
-                                              HASH_ENTER,
-                                              &found);
+    init_hash(&cache->object_gen_map,
+              "PostFGA Object Gen",
+              max_cache_entries,
+              NAME_MAX_LEN * 2,
+              sizeof(GenerationEntry));
 
-    if (new_entry)
-    {
-        memcpy(new_entry, entry, sizeof(AclCacheEntry));
+    init_hash(&cache->subject_type_gen_map,
+              "PostFGA Subject Type Gen",
+              DEFAULT_GEN_MAP_SIZE,
+              NAME_MAX_LEN * 2,
+              sizeof(GenerationEntry));
 
-        if (!found)
-        {
-            /* New entry added */
-            stats_inc_cache_entry(&shared_state->stats);
-        }
-    }
-    else
-    {
-        elog(WARNING, "PostFGA: Failed to insert cache entry (hash table full?)");
-    }
-
-    LWLockRelease(shared_state->lock);
-}
-
-/*
- * cache_delete
- *
- * Delete cache entry by key.
- *
- * Args:
- *   key - Cache key to delete
- *
- * Thread safety: Acquires exclusive lock on shared state lock
- */
-void
-cache_delete(const AclCacheKey *key)
-{
-    PostfgaShmemState *shared_state;
-    AclCacheEntry *found_entry;
-
-    shared_state = postfga_get_shared_state();
-    if (!shared_state || !shared_state->acl_cache)
-    {
-        elog(WARNING, "PostFGA: Cache delete called before initialization");
-        return;
-    }
-
-    if (!key)
-    {
-        elog(WARNING, "PostFGA: Invalid key for cache delete");
-        return;
-    }
-
-    LWLockAcquire(shared_state->lock, LW_EXCLUSIVE);
-
-    found_entry = (AclCacheEntry *) hash_search(shared_state->acl_cache,
-                                                key,
-                                                HASH_REMOVE,
-                                                NULL);
-
-    if (found_entry)
-    {
-        stats_inc_cache_eviction(&shared_state->stats);
-
-        /* Decrement counter safely (avoid underflow) */
-        stats_dec_cache_entry(&shared_state->stats);
-    }
-
-    LWLockRelease(shared_state->lock);
-}
-
-/*
- * cache_is_stale
- *
- * Check if cache entry is stale based on generation counters.
- *
- * Args:
- *   entry - Cache entry to check
- *
- * Returns: true if entry is stale, false if still valid
- *
- * An entry is considered stale if any of its generation counters
- * are less than the current generation for that scope.
- */
-bool
-cache_is_stale(const AclCacheEntry *entry)
-{
-    PostfgaShmemState *shared_state;
-    uint64 current_gen;
-    char scope_key[NAME_MAX_LEN * 2];
-
-    shared_state = postfga_get_shared_state();
-
-    /* Check object_type generation */
-    current_gen = get_generation(entry->key.object_type);
-    if (current_gen > entry->object_type_gen)
-    {
-        elog(DEBUG2, "PostFGA: Cache entry stale (object_type generation mismatch)");
-        return true;
-    }
-
-    /* Check object generation (object_type:object_id) */
-    build_scope_key(scope_key, sizeof(scope_key),
-                           entry->key.object_type, entry->key.object_id);
-    current_gen = get_generation(scope_key);
-    if (current_gen > entry->object_gen)
-    {
-        elog(DEBUG2, "PostFGA: Cache entry stale (object generation mismatch)");
-        return true;
-    }
-
-    /* Check subject_type generation */
-    current_gen = get_generation(entry->key.subject_type);
-    if (current_gen > entry->subject_type_gen)
-    {
-        elog(DEBUG2, "PostFGA: Cache entry stale (subject_type generation mismatch)");
-        return true;
-    }
-
-    /* Check subject generation (subject_type:subject_id) */
-    build_scope_key(scope_key, sizeof(scope_key),
-                           entry->key.subject_type, entry->key.subject_id);
-    current_gen = get_generation(scope_key);
-    if (current_gen > entry->subject_gen)
-    {
-        elog(DEBUG2, "PostFGA: Cache entry stale (subject generation mismatch)");
-        return true;
-    }
-
-    return false;
-}
-
-/*
- * cache_invalidate_by_scope
- *
- * Invalidate cache entries by incrementing generation for a scope.
- *
- * Args:
- *   scope_key - Scope key to invalidate
- *
- * Note: This is a convenience wrapper around increment_generation.
- *       Incrementing the generation will cause all cache entries with
- *       matching scope to be considered stale on next lookup.
- */
-void
-cache_invalidate_by_scope(const char *scope_key)
-{
-    if (!scope_key || scope_key[0] == '\0')
-    {
-        elog(WARNING, "PostFGA: Invalid scope_key for cache invalidation");
-        return;
-    }
-
-    increment_generation(scope_key);
-
-    elog(DEBUG1, "PostFGA: Invalidated cache for scope: %s", scope_key);
+    init_hash(&cache->subject_gen_map,
+              "PostFGA Subject Gen",
+              max_cache_entries,
+              NAME_MAX_LEN * 2,
+              sizeof(GenerationEntry));
 }

@@ -24,21 +24,21 @@ extern "C" {
 #endif
 
 /*
- * postfga_shmem_request
+ * postfga_request_shmem
  *
  * _PG_init() 에서 호출해야 하는 함수.
  * RequestAddinShmemSpace / RequestNamedLWLockTranche 를 통해
  * PostgreSQL의 shared memory 예약을 수행한다.
  */
-void postfga_shmem_request(void);
+void postfga_request_shmem(void);
 
 /*
- * postfga_shmem_startup
+ * postfga_startup_shmem    
  *
  * shmem_startup_hook 에서 호출해야 하는 함수.
  * 실제 shared memory 영역을 초기화하고, global shared_state 포인터를 설정한다.
  */
-void postfga_shmem_startup(void);
+void postfga_startup_shmem(void);
 
 /*
  * get_shared_state

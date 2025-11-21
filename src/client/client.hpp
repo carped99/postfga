@@ -1,31 +1,28 @@
-// client_adapter.hpp
+// openfga.hpp
 #pragma once
 
+#include <functional>
 #include <memory>
-#include "config.hpp"
-#include "openfga.hpp"
+#include "request.h"
+#include "response.h"
 
 namespace postfga::client {
 
 class Client {
 public:
-    explicit Client(const Config& config);
+    using CheckHandler = std::function<void(const CheckResponse&)>;
+    using WriteHandler = std::function<void(const WriteResponse&)>;
+    //using DeleteHandler = std::function<void(const DeleteResponse&)>;
 
-    bool ensure_initialized();
-    bool is_healthy() const;
+    virtual ~Client() = default;
 
-    using CheckCallback = OpenFgaGrpcClient::CheckHandler;
-    using WriteCallback = OpenFgaGrpcClient::WriteHandler;
+    virtual bool is_healthy() const = 0;
 
-    void check_async(const GrpcCheckRequest& req, CheckCallback handler);
+    virtual void async_check(const Request& req, CheckHandler handler) = 0;
 
-    void write_async(const GrpcWriteRequest& req,WriteCallback handler);
+    virtual void async_write(const Request& req, WriteHandler handler) = 0;
 
-    void shutdown();
-
-private:
-    Config                       config_;
-    std::shared_ptr<OpenFgaGrpcClient> client_;
+    virtual void shutdown() = 0;
 };
 
 } // namespace postfga::client

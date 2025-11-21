@@ -11,12 +11,12 @@
 #include "stats.h"
 
 /*
- * stats_init
+ * postfga_init_stats
  *
  * Initialize all statistics counters to zero.
  */
 void
-stats_init(Stats *stats)
+postfga_init_stats(Stats *stats)
 {
     if (!stats)
         return;

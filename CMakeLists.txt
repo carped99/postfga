@@ -15,12 +15,13 @@ include(cmake/openfga.cmake)
 # Extension source files
 set(SOURCES
     src/init.c
+    src/cache.c
     src/shmem.c
+    src/stats.c
     src/guc.c
     src/bgw/main.cpp
     src/bgw/worker.cpp
     src/bgw/processor.cpp
-    src/client/client.cpp
 )
 
 # Create PostgreSQL extension shared library (MODULE → .so)
