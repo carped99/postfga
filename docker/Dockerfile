@@ -8,7 +8,7 @@ FROM postgres:${PG_MAJOR} AS dev-builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     ca-certificates \
-    cmake git autoconf libtool pkg-config \
+    cmake git autoconf libtool pkg-config bear \
     libgrpc++-dev libprotobuf-dev protobuf-compiler-grpc \
     postgresql-server-dev-${PG_MAJOR} \
     nodejs npm \

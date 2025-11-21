@@ -1,5 +1,9 @@
 // cache.c (참고용, 필요한 부분만 발췌)
 
+#include <postgres.h>
+#include <storage/shmem.h>
+#include <utils/hsearch.h>
+
 #include "cache.h"
 
 #include "common.h"   // DEFAULT_RELATION_COUNT, DEFAULT_GEN_MAP_SIZE, NAME_MAX_LEN 등
