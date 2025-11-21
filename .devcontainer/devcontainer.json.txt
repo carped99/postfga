@@ -1,16 +1,14 @@
 {
     "name": "openfga_fdw Development",
-    "build": {
-        "dockerfile": "../docker/Dockerfile",
-        "target": "dev-builder",
-        "args": {
-            "PG_MAJOR": "18"
-        }
-    },    
+    "dockerComposeFile": [
+        "../docker/docker-compose.dev.yml"
+    ],
+    "service": "postgres",
     "workspaceFolder": "/workspace",
     "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
     "remoteUser": "root",
     "remoteEnv": {
+        "PATH": "${containerEnv:PATH}:/usr/lib/postgresql/18/bin",
         "WORKSPACE": "/workspace"
     }
 }

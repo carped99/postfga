@@ -11,4 +11,10 @@
 #define RELATION_MAX_LEN      128
 #define MAX_PENDING_REQ       256
 
+#define NAME_MAX_LEN 64
+/* Default hash table sizes */
+#define DEFAULT_RELATION_COUNT    16
+#define DEFAULT_CACHE_ENTRIES     10000
+#define DEFAULT_GEN_MAP_SIZE      1024
+
 #endif /* POSTFGA_COMMON_H */

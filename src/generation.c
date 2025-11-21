@@ -18,7 +18,7 @@
 #include <stdio.h>
 
 #include "generation.h"
-#include "state.h"
+#include "shmem.h"
 
 /* -------------------------------------------------------------------------
  * Forward declarations (private functions)
@@ -52,7 +52,7 @@ get_generation(const char *scope_key)
     uint64 generation = 0;
     HTAB *gen_map;
 
-    shared_state = get_shared_state();
+    shared_state = postfga_get_shared_state();
     if (!shared_state)
     {
         elog(WARNING, "PostFGA: Get generation called before initialization");
@@ -107,7 +107,7 @@ increment_generation(const char *scope_key)
     bool found;
     HTAB *gen_map;
 
-    shared_state = get_shared_state();
+    shared_state = postfga_get_shared_state();
     if (!shared_state)
     {
         elog(WARNING, "PostFGA: Increment generation called before initialization");
@@ -216,7 +216,7 @@ determine_generation_map(const char *scope_key)
     PostfgaShmemState *shared_state;
     char *colon;
 
-    shared_state = get_shared_state();
+    shared_state = postfga_get_shared_state();
     if (!scope_key || !shared_state)
         return NULL;
 

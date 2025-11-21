@@ -1,34 +1,17 @@
-/*-------------------------------------------------------------------------
- *
- * shmem.h
- *    Shared memory state definition for PostFGA ACL cache & BGW.
- *
- *-------------------------------------------------------------------------
- */
-
 #ifndef POSTFGA_STATE_H
 #define POSTFGA_STATE_H
 
 #include <postgres.h>
-#include <datatype/timestamp.h>
-#include <storage/lwlock.h>
 #include <storage/latch.h>
-#include <storage/shmem.h>
+#include <storage/lwlock.h>
 #include <utils/hsearch.h>
-#include <port/atomics.h>
 
-#include "common.h"
-#include "cache.h"
+#include "queue.h"
 #include "stats.h"
 
-/* Forward declarations */
-typedef union RequestPayload RequestPayload;
-
-
-/* Default hash table sizes */
-#define DEFAULT_RELATION_COUNT    16
-#define DEFAULT_CACHE_ENTRIES     10000
-#define DEFAULT_GEN_MAP_SIZE      1024
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * PostfgaShmemState
@@ -61,13 +44,9 @@ typedef struct PostfgaShmemState
 
 } PostfgaShmemState;
 
-/* Request shared memory allocation (called from _PG_init) */
-void postfga_shmem_request(void);
+#ifdef __cplusplus
+}
+#endif
 
-/* Initialize shared memory structures (called from shmem_startup_hook) */
-void postfga_shmem_startup(void);
-
-/* Get pointer to shared state */
-PostfgaShmemState *get_shared_state(void);
 
 #endif /* POSTFGA_STATE_H */

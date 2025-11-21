@@ -9,12 +9,21 @@
 #ifndef POSTFGA_GENERATION_H
 #define POSTFGA_GENERATION_H
 
-#include <postgres.h>
-
 /* -------------------------------------------------------------------------
  * Generation tracking
  * -------------------------------------------------------------------------
  */
+ 
+#define NAME_MAX_LEN 64
+/*
+ * Generation tracking entry
+ */
+typedef struct GenerationEntry
+{
+    char   scope_key[NAME_MAX_LEN * 2]; // 나중에 다시 확인
+    uint64 generation;
+} GenerationEntry;
+
 
 /* Get generation for a scope */
 uint64 get_generation(const char *scope_key);

@@ -18,7 +18,7 @@
 #include <string.h>
 
 #include "relation.h"
-#include "state.h"
+#include "shmem.h"
 
 /* -------------------------------------------------------------------------
  * Relation Bitmap Operations
@@ -48,7 +48,7 @@ get_relation_bit_index(const char *relation_name)
     RelationBitMapEntry *entry;
     uint8 bit_index = 0;
 
-    shared_state = get_shared_state();
+    shared_state = postfga_get_shared_state();
     if (!shared_state || !shared_state->relation_bitmap_map)
     {
         elog(WARNING, "PostFGA: Get relation bit called before initialization");
@@ -98,7 +98,7 @@ register_relation(const char *relation_name, uint8 bit_index)
     RelationBitMapEntry *entry;
     bool found;
 
-    shared_state = get_shared_state();
+    shared_state = postfga_get_shared_state();
     if (!shared_state || !shared_state->relation_bitmap_map)
     {
         elog(WARNING, "PostFGA: Register relation called before initialization");

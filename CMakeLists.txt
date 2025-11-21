@@ -15,14 +15,16 @@ include(cmake/openfga.cmake)
 # Extension source files
 set(SOURCES
     src/init.c
+    src/shmem.c
     src/bgw/main.cpp
+    src/bgw/worker.cpp
+    src/bgw/processor.cpp
     src/cache.c
     src/client.cpp
     src/generation.c
     src/guc.c
     src/queue.c
     src/relation.c
-    src/state.c
     src/stats.c
     src/func_check.c
 )

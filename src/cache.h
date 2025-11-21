@@ -46,17 +46,6 @@ typedef struct AclCacheEntry
     TimestampTz  expire_at;
 } AclCacheEntry;
 
-
-/*
- * Generation tracking entry
- */
-typedef struct GenerationEntry
-{
-    char   scope_key[NAME_MAX_LEN * 2]; // 나중에 다시 확인
-    uint64 generation;
-} GenerationEntry;
-
-
 /* -------------------------------------------------------------------------
  * Cache operations
  * -------------------------------------------------------------------------

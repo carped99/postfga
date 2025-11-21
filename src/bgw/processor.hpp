@@ -1,13 +1,13 @@
-// bgw_processor.hpp
+// processor.hpp
 #pragma once
 
 extern "C" {
-#include "postgres.h"
+#include <postgres.h>
 }
 
 #include "queue.h"
-// #include "client_adapter.hpp"  // gRPC client 래핑
 #include "guc.h"
+//#include "client/client.hpp"
 
 namespace postfga::bgw {
 
@@ -30,7 +30,7 @@ private:
     const char *store_id_ = nullptr;
     const char *auth_model_id_ = nullptr;
 
-    // ClientAdapter client_;    // gRPC 클라이언트 래퍼
+    // postfga::client::ClientAdapter client_;    // gRPC 클라이언트 래퍼
 };
 
 } // namespace postfga::bgw

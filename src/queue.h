@@ -10,9 +10,17 @@
 #define POSTFGA_QUEUE_H
 
 #include <postgres.h>
+#include <datatype/timestamp.h>
+#include <storage/latch.h>
 
 #include "common.h"
-#include "state.h"
+// #include "state.h"
+
+// #include <storage/lwlock.h>
+// #include <storage/latch.h>
+// #include <storage/shmem.h>
+// #include <utils/hsearch.h>
+// #include <port/atomics.h>
 
 typedef enum
 {

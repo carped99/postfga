@@ -5,8 +5,19 @@
 extern "C" {
 #endif
 
+/**
+ * postfga_bgw_init - Initialize Background Worker
+ */
 void postfga_bgw_init(void);
+
+/**
+ * postfga_bgw_fini - Finalize Background Worker
+ */
 void postfga_bgw_fini(void);
+
+/**
+ * postfga_bgw_main - Background Worker main loop
+ */
 void postfga_bgw_main(Datum arg);
 
 #ifdef __cplusplus

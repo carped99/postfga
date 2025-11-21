@@ -17,8 +17,8 @@
 #include <utils/hsearch.h>
 #include <string.h>
 
+#include "shmem.h"
 #include "cache.h"
-#include "state.h"
 #include "generation.h"
 #include "stats.h"
 
@@ -47,7 +47,7 @@ cache_lookup(const AclCacheKey *key, AclCacheEntry *entry)
     AclCacheEntry *found_entry;
     bool result = false;
 
-    shared_state = get_shared_state();
+    shared_state = postfga_get_shared_state();
     if (!shared_state || !shared_state->acl_cache)
     {
         elog(WARNING, "PostFGA: Cache lookup called before initialization");
@@ -102,7 +102,7 @@ cache_insert(const AclCacheEntry *entry)
     AclCacheEntry *new_entry;
     bool found;
 
-    shared_state = get_shared_state();
+    shared_state = postfga_get_shared_state();
     if (!shared_state || !shared_state->acl_cache)
     {
         elog(WARNING, "PostFGA: Cache insert called before initialization");
@@ -156,7 +156,7 @@ cache_delete(const AclCacheKey *key)
     PostfgaShmemState *shared_state;
     AclCacheEntry *found_entry;
 
-    shared_state = get_shared_state();
+    shared_state = postfga_get_shared_state();
     if (!shared_state || !shared_state->acl_cache)
     {
         elog(WARNING, "PostFGA: Cache delete called before initialization");
@@ -207,7 +207,7 @@ cache_is_stale(const AclCacheEntry *entry)
     uint64 current_gen;
     char scope_key[NAME_MAX_LEN * 2];
 
-    shared_state = get_shared_state();
+    shared_state = postfga_get_shared_state();
 
     /* Check object_type generation */
     current_gen = get_generation(entry->key.object_type);

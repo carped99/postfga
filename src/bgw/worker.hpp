@@ -1,15 +1,6 @@
-// bgw_worker.hpp
 #pragma once
 
-extern "C" {
-#include <postgres.h>
-#include <storage/latch.h>
-#include <utils/guc.h>
-#include <postmaster/bgworker.h>
-}
-
-#include "state.h"       // get_shared_state()
-#include "processor.hpp"
+#include "state.h"
 
 namespace postfga::bgw {
 

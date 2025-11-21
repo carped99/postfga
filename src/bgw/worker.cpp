@@ -1,13 +1,13 @@
 extern "C" {
-#include "postgres.h"
-#include "miscadmin.h"
-#include "postmaster/bgworker.h"
-#include "storage/ipc.h"
-#include "storage/latch.h"
-#include "storage/proc.h"
-#include "storage/lwlock.h"
-#include "utils/guc.h"
-#include "pgstat.h"
+#include <postgres.h>
+#include <miscadmin.h>
+#include <postmaster/bgworker.h>
+#include <storage/ipc.h>
+#include <storage/latch.h>
+#include <storage/proc.h>
+#include <storage/lwlock.h>
+#include <utils/guc.h>
+#include <pgstat.h>
 }
 
 #include "worker.hpp"
@@ -47,7 +47,7 @@ Worker::Worker(PostfgaShmemState *state)
 
 void Worker::run()
 {
-    initialize();
+    // initialize();
 
     /* shared state 안에 latch 등록 */
     LWLockAcquire(state_->lock, LW_EXCLUSIVE);

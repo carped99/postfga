@@ -1,10 +1,10 @@
 extern "C" {
+#include <postgres.h>
 #include <utils/guc.h>
-#include "state.h"
-#include "queue.h"
-#include "result.h"    // set_grpc_result()
 }
 
+#include "state.h"
+#include "queue.h"
 #include "processor.hpp"
 
 namespace postfga::bgw {
@@ -23,27 +23,27 @@ bool Processor::load_config()
 
 void Processor::execute()
 {
-    RequestPayload requests[MAX_BATCH_SIZE];
-    uint32_t count = MAX_BATCH_SIZE;
+    // RequestPayload requests[MAX_BATCH_SIZE];
+    // uint32_t count = MAX_BATCH_SIZE;
 
-    if (!client_.ensure_initialized()) {
-        // 로그는 ClientAdapter 내부에서
-        return;
-    }
+    // if (!client_.ensure_initialized()) {
+    //     // 로그는 ClientAdapter 내부에서
+    //     return;
+    // }
 
-    if (!dequeue_requests(requests, &count) || count == 0)
-        return;
+    // if (!dequeue_requests(requests, &count) || count == 0)
+    //     return;
 
-    if (!load_config()) {
-        for (uint32_t i = 0; i < count; ++i)
-            set_grpc_result(requests[i].base.request_id, false, 8888);
-        return;
-    }
+    // if (!load_config()) {
+    //     for (uint32_t i = 0; i < count; ++i)
+    //         set_grpc_result(requests[i].base.request_id, false, 8888);
+    //     return;
+    // }
 
-    elog(DEBUG1, "PostFGA BGW: Processing %u requests", count);
-    handle_batch(requests, count);
+    // elog(DEBUG1, "PostFGA BGW: Processing %u requests", count);
+    // handle_batch(requests, count);
 
-    client_.poll(0);
+    // client_.poll(0);
 }
 
 void Processor::handle_batch(RequestPayload *requests, uint32_t count)
@@ -63,7 +63,7 @@ void Processor::handle_single_request(RequestPayload &payload)
             break;
         default:
             elog(WARNING, "PostFGA BGW: Unsupported request type %d", payload.base.type);
-            set_grpc_result(payload.base.request_id, false, 9999);
+            // set_grpc_result(payload.base.request_id, false, 9999);
             break;
     }
 }

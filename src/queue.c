@@ -36,8 +36,8 @@
 
 #include <string.h>
 
+#include "shmem.h"
 #include "queue.h"
-#include "state.h"
 #include "stats.h"
 
 /* -------------------------------------------------------------------------
@@ -139,7 +139,7 @@ enqueue_grpc_request(const char *object_type, const char *object_id,
     }
 
     /* Get shared state */
-    state = get_shared_state();
+    state = postfga_get_shared_state();
     if (!state || !state->request_queue)
     {
         elog(WARNING, "PostFGA: Queue not initialized");
@@ -255,7 +255,7 @@ enqueue_write_request(const char *object_type, const char *object_id,
     }
 
     /* Get shared state */
-    state = get_shared_state();
+    state = postfga_get_shared_state();
     if (!state || !state->request_queue)
     {
         elog(WARNING, "PostFGA: Queue not initialized");
@@ -373,7 +373,7 @@ dequeue_grpc_requests(GrpcRequest *requests, uint32 *count)
     *count = 0;
 
     /* Get shared state */
-    state = get_shared_state();
+    state = postfga_get_shared_state();
     if (!state || !state->request_queue)
     {
         elog(WARNING, "PostFGA: Queue not initialized");
@@ -469,7 +469,7 @@ dequeue_requests(RequestPayload *requests, uint32 *count)
     *count = 0;
 
     /* Get shared state */
-    state = get_shared_state();
+    state = postfga_get_shared_state();
     if (!state || !state->request_queue)
     {
         elog(WARNING, "PostFGA: Queue not initialized");
@@ -560,7 +560,7 @@ wait_for_grpc_result(uint32 request_id, bool *allowed, uint32 *error_code)
     }
 
     /* Get shared state */
-    state = get_shared_state();
+    state = postfga_get_shared_state();
     if (!state)
     {
         elog(WARNING, "PostFGA: Shared state not initialized");
@@ -656,7 +656,7 @@ set_grpc_result(uint32 request_id, bool allowed, uint32 error_code)
     }
 
     /* Get shared state */
-    state = get_shared_state();
+    state = postfga_get_shared_state();
     if (!state || !state->request_queue)
     {
         elog(WARNING, "PostFGA: Queue not initialized");
@@ -722,7 +722,7 @@ notify_bgw_of_pending_work(void)
 {
     PostfgaShmemState *state;
 
-    state = get_shared_state();
+    state = postfga_get_shared_state();
     if (!state)
     {
         elog(DEBUG2, "PostFGA: Cannot notify BGW, shared state not initialized");
@@ -763,7 +763,7 @@ clear_completed_requests(void)
     PostfgaShmemState *state;
     uint32 cleared = 0;
 
-    state = get_shared_state();
+    state = postfga_get_shared_state();
     if (!state || !state->request_queue)
     {
         return 0;
@@ -823,7 +823,7 @@ get_queue_stats(uint32 *size, uint32 *capacity)
     if (!size || !capacity)
         return false;
 
-    state = get_shared_state();
+    state = postfga_get_shared_state();
     if (!state)
         return false;
 

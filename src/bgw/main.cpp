@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "worker.hpp"
+#include "shmem.h"
 
 extern "C" void
 postfga_bgw_init(void)
@@ -36,7 +37,7 @@ postfga_bgw_main(Datum arg)
     (void)arg;
     PG_TRY();
     {
-        postfga::bgw::Worker worker(get_shared_state());
+        postfga::bgw::Worker worker(postfga_get_shared_state());
         ereport(DEBUG1, (errmsg("postfga background worker running")));
         worker.run();
         ereport(DEBUG1, (errmsg("postfga background worker finished")));

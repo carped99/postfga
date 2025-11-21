@@ -5,8 +5,6 @@
 extern "C" {
 #endif
 
-#include <postgres.h>
-
 /* GUC Parameter Structure */
 typedef struct {
     char *endpoint;                       /* OpenFGA gRPC endpoint */
