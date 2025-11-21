@@ -15,7 +15,7 @@ include(cmake/openfga.cmake)
 # Extension source files
 set(SOURCES
     src/init.c
-    src/bgw.c
+    src/bgw/main.cpp
     src/cache.c
     src/client.cpp
     src/generation.c

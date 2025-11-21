@@ -84,6 +84,7 @@ postfga_guc_init(void)
 {
     const char *env_endpoint = getenv("POSTFGA_ENDPOINT");
     const char *env_store_id = getenv("POSTFGA_STORE_ID");
+    const char *env_auth_model_id = getenv("POSTFGA_AUTH_MODEL_ID");
 
     /* postfga.endpoint */
     DefineCustomStringVariable(
@@ -119,26 +120,11 @@ postfga_guc_init(void)
         "OpenFGA authorization model ID (optional)",
         "Specifies the authorization model ID to use. If empty, uses the latest model.",
         &config.authorization_model_id,
-        DEFAULT_AUTH_MODEL_ID,
+        env_auth_model_id ? env_auth_model_id : DEFAULT_AUTH_MODEL_ID,
         PGC_SUSET,
-        0,
+        GUC_SUPERUSER_ONLY,
         NULL,
         NULL,
-        NULL
-    );
-
-    /* postfga.relations */
-    DefineCustomStringVariable(
-        "postfga.relations",
-        "Comma-separated list of relation names",
-        "Defines the relations to track in the cache (e.g., 'read,write,edit,delete,owner'). "
-        "Maximum 64 relations supported.",
-        &config.relations,
-        DEFAULT_RELATIONS,
-        PGC_SUSET,
-        0,
-        NULL,
-        NULL,  /* assign_hook - could validate and init bitmap here */
         NULL
     );
 
@@ -184,21 +170,6 @@ postfga_guc_init(void)
         0,              /* min: 0 = disabled */
         10,             /* max: 10 workers */
         PGC_POSTMASTER,  /* requires restart */
-        0,
-        NULL,
-        NULL,
-        NULL
-    );
-
-    /* openfga.fallback_to_grpc_on_miss */
-    DefineCustomBoolVariable(
-        "openfga.fallback_to_grpc_on_miss",
-        "Fall back to gRPC on cache miss",
-        "If true, FDW will call OpenFGA gRPC when cache miss occurs. "
-        "If false, cache miss results in deny.",
-        &config.fallback_to_grpc_on_miss,
-        DEFAULT_FALLBACK_TO_GRPC,
-        PGC_SUSET,
         0,
         NULL,
         NULL,

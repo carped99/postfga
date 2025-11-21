@@ -10,7 +10,7 @@
 #include <postmaster/bgworker.h>
 
 #include "state.h"
-#include "bgw.h"
+#include "bgw/main.h"
 #include "guc.h"
 
 /* Module magic */

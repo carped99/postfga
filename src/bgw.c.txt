@@ -20,7 +20,7 @@
 #include "client.h"
 
 static volatile sig_atomic_t shutdown_requested = false;
-static volatile sig_atomic_t config_reload_requested = false;
+static volatile sig_atomic_t reload_requested = false;
 static GrpcClient *grpc_client = NULL;
 
 #define MAX_BATCH_SIZE 32
@@ -244,14 +244,14 @@ static void
 bgw_sighup_handler(SIGNAL_ARGS)
 {
     int save_errno = errno;
-    config_reload_requested = true;
+    reload_requested = true;
     if (MyLatch != NULL)
         SetLatch(MyLatch);
     errno = save_errno;
 }
 
 /*
- * postfga_register_bgw - Register background worker with PostgreSQL
+ * postfga_bgw_init - Register background worker with PostgreSQL
  */
 void
 postfga_bgw_init(void)
@@ -329,10 +329,10 @@ postfga_bgw_main(Datum arg)
             proc_exit(1);
 
         /* Reload configuration if needed */
-        if (config_reload_requested)
+        if (reload_requested)
         {
-            config_reload_requested = false;
-            // ProcessConfigFile(PGC_SIGHUP);
+            reload_requested = false;
+            ProcessConfigFile(PGC_SIGHUP);
         }            
 
         /* Process pending gRPC requests */
