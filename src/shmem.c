@@ -230,6 +230,12 @@ postfga_get_shared_state(void)
     return shared_state;
 }
 
+Cache *
+postfga_get_cache_state(void)
+{
+    return &shared_state->cache;
+}
+
 /*
  * Optional: GUC hook 이나 다른 초기화 코드에서 호출해서
  * max_cache_entries 값을 갱신하고 싶다면 이 헬퍼를 사용할 수 있다.

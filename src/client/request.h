@@ -1,4 +1,6 @@
-#pragma once
+#ifndef POSTFGA_CLIENT_REQUEST_H
+#define POSTFGA_CLIENT_REQUEST_H
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -28,3 +30,5 @@ typedef struct {
     uint16_t       tuple_count;
     FgaTuple       tuples[FGA_MAX_TUPLES];
 } Request;
+
+#endif // POSTFGA_CLIENT_REQUEST_H

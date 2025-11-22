@@ -5,8 +5,9 @@
 #include <utils/hsearch.h>
 
 #include "cache.h"
-
-#include "common.h"   // DEFAULT_RELATION_COUNT, DEFAULT_GEN_MAP_SIZE, NAME_MAX_LEN 등
+#include "relation.h"
+#include "generation.h"
+#include "common.h"
 
 static void
 init_hash(HTAB      **htab,

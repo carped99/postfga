@@ -21,27 +21,12 @@ PG_MODULE_MAGIC;
 static shmem_request_hook_type prev_shmem_request_hook = NULL;
 static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
 
-/* ------------------------------------------------------------------------- */
-/* Hook implementations                                                      */
-/* ------------------------------------------------------------------------- */
-static void
-postfga_shmem_request_hook(void)
-{
-    if (prev_shmem_request_hook)
-        prev_shmem_request_hook();
+/* Function prototypes */
+void _PG_init(void);
+void _PG_fini(void);
 
-    postfga_request_shmem();
-}
-
-static void
-postfga_shmem_startup_hook(void)
-{
-    if (prev_shmem_startup_hook)
-        prev_shmem_startup_hook();
-
-    postfga_startup_shmem();
-}
-
+static void postfga_shmem_request_hook(void);
+static void postfga_shmem_startup_hook(void);
 
 /* ------------------------------------------------------------------------- */
 /* Module load / unload                                                      */
@@ -85,4 +70,22 @@ _PG_fini(void)
     // Restore previous hooks so other extensions in the chain keep working
     shmem_request_hook = prev_shmem_request_hook;
     shmem_startup_hook = prev_shmem_startup_hook;
+}
+
+static void
+postfga_shmem_request_hook(void)
+{
+    if (prev_shmem_request_hook)
+        prev_shmem_request_hook();
+
+    postfga_request_shmem();
+}
+
+static void
+postfga_shmem_startup_hook(void)
+{
+    if (prev_shmem_startup_hook)
+        prev_shmem_startup_hook();
+
+    postfga_startup_shmem();
 }

@@ -3,7 +3,38 @@
 
 #include <postgres.h>
 #include <utils/hsearch.h>
+#include <utils/timestamp.h>
+#include <storage/lwlock.h>
 #include <c.h>
+
+#include "common.h"
+
+/* ACL Cache Key Structure */
+typedef struct {
+    char object_type[RELATION_MAX_LEN];
+    char object_id[RELATION_MAX_LEN];
+    char subject_type[RELATION_MAX_LEN];
+    char subject_id[RELATION_MAX_LEN];
+} AclCacheKey;
+
+/* ACL Cache Entry */
+typedef struct {
+    AclCacheKey key;
+
+    /* Generation counters for invalidation */
+    uint64 object_type_gen;
+    uint64 object_gen;
+    uint64 subject_type_gen;
+    uint64 subject_gen;
+
+    /* Relation bitmasks */
+    uint64 allow_bits;
+    uint64 deny_bits;
+
+    /* Timestamps */
+    TimestampTz last_updated;
+    TimestampTz expire_at;
+} AclCacheEntry;
 
 /*
  * Cache
@@ -13,6 +44,7 @@
  */
 typedef struct Cache
 {
+    LWLock              *lock;         /* Cache 전용 잠금 (PostfgaShmemState의 lock과 별도) */
     /* ---- Global generation counter ---- */
     uint64      next_generation;        /* cache invalidation용 전역 generation */
 

@@ -1,3 +1,21 @@
+/*
+ * main.cpp
+ *
+ * Background worker entrypoints for the PostFGA extension.
+ *
+ * This module provides:
+ *   - C-visible initialization hook to register the background worker
+ *     (postfga_bgw_init)
+ *   - Optional shutdown hook (postfga_bgw_fini)
+ *   - Background worker main function (postfga_bgw_main), which:
+ *       - Attaches to the PostFGA shared memory state
+ *       - Wraps the C++ worker (postfga::bgw::Worker) in a PG_TRY/PG_CATCH
+ *         block so that C++ exceptions are converted into PostgreSQL errors
+ *       - Ensures clean process exit via proc_exit()
+ *
+ * All PostgreSQL-facing symbols are declared extern "C" for C linkage, while
+ * the actual worker logic is implemented in C++ (worker.hpp / Worker::run()).
+ */
 
 extern "C" {
 #include <postgres.h>

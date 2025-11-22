@@ -1,10 +1,12 @@
 // openfga.cpp
-#include "request.h"
 
-#include "openfga.hpp"
 #include <algorithm>
 #include <cstring>
 #include <thread>
+
+#include "openfga.hpp"
+#include "request.h"
+#include "response.h"
 
 namespace postfga::client {
 
@@ -13,7 +15,7 @@ namespace {
 constexpr int kMaxGrpcMessageSize = 4 * 1024 * 1024;
 
 // "type:id" 형태로 user/object 문자열 만들기
-inline std::string make_user(const GrpcCheckRequest& r)
+inline std::string make_user(const FgaTuple& r)
 {
     std::string user;
     user.reserve(64);
@@ -21,7 +23,7 @@ inline std::string make_user(const GrpcCheckRequest& r)
     return user;
 }
 
-inline std::string make_object(const GrpcCheckRequest& r)
+inline std::string make_object(const FgaTuple& r)
 {
     std::string obj;
     obj.reserve(64);
@@ -49,7 +51,7 @@ OpenFgaGrpcClient::OpenFgaGrpcClient(const Config& config)
         args
     );
 
-    stub_ = openfga::v1::OpenFgaService::NewStub(channel_);
+    stub_ = openfga::v1::OpenFGAService::NewStub(channel_);
 }
 
 OpenFgaGrpcClient::~OpenFgaGrpcClient()
@@ -68,7 +70,7 @@ bool OpenFgaGrpcClient::is_healthy() const
     return channel_->WaitForConnected(deadline);
 }
 
-void OpenFgaGrpcClient::async_check(const GrpcCheckRequest& req, CheckHandler handler)
+void OpenFgaGrpcClient::async_check(const Request& req, CheckHandler handler)
 {
     if (!handler || stopping_.load(std::memory_order_relaxed))
         return;
@@ -78,8 +80,7 @@ void OpenFgaGrpcClient::async_check(const GrpcCheckRequest& req, CheckHandler ha
         inflight_.load(std::memory_order_relaxed) >= config_.max_concurrency)
     {
         CheckResponse resp{};
-        resp.grpc_status_code   = static_cast<int>(grpc::StatusCode::RESOURCE_EXHAUSTED);
-        resp.openfga_error_code = 0;
+        resp.status_code   = static_cast<int>(grpc::StatusCode::RESOURCE_EXHAUSTED);
         resp.allowed            = 0;
         std::strncpy(resp.error_message,
                      "OpenFGA client: max_concurrency exceeded",
@@ -100,7 +101,7 @@ void OpenFgaGrpcClient::async_check(const GrpcCheckRequest& req, CheckHandler ha
     });
 }
 
-void OpenFgaGrpcClient::async_write(const GrpcWriteRequest& req, WriteHandler handler)
+void OpenFgaGrpcClient::async_write(const Request& req, WriteHandler handler)
 {
     if (!handler || stopping_.load(std::memory_order_relaxed))
         return;
@@ -109,9 +110,9 @@ void OpenFgaGrpcClient::async_write(const GrpcWriteRequest& req, WriteHandler ha
         inflight_.load(std::memory_order_relaxed) >= config_.max_concurrency)
     {
         WriteResponse resp{};
-        resp.grpc_status_code   = static_cast<int>(grpc::StatusCode::RESOURCE_EXHAUSTED);
-        resp.openfga_error_code = 0;
-        resp.success            = 0;
+        resp.status_code   = static_cast<int>(grpc::StatusCode::RESOURCE_EXHAUSTED);
+        // resp.openfga_error_code = 0;
+        resp.success_count            = 0;
         std::strncpy(resp.error_message,
                      "OpenFGA client: max_concurrency exceeded",
                      sizeof(resp.error_message) - 1);
@@ -143,14 +144,14 @@ void OpenFgaGrpcClient::shutdown()
  * 내부: retry 래핑
  * ====================================================================== */
 
-CheckResponse OpenFgaGrpcClient::do_check_with_retry(const GrpcCheckRequest& req) const
+CheckResponse OpenFgaGrpcClient::do_check_with_retry(const Request& req) const
 {
     CheckResponse resp{};
     for (int attempt = 0;; ++attempt)
     {
         resp = do_check_once(req);
-        if (resp.grpc_status_code == 0 /* OK*/ ||
-            !should_retry(grpc::Status(static_cast<grpc::StatusCode>(resp.grpc_status_code), ""),
+        if (resp.status_code == 0 /* OK*/ ||
+            !should_retry(grpc::Status(static_cast<grpc::StatusCode>(resp.status_code), ""),
                           attempt))
         {
             break;
@@ -163,14 +164,14 @@ CheckResponse OpenFgaGrpcClient::do_check_with_retry(const GrpcCheckRequest& req
     return resp;
 }
 
-WriteResponse OpenFgaGrpcClient::do_write_with_retry(const GrpcWriteRequest& req) const
+WriteResponse OpenFgaGrpcClient::do_write_with_retry(const Request& req) const
 {
     WriteResponse resp{};
     for (int attempt = 0;; ++attempt)
     {
         resp = do_write_once(req);
-        if (resp.grpc_status_code == 0 /* OK*/ ||
-            !should_retry(grpc::Status(static_cast<grpc::StatusCode>(resp.grpc_status_code), ""),
+        if (resp.status_code == 0 /* OK*/ ||
+            !should_retry(grpc::Status(static_cast<grpc::StatusCode>(resp.status_code), ""),
                           attempt))
         {
             break;
@@ -187,11 +188,11 @@ WriteResponse OpenFgaGrpcClient::do_write_with_retry(const GrpcWriteRequest& req
  * 내부: 단일 호출
  * ====================================================================== */
 
-CheckResponse OpenFgaGrpcClient::do_check_once(const GrpcCheckRequest& req) const
+CheckResponse OpenFgaGrpcClient::do_check_once(const Request& req) const
 {
     CheckResponse out{};
-    out.grpc_status_code   = 0;
-    out.openfga_error_code = 0;
+    out.status_code   = 0;
+    // out.openfga_error_code = 0;
     out.allowed            = 0;
     out.error_message[0]   = '\0';
 
@@ -208,7 +209,7 @@ CheckResponse OpenFgaGrpcClient::do_check_once(const GrpcCheckRequest& req) cons
     grpc::Status status = stub_->Check(&ctx, greq, &gresp);
     if (!status.ok())
     {
-        out.grpc_status_code = static_cast<int>(status.error_code());
+        out.status_code = static_cast<int>(status.error_code());
         std::strncpy(out.error_message,
                      status.error_message().c_str(),
                      sizeof(out.error_message) - 1);
@@ -217,16 +218,16 @@ CheckResponse OpenFgaGrpcClient::do_check_once(const GrpcCheckRequest& req) cons
 
     // 실제 proto 필드 확인 필요 (일반적으로 allowed() bool)
     out.allowed          = gresp.allowed() ? 1 : 0;
-    out.grpc_status_code = 0;
+    out.status_code = 0;
     return out;
 }
 
-WriteResponse OpenFgaGrpcClient::do_write_once(const GrpcWriteRequest& req) const
+WriteResponse OpenFgaGrpcClient::do_write_once(const Request& req) const
 {
     WriteResponse out{};
-    out.grpc_status_code   = 0;
-    out.openfga_error_code = 0;
-    out.success            = 0;
+    out.status_code   = 0;
+    // out.openfga_error_code = 0;
+    out.success_count            = 0;
     out.error_message[0]   = '\0';
 
     grpc::ClientContext ctx;
@@ -242,15 +243,15 @@ WriteResponse OpenFgaGrpcClient::do_write_once(const GrpcWriteRequest& req) cons
     grpc::Status status = stub_->Write(&ctx, greq, &gresp);
     if (!status.ok())
     {
-        out.grpc_status_code = static_cast<int>(status.error_code());
+        out.status_code = static_cast<int>(status.error_code());
         std::strncpy(out.error_message,
                      status.error_message().c_str(),
                      sizeof(out.error_message) - 1);
         return out;
     }
 
-    out.success          = 1;
-    out.grpc_status_code = 0;
+    out.success_count          = 1;
+    out.status_code = 0;
     return out;
 }
 
@@ -293,7 +294,7 @@ int OpenFgaGrpcClient::next_backoff_ms(int attempt) const
  * proto 매핑
  * ====================================================================== */
 
-void OpenFgaGrpcClient::fill_check_request(const GrpcCheckRequest& in,
+void OpenFgaGrpcClient::fill_check_request(const Request& in,
                                            openfga::v1::CheckRequest& out) const
 {
     // auto* tuple_key = out.mutable_tuple_key();
@@ -312,7 +313,7 @@ void OpenFgaGrpcClient::fill_check_request(const GrpcCheckRequest& in,
     //     out.set_authorization_model_id(config_.authorization_model_id);
 }
 
-void OpenFgaGrpcClient::fill_write_request(const GrpcWriteRequest& in,
+void OpenFgaGrpcClient::fill_write_request(const Request& in,
                                            openfga::v1::WriteRequest& out) const
 {
     // if (in.store_id && in.store_id[0] != '\0')

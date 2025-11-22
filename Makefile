@@ -3,8 +3,8 @@
 # --------------------------------------------------------------
 MODULE_big = postfga
 EXTENSION  = postfga
+CONTROL    = postfga.control
 DATA       = sql/postfga--1.0.0.sql
-CONTROL    = sql/postfga.control
 
 # --------------------------------------------------------------
 # Source files
@@ -12,15 +12,15 @@ CONTROL    = sql/postfga.control
 SRCS := $(shell find api src -name '*.c' -o -name '*.cc' -o -name '*.cpp')
 
 # Convert source files to object files
-OBJS := $(SRCS:.c=.o)
-OBJS := $(OBJS:.cpp=.o)
-OBJS := $(OBJS:.cc=.o)
+OBJS := $(addsuffix .o,$(basename $(SRCS)))
 
 # --------------------------------------------------------------
 # Compile flags
 # --------------------------------------------------------------
-PG_CPPFLAGS += -Isrc -Iapi
-PG_CXXFLAGS += -std=c++17 -Wall -Wextra
+PG_CPPFLAGS += -I./src -I./api -Ithird_party/asio/asio/include
+PG_CXXFLAGS += -std=c++17 -Wall -Wextra \
+				-DASIO_STANDALONE \
+				-DASIO_NO_DEPRECATED
 
 # --------------------------------------------------------------
 # Link flags
@@ -28,8 +28,27 @@ PG_CXXFLAGS += -std=c++17 -Wall -Wextra
 SHLIB_LINK += -lgrpc++ -lgrpc -lprotobuf -lpthread
 
 # --------------------------------------------------------------
+# Build type (debug / release)
+# --------------------------------------------------------------
+BUILD ?= release
+
+ifeq ($(BUILD),debug)
+  $(info [postfga] Build type: DEBUG)
+  override PG_CFLAGS   += -O0 -g3 -DDEBUG
+  override PG_CXXFLAGS += -O0 -g3 -DDEBUG
+else  # release
+  $(info [postfga] Build type: RELEASE)
+  override PG_CFLAGS   += -g0 -O3 -DNDEBUG
+  override PG_CXXFLAGS += -g0 -O3 -DNDEBUG
+endif
+
+# --------------------------------------------------------------
 # PGXS
 # --------------------------------------------------------------
+override with_llvm = no
+override enable_debug = no
+override enable_dtrace = no
+
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
@@ -37,11 +56,19 @@ include $(PGXS)
 # --------------------------------------------------------------
 # Utility targets
 # --------------------------------------------------------------
-.PHONY: bear up start stop drop create reload
+.PHONY: debug release bear up start stop drop create reload
+
+# Build with debug symbols
+debug:
+	$(MAKE) BUILD=debug
+
+# Build with release
+release:
+	$(MAKE) BUILD=release
 
 # Generate compile_commands.json (for VSCode/clangd)
 bear:
-	bear -- make
+	bear -- make clean all
 
 up:
 	su - postgres -c "postgres -c shared_preload_libraries=postfga"

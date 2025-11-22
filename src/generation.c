@@ -227,13 +227,13 @@ determine_generation_map(const char *scope_key)
         /* Type-level scope - use type map */
         /* TODO: Distinguish between object and subject types */
         /* For now, use object_type_gen_map as default */
-        return shared_state->object_type_gen_map;
+        return shared_state->cache.object_type_gen_map;
     }
     else
     {
         /* Instance-level scope - use instance map */
         /* TODO: Distinguish between object and subject instances */
         /* For now, use object_gen_map as default */
-        return shared_state->object_gen_map;
+        return shared_state->cache.object_gen_map;
     }
 }

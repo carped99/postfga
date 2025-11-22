@@ -29,7 +29,7 @@ postfga_check(PG_FUNCTION_ARGS)
     const char *relation     = text_to_cstring(relation_t);
     const char *subject_type = text_to_cstring(subject_type_t);
     const char *subject_id   = text_to_cstring(subject_id_t);
-    ok = enqueue_grpc_request(object_type, object_id, subject_type, subject_id, relation);
+    // ok = enqueue_grpc_request(object_type, object_id, subject_type, subject_id, relation);
 
     /*
      * ok == false → 내부적으로 타임아웃/큐 오류 등.

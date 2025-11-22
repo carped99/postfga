@@ -452,72 +452,73 @@ dequeue_grpc_requests(GrpcRequest *requests, uint32 *count)
 bool
 dequeue_requests(RequestPayload *requests, uint32 *count)
 {
-    PostfgaShmemState *state;
-    uint32 head;
-    uint32 max_count;
-    uint32 dequeued = 0;
-    uint32 i;
+    // PostfgaShmemState *state;
+    // uint32 head;
+    // uint32 max_count;
+    // uint32 dequeued = 0;
+    // uint32 i;
 
-    /* Validate input */
-    if (!requests || !count || *count == 0)
-    {
-        elog(WARNING, "PostFGA: Invalid parameters for dequeue_requests");
-        return false;
-    }
+    // /* Validate input */
+    // if (!requests || !count || *count == 0)
+    // {
+    //     elog(WARNING, "PostFGA: Invalid parameters for dequeue_requests");
+    //     return false;
+    // }
 
-    max_count = *count;
-    *count = 0;
+    // max_count = *count;
+    // *count = 0;
 
-    /* Get shared state */
-    state = postfga_get_shared_state();
-    if (!state || !state->request_queue)
-    {
-        elog(WARNING, "PostFGA: Queue not initialized");
-        return false;
-    }
+    // /* Get shared state */
+    // state = postfga_get_shared_state();
+    // if (!state || !state->request_queue)
+    // {
+    //     elog(WARNING, "PostFGA: Queue not initialized");
+    //     return false;
+    // }
 
-    /* Acquire lock for queue modification */
-    LWLockAcquire(state->lock, LW_EXCLUSIVE);
+    // /* Acquire lock for queue modification */
+    // LWLockAcquire(state->lock, LW_EXCLUSIVE);
 
-    /* Check if queue is empty */
-    if (queue_is_empty(state))
-    {
-        LWLockRelease(state->lock);
-        return false;
-    }
+    // /* Check if queue is empty */
+    // if (queue_is_empty(state))
+    // {
+    //     LWLockRelease(state->lock);
+    //     return false;
+    // }
 
-    /* Get current head position */
-    head = pg_atomic_read_u32(&state->queue_head);
+    // /* Get current head position */
+    // head = pg_atomic_read_u32(&state->queue_head);
 
-    /* Dequeue up to max_count requests */
-    for (i = 0; i < max_count && !queue_is_empty(state); i++)
-    {
-        /* Copy request to output buffer */
-        RequestPayload *payload = &state->request_queue[head];
-        memcpy(&requests[i], payload, sizeof(RequestPayload));
+    // /* Dequeue up to max_count requests */
+    // for (i = 0; i < max_count && !queue_is_empty(state); i++)
+    // {
+    //     /* Copy request to output buffer */
+    //     RequestPayload *payload = &state->request_queue[head];
+    //     memcpy(&requests[i], payload, sizeof(RequestPayload));
 
-        /* Advance head pointer (circular) */
-        head = (head + 1) % MAX_PENDING_REQ;
-        pg_atomic_write_u32(&state->queue_head, head);
+    //     /* Advance head pointer (circular) */
+    //     head = (head + 1) % MAX_PENDING_REQ;
+    //     pg_atomic_write_u32(&state->queue_head, head);
 
-        /* Decrement size counter */
-        pg_atomic_fetch_sub_u32(&state->queue_size, 1);
+    //     /* Decrement size counter */
+    //     pg_atomic_fetch_sub_u32(&state->queue_size, 1);
 
-        dequeued++;
+    //     dequeued++;
 
-        /* Update statistics */
-        stats_inc_request_processed(&state->stats);
-    }
+    //     /* Update statistics */
+    //     stats_inc_request_processed(&state->stats);
+    // }
 
-    /* Release lock */
-    LWLockRelease(state->lock);
+    // /* Release lock */
+    // LWLockRelease(state->lock);
 
-    *count = dequeued;
+    // *count = dequeued;
 
-    elog(DEBUG2, "PostFGA: Dequeued %u requests (queue size: %u/%u)",
-         dequeued, queue_size(state), MAX_PENDING_REQ);
+    // elog(DEBUG2, "PostFGA: Dequeued %u requests (queue size: %u/%u)",
+    //      dequeued, queue_size(state), MAX_PENDING_REQ);
 
-    return (dequeued > 0);
+    // return (dequeued > 0);
+    return false;
 }
 
 /*
@@ -546,83 +547,83 @@ dequeue_requests(RequestPayload *requests, uint32 *count)
 bool
 wait_for_grpc_result(uint32 request_id, bool *allowed, uint32 *error_code)
 {
-    PostfgaShmemState *state;
-    int max_wait_ms = 5000;  /* 5 seconds */
-    int wait_interval_ms = 10;  /* 10 ms per iteration */
-    int iterations = max_wait_ms / wait_interval_ms;
-    int i;
+    // PostfgaShmemState *state;
+    // int max_wait_ms = 5000;  /* 5 seconds */
+    // int wait_interval_ms = 10;  /* 10 ms per iteration */
+    // int iterations = max_wait_ms / wait_interval_ms;
+    // int i;
 
-    /* Validate input */
-    if (request_id == 0 || !allowed || !error_code)
-    {
-        elog(WARNING, "PostFGA: Invalid parameters for wait_for_grpc_result");
-        return false;
-    }
+    // /* Validate input */
+    // if (request_id == 0 || !allowed || !error_code)
+    // {
+    //     elog(WARNING, "PostFGA: Invalid parameters for wait_for_grpc_result");
+    //     return false;
+    // }
 
-    /* Get shared state */
-    state = postfga_get_shared_state();
-    if (!state)
-    {
-        elog(WARNING, "PostFGA: Shared state not initialized");
-        return false;
-    }
+    // /* Get shared state */
+    // state = postfga_get_shared_state();
+    // if (!state)
+    // {
+    //     elog(WARNING, "PostFGA: Shared state not initialized");
+    //     return false;
+    // }
 
-    /* Poll for result */
-    for (i = 0; i < iterations; i++)
-    {
-        CHECK_FOR_INTERRUPTS();
+    // /* Poll for result */
+    // for (i = 0; i < iterations; i++)
+    // {
+    //     CHECK_FOR_INTERRUPTS();
 
-        /* Search queue for matching request_id with completed status */
-        LWLockAcquire(state->lock, LW_SHARED);
+    //     /* Search queue for matching request_id with completed status */
+    //     LWLockAcquire(state->lock, LW_SHARED);
 
-        /* Linear search through queue (inefficient but simple) */
-        for (uint32 j = 0; j < MAX_PENDING_REQ; j++)
-        {
-            RequestPayload *payload = &state->request_queue[j];
-            BaseRequest *base = &payload->base;
+    //     /* Linear search through queue (inefficient but simple) */
+    //     for (uint32 j = 0; j < MAX_PENDING_REQ; j++)
+    //     {
+    //         RequestPayload *payload = &state->request_queue[j];
+    //         BaseRequest *base = &payload->base;
 
-            if (base->request_id == request_id)
-            {
-                if (base->status == REQ_STATUS_COMPLETED)
-                {
-                    /* For CHECK requests, extract allowed field */
-                    if (base->type == REQ_TYPE_CHECK)
-                    {
-                        *allowed = payload->check.allowed;
-                    }
-                    else
-                    {
-                        *allowed = base->success;
-                    }
-                    *error_code = base->error_code;
-                    LWLockRelease(state->lock);
+    //         if (base->request_id == request_id)
+    //         {
+    //             if (base->status == REQ_STATUS_COMPLETED)
+    //             {
+    //                 /* For CHECK requests, extract allowed field */
+    //                 if (base->type == REQ_TYPE_CHECK)
+    //                 {
+    //                     *allowed = payload->check.allowed;
+    //                 }
+    //                 else
+    //                 {
+    //                     *allowed = base->success;
+    //                 }
+    //                 *error_code = base->error_code;
+    //                 LWLockRelease(state->lock);
 
-                    elog(DEBUG2, "PostFGA: Result received for request %u: allowed=%d",
-                         request_id, *allowed);
-                    return true;
-                }
-                else if (base->status == REQ_STATUS_ERROR)
-                {
-                    *allowed = false;
-                    *error_code = base->error_code;
-                    LWLockRelease(state->lock);
+    //                 elog(DEBUG2, "PostFGA: Result received for request %u: allowed=%d",
+    //                      request_id, *allowed);
+    //                 return true;
+    //             }
+    //             else if (base->status == REQ_STATUS_ERROR)
+    //             {
+    //                 *allowed = false;
+    //                 *error_code = base->error_code;
+    //                 LWLockRelease(state->lock);
 
-                    elog(WARNING, "PostFGA: Request %u failed with error %u",
-                         request_id, *error_code);
-                    return false;
-                }
-                break;
-            }
-        }
+    //                 elog(WARNING, "PostFGA: Request %u failed with error %u",
+    //                      request_id, *error_code);
+    //                 return false;
+    //             }
+    //             break;
+    //         }
+    //     }
 
-        LWLockRelease(state->lock);
+    //     LWLockRelease(state->lock);
 
-        /* Sleep for a short interval */
-        pg_usleep(wait_interval_ms * 1000L);  /* Convert ms to microseconds */
-    }
+    //     /* Sleep for a short interval */
+    //     pg_usleep(wait_interval_ms * 1000L);  /* Convert ms to microseconds */
+    // }
 
-    /* Timeout */
-    elog(WARNING, "PostFGA: Timeout waiting for request %u result", request_id);
+    // /* Timeout */
+    // elog(WARNING, "PostFGA: Timeout waiting for request %u result", request_id);
     /* TODO: Add queue_timeout stats counter if needed */
     return false;
 }
@@ -645,69 +646,69 @@ wait_for_grpc_result(uint32 request_id, bool *allowed, uint32 *error_code)
 void
 set_grpc_result(uint32 request_id, bool allowed, uint32 error_code)
 {
-    PostfgaShmemState *state;
-    bool found = false;
+    // PostfgaShmemState *state;
+    // bool found = false;
 
-    /* Validate input */
-    if (request_id == 0)
-    {
-        elog(WARNING, "PostFGA: Invalid request_id for set_grpc_result");
-        return;
-    }
+    // /* Validate input */
+    // if (request_id == 0)
+    // {
+    //     elog(WARNING, "PostFGA: Invalid request_id for set_grpc_result");
+    //     return;
+    // }
 
-    /* Get shared state */
-    state = postfga_get_shared_state();
-    if (!state || !state->request_queue)
-    {
-        elog(WARNING, "PostFGA: Queue not initialized");
-        return;
-    }
+    // /* Get shared state */
+    // state = postfga_get_shared_state();
+    // if (!state || !state->request_queue)
+    // {
+    //     elog(WARNING, "PostFGA: Queue not initialized");
+    //     return;
+    // }
 
-    /* Acquire lock */
-    LWLockAcquire(state->lock, LW_EXCLUSIVE);
+    // /* Acquire lock */
+    // LWLockAcquire(state->lock, LW_EXCLUSIVE);
 
-    /* Linear search for matching request_id */
-    for (uint32 i = 0; i < MAX_PENDING_REQ; i++)
-    {
-        RequestPayload *payload = &state->request_queue[i];
-        BaseRequest *base = &payload->base;
+    // /* Linear search for matching request_id */
+    // for (uint32 i = 0; i < MAX_PENDING_REQ; i++)
+    // {
+    //     RequestPayload *payload = &state->request_queue[i];
+    //     BaseRequest *base = &payload->base;
 
-        if (base->request_id == request_id && base->status == REQ_STATUS_PENDING)
-        {
-            /* Update result based on request type */
-            if (base->type == REQ_TYPE_CHECK)
-            {
-                payload->check.allowed = allowed;
-            }
+    //     if (base->request_id == request_id && base->status == REQ_STATUS_PENDING)
+    //     {
+    //         /* Update result based on request type */
+    //         if (base->type == REQ_TYPE_CHECK)
+    //         {
+    //             payload->check.allowed = allowed;
+    //         }
 
-            base->success = allowed;
-            base->error_code = error_code;
-            base->status = (error_code == 0) ? REQ_STATUS_COMPLETED : REQ_STATUS_ERROR;
-            base->completed_at = GetCurrentTimestamp();
+    //         base->success = allowed;
+    //         base->error_code = error_code;
+    //         base->status = (error_code == 0) ? REQ_STATUS_COMPLETED : REQ_STATUS_ERROR;
+    //         base->completed_at = GetCurrentTimestamp();
 
-            /* Wake up waiting backend if latch is set */
-            if (base->backend_latch != NULL)
-            {
-                SetLatch(base->backend_latch);
-            }
+    //         /* Wake up waiting backend if latch is set */
+    //         if (base->backend_latch != NULL)
+    //         {
+    //             SetLatch(base->backend_latch);
+    //         }
 
-            found = true;
-            break;
-        }
-    }
+    //         found = true;
+    //         break;
+    //     }
+    // }
 
-    /* Release lock */
-    LWLockRelease(state->lock);
+    // /* Release lock */
+    // LWLockRelease(state->lock);
 
-    if (found)
-    {
-        elog(DEBUG2, "PostFGA: Set result for request %u: allowed=%d, error=%u",
-             request_id, allowed, error_code);
-    }
-    else
-    {
-        elog(WARNING, "PostFGA: Request %u not found in queue", request_id);
-    }
+    // if (found)
+    // {
+    //     elog(DEBUG2, "PostFGA: Set result for request %u: allowed=%d, error=%u",
+    //          request_id, allowed, error_code);
+    // }
+    // else
+    // {
+    //     elog(WARNING, "PostFGA: Request %u not found in queue", request_id);
+    // }
 }
 
 /*
@@ -763,43 +764,43 @@ clear_completed_requests(void)
     PostfgaShmemState *state;
     uint32 cleared = 0;
 
-    state = postfga_get_shared_state();
-    if (!state || !state->request_queue)
-    {
-        return 0;
-    }
+    // state = postfga_get_shared_state();
+    // if (!state || !state->request_queue)
+    // {
+    //     return 0;
+    // }
 
-    LWLockAcquire(state->lock, LW_EXCLUSIVE);
+    // LWLockAcquire(state->lock, LW_EXCLUSIVE);
 
-    /* Scan queue and clear completed/error entries */
-    for (uint32 i = 0; i < MAX_PENDING_REQ; i++)
-    {
-        RequestPayload *payload = &state->request_queue[i];
-        BaseRequest *base = &payload->base;
+    // /* Scan queue and clear completed/error entries */
+    // for (uint32 i = 0; i < MAX_PENDING_REQ; i++)
+    // {
+    //     RequestPayload *payload = &state->request_queue[i];
+    //     BaseRequest *base = &payload->base;
 
-        if (base->status == REQ_STATUS_COMPLETED || base->status == REQ_STATUS_ERROR)
-        {
-            /* Check if result is old enough to clear (e.g., > 60 seconds) */
-            TimestampTz now = GetCurrentTimestamp();
-            long secs;
-            int microsecs;
+    //     if (base->status == REQ_STATUS_COMPLETED || base->status == REQ_STATUS_ERROR)
+    //     {
+    //         /* Check if result is old enough to clear (e.g., > 60 seconds) */
+    //         TimestampTz now = GetCurrentTimestamp();
+    //         long secs;
+    //         int microsecs;
 
-            TimestampDifference(base->created_at, now, &secs, &microsecs);
+    //         TimestampDifference(base->created_at, now, &secs, &microsecs);
 
-            if (secs > 60)  /* 60 seconds threshold */
-            {
-                memset(payload, 0, sizeof(RequestPayload));
-                cleared++;
-            }
-        }
-    }
+    //         if (secs > 60)  /* 60 seconds threshold */
+    //         {
+    //             memset(payload, 0, sizeof(RequestPayload));
+    //             cleared++;
+    //         }
+    //     }
+    // }
 
-    LWLockRelease(state->lock);
+    // LWLockRelease(state->lock);
 
-    if (cleared > 0)
-    {
-        elog(DEBUG1, "PostFGA: Cleared %u completed requests from queue", cleared);
-    }
+    // if (cleared > 0)
+    // {
+    //     elog(DEBUG1, "PostFGA: Cleared %u completed requests from queue", cleared);
+    // }
 
     return cleared;
 }

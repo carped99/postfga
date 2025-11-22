@@ -12,8 +12,6 @@
 // C struct forward 선언 (C linkage는 struct엔 필요 없음)
 struct GrpcCheckRequest;
 struct GrpcWriteRequest;
-struct CheckResponse;
-struct WriteResponse;
 
 // gRPC / OpenFGA proto
 #include <grpcpp/grpcpp.h>

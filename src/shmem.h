@@ -48,6 +48,8 @@ void postfga_startup_shmem(void);
  */
 PostfgaShmemState *postfga_get_shared_state(void);
 
+Cache *postfga_get_cache_state(void);
+
 #ifdef __cplusplus
 }
 #endif

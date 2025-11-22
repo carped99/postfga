@@ -110,10 +110,12 @@ postfga_queue_available(const PostfgaRequestQueue *q)
 static inline bool
 postfga_queue_enqueue(PostfgaRequestQueue *q, const RequestPayload *item)
 {
+    postfga_qsize_t idx;
+
     if(postfga_queue_is_full(q))
         return false;
 
-    postfga_qsize_t idx = q->head & q->mask;
+    idx = q->head & q->mask;
     q->buffer[idx] = *item;   /* struct 복사 */
 
     q->head++;
@@ -130,10 +132,11 @@ postfga_queue_enqueue(PostfgaRequestQueue *q, const RequestPayload *item)
 static inline bool
 postfga_queue_dequeue(PostfgaRequestQueue *q, RequestPayload *out_item)
 {
+    postfga_qsize_t idx;
     if (postfga_queue_is_empty(q))
         return false;
 
-    postfga_qsize_t idx  = q->tail & q->mask;
+    idx  = q->tail & q->mask;
     *out_item = q->buffer[idx];
     q->tail++;
 
@@ -151,10 +154,11 @@ postfga_queue_dequeue_batch(PostfgaRequestQueue *q, RequestPayload *out, postfga
 {
     postfga_qsize_t n    = 0u;
     postfga_qsize_t mask = q->mask;
+    postfga_qsize_t idx;
 
     while (n < max_count && !postfga_queue_is_empty(q))
     {
-        postfga_qsize_t idx = q->tail & mask;
+        idx = q->tail & mask;
         out[n] = q->buffer[idx];
         q->tail++;
         n++;
@@ -172,11 +176,12 @@ postfga_queue_dequeue_batch(PostfgaRequestQueue *q, RequestPayload *out, postfga
 static inline bool
 postfga_queue_peek(const PostfgaRequestQueue *q, postfga_qsize_t index, RequestPayload *out_item)
 {
+    postfga_qsize_t idx;
     postfga_qsize_t size = postfga_queue_size(q);
     if (index >= size)
         return false;
 
-    postfga_qsize_t idx  = (q->tail + index) & q->mask;
+    idx  = (q->tail + index) & q->mask;
 
     *out_item = q->buffer[idx];
     return true;
