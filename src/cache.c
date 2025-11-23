@@ -10,16 +10,16 @@
 #include "common.h"
 
 static void
-init_hash(HTAB      **htab,
+init_hash(HTAB **htab,
           const char *name,
-          int         nelem,
-          Size        keysize,
-          Size        entrysize)
+          int nelem,
+          Size keysize,
+          Size entrysize)
 {
     HASHCTL ctl;
 
     memset(&ctl, 0, sizeof(ctl));
-    ctl.keysize   = keysize;
+    ctl.keysize = keysize;
     ctl.entrysize = entrysize;
 
     *htab = ShmemInitHash(name,
@@ -32,8 +32,7 @@ init_hash(HTAB      **htab,
         elog(ERROR, "PostFGA cache: failed to create hash '%s'", name);
 }
 
-Size
-postfga_cache_estimate_size(int max_cache_entries)
+Size postfga_cache_estimate_size(int max_cache_entries)
 {
     Size size = 0;
 
@@ -64,13 +63,12 @@ postfga_cache_estimate_size(int max_cache_entries)
     return size;
 }
 
-void
-postfga_init_cache(Cache *cache, int max_cache_entries)
+void postfga_init_cache(Cache *cache, int max_cache_entries)
 {
     Assert(cache != NULL);
 
     memset(cache, 0, sizeof(Cache));
-    
+
     /* Relation bitmap hash */
     init_hash(&cache->relation_bitmap_map,
               "PostFGA Relation Bitmap",

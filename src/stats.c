@@ -15,8 +15,7 @@
  *
  * Initialize all statistics counters to zero.
  */
-void
-postfga_init_stats(Stats *stats)
+void postfga_init_stats(Stats *stats)
 {
     if (!stats)
         return;
@@ -35,8 +34,7 @@ postfga_init_stats(Stats *stats)
  *
  * Increment cache hit counter.
  */
-void
-stats_inc_cache_hit(Stats *stats)
+void stats_inc_cache_hit(Stats *stats)
 {
     if (stats)
         pg_atomic_fetch_add_u64(&stats->cache_hits, 1);
@@ -47,8 +45,7 @@ stats_inc_cache_hit(Stats *stats)
  *
  * Increment cache miss counter.
  */
-void
-stats_inc_cache_miss(Stats *stats)
+void stats_inc_cache_miss(Stats *stats)
 {
     if (stats)
         pg_atomic_fetch_add_u64(&stats->cache_misses, 1);
@@ -59,8 +56,7 @@ stats_inc_cache_miss(Stats *stats)
  *
  * Increment cache entry counter.
  */
-void
-stats_inc_cache_entry(Stats *stats)
+void stats_inc_cache_entry(Stats *stats)
 {
     if (stats)
         pg_atomic_fetch_add_u64(&stats->cache_entries, 1);
@@ -71,8 +67,7 @@ stats_inc_cache_entry(Stats *stats)
  *
  * Decrement cache entry counter (with underflow protection).
  */
-void
-stats_dec_cache_entry(Stats *stats)
+void stats_dec_cache_entry(Stats *stats)
 {
     if (stats)
     {
@@ -87,8 +82,7 @@ stats_dec_cache_entry(Stats *stats)
  *
  * Increment cache eviction counter.
  */
-void
-stats_inc_cache_eviction(Stats *stats)
+void stats_inc_cache_eviction(Stats *stats)
 {
     if (stats)
         pg_atomic_fetch_add_u64(&stats->cache_evictions, 1);
@@ -99,8 +93,7 @@ stats_inc_cache_eviction(Stats *stats)
  *
  * Increment BGW wakeup counter.
  */
-void
-stats_inc_bgw_wakeup(Stats *stats)
+void stats_inc_bgw_wakeup(Stats *stats)
 {
     if (stats)
         pg_atomic_fetch_add_u64(&stats->bgw_wakeups, 1);
@@ -111,8 +104,7 @@ stats_inc_bgw_wakeup(Stats *stats)
  *
  * Increment request enqueued counter.
  */
-void
-stats_inc_request_enqueued(Stats *stats)
+void stats_inc_request_enqueued(Stats *stats)
 {
     if (stats)
         pg_atomic_fetch_add_u64(&stats->requests_enqueued, 1);
@@ -123,8 +115,7 @@ stats_inc_request_enqueued(Stats *stats)
  *
  * Increment request processed counter.
  */
-void
-stats_inc_request_processed(Stats *stats)
+void stats_inc_request_processed(Stats *stats)
 {
     if (stats)
         pg_atomic_fetch_add_u64(&stats->requests_processed, 1);

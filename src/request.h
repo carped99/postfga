@@ -12,7 +12,8 @@
 #include "common.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include <postgres.h>
@@ -23,12 +24,11 @@ extern "C" {
 }
 #endif
 
-
 typedef enum
 {
-    REQ_STATUS_PENDING   = 0,
+    REQ_STATUS_PENDING = 0,
     REQ_STATUS_COMPLETED = 1,
-    REQ_STATUS_ERROR     = 2
+    REQ_STATUS_ERROR = 2
 } RequestStatus;
 
 /*
@@ -36,12 +36,12 @@ typedef enum
  */
 typedef enum
 {
-    REQ_TYPE_CHECK       = 1,    /* Check authorization (read) */
-    REQ_TYPE_WRITE       = 2,    /* Write tuple (grant permission) */
-    REQ_TYPE_DELETE      = 3,    /* Delete tuple (revoke permission) */
-    REQ_TYPE_EXPAND      = 4,    /* Expand relationship */
-    REQ_TYPE_LIST_OBJECTS = 5,   /* List objects */
-    REQ_TYPE_LIST_USERS   = 6    /* List users */
+    REQ_TYPE_CHECK = 1,        /* Check authorization (read) */
+    REQ_TYPE_WRITE = 2,        /* Write tuple (grant permission) */
+    REQ_TYPE_DELETE = 3,       /* Delete tuple (revoke permission) */
+    REQ_TYPE_EXPAND = 4,       /* Expand relationship */
+    REQ_TYPE_LIST_OBJECTS = 5, /* List objects */
+    REQ_TYPE_LIST_USERS = 6    /* List users */
 } RequestType;
 
 /*
@@ -49,22 +49,22 @@ typedef enum
  */
 typedef struct BaseRequest
 {
-    uint32        request_id;
-    RequestType   type;           /* Request type discriminator */
+    uint32 request_id;
+    RequestType type; /* Request type discriminator */
     RequestStatus status;
 
     /* Backend identification */
-    pid_t         backend_pid;
-    int32         backend_id;
-    Latch        *backend_latch;  /* Latch to wake up backend */
+    pid_t backend_pid;
+    int32 backend_id;
+    Latch *backend_latch; /* Latch to wake up backend */
 
     /* Common result fields */
-    bool          success;
-    uint32        error_code;
+    bool success;
+    uint32 error_code;
 
     /* Timestamps */
-    TimestampTz   created_at;
-    TimestampTz   completed_at;
+    TimestampTz created_at;
+    TimestampTz completed_at;
 } BaseRequest;
 
 /*
@@ -72,17 +72,17 @@ typedef struct BaseRequest
  */
 typedef struct CheckRequest
 {
-    BaseRequest   base;
+    BaseRequest base;
 
     /* Check parameters */
-    char          object_type[OBJECT_TYPE_MAX_LEN];
-    char          object_id[OBJECT_ID_MAX_LEN];
-    char          subject_type[SUBJECT_TYPE_MAX_LEN];
-    char          subject_id[SUBJECT_ID_MAX_LEN];
-    char          relation[RELATION_MAX_LEN];
+    char object_type[OBJECT_TYPE_MAX_LEN];
+    char object_id[OBJECT_ID_MAX_LEN];
+    char subject_type[SUBJECT_TYPE_MAX_LEN];
+    char subject_id[SUBJECT_ID_MAX_LEN];
+    char relation[RELATION_MAX_LEN];
 
     /* Check result */
-    bool          allowed;
+    bool allowed;
 } CheckRequest;
 
 /*
@@ -90,14 +90,14 @@ typedef struct CheckRequest
  */
 typedef struct WriteRequest
 {
-    BaseRequest   base;
+    BaseRequest base;
 
     /* Tuple to write */
-    char          object_type[OBJECT_TYPE_MAX_LEN];
-    char          object_id[OBJECT_ID_MAX_LEN];
-    char          subject_type[SUBJECT_TYPE_MAX_LEN];
-    char          subject_id[SUBJECT_ID_MAX_LEN];
-    char          relation[RELATION_MAX_LEN];
+    char object_type[OBJECT_TYPE_MAX_LEN];
+    char object_id[OBJECT_ID_MAX_LEN];
+    char subject_type[SUBJECT_TYPE_MAX_LEN];
+    char subject_id[SUBJECT_ID_MAX_LEN];
+    char relation[RELATION_MAX_LEN];
 } WriteRequest;
 
 /*
@@ -105,14 +105,14 @@ typedef struct WriteRequest
  */
 typedef struct DeleteRequest
 {
-    BaseRequest   base;
+    BaseRequest base;
 
     /* Tuple to delete */
-    char          object_type[OBJECT_TYPE_MAX_LEN];
-    char          object_id[OBJECT_ID_MAX_LEN];
-    char          subject_type[SUBJECT_TYPE_MAX_LEN];
-    char          subject_id[SUBJECT_ID_MAX_LEN];
-    char          relation[RELATION_MAX_LEN];
+    char object_type[OBJECT_TYPE_MAX_LEN];
+    char object_id[OBJECT_ID_MAX_LEN];
+    char subject_type[SUBJECT_TYPE_MAX_LEN];
+    char subject_id[SUBJECT_ID_MAX_LEN];
+    char relation[RELATION_MAX_LEN];
 } DeleteRequest;
 
 /*
@@ -122,10 +122,10 @@ typedef struct DeleteRequest
  */
 typedef union RequestPayload
 {
-    BaseRequest    base;
-    CheckRequest   check;
-    WriteRequest   write;
-    DeleteRequest  delete_req;
+    BaseRequest base;
+    CheckRequest check;
+    WriteRequest write;
+    DeleteRequest delete_req;
 } RequestPayload;
 
 #endif /* POSTFGA_REQUEST_H */

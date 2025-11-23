@@ -8,7 +8,7 @@ extern "C" {
 
 #include <utility>
 #include "processor.hpp"
-#include "client/factory.hpp"
+#include "client/client_factory.hpp"
 
 namespace postfga::bgw {
 

@@ -41,44 +41,44 @@ typedef enum FgaRequestType
 
 typedef struct FgaCheckTupleRequest
 {
-    uint16_t op_count;         /* slot의 op_count와 동일하게 유지 */
+    uint16_t op_count; /* slot의 op_count와 동일하게 유지 */
     uint16_t _pad;
     FgaTuple tuples[FGA_MAX_BATCH];
 } FgaCheckTupleRequest;
 
 typedef struct FgaCheckTupleResponse
 {
-    uint16_t  op_count;
-    uint16_t  _pad;
-    bool    allowed[FGA_MAX_BATCH];
+    uint16_t op_count;
+    uint16_t _pad;
+    bool allowed[FGA_MAX_BATCH];
 } FgaCheckTupleResponse;
 
 typedef struct FgaWriteTupleRequest
 {
-    uint16_t op_count;         /* slot의 op_count와 동일하게 유지 */
+    uint16_t op_count; /* slot의 op_count와 동일하게 유지 */
     uint16_t _pad;
     FgaTuple tuples[FGA_MAX_BATCH];
 } FgaWriteTupleRequest;
 
 typedef struct FgaWriteTupleResponse
 {
-    uint16_t  op_count;
-    uint16_t  _pad;
-    int32_t   error_codes[FGA_MAX_BATCH];  /* 0=OK, others=error */
+    uint16_t op_count;
+    uint16_t _pad;
+    int32_t error_codes[FGA_MAX_BATCH]; /* 0=OK, others=error */
 } FgaWriteTupleResponse;
 
 typedef struct FgaDeleteTupleRequest
 {
-    uint16_t op_count;         /* slot의 op_count와 동일하게 유지 */
+    uint16_t op_count; /* slot의 op_count와 동일하게 유지 */
     uint16_t _pad;
     FgaTuple tuples[FGA_MAX_BATCH];
 } FgaDeleteTupleRequest;
 
 typedef struct FgaDeleteTupleResponse
 {
-    uint16_t  op_count;
-    uint16_t  _pad;
-    int32_t   error_codes[FGA_MAX_BATCH];  /* 0=OK, others=error */
+    uint16_t op_count;
+    uint16_t _pad;
+    int32_t error_codes[FGA_MAX_BATCH]; /* 0=OK, others=error */
 } FgaDeleteTupleResponse;
 
 /* store 조회 */
@@ -104,41 +104,40 @@ typedef struct FgaCreateStoreRequest
 
 typedef struct FgaCreateStoreResponse
 {
-    bool  success;
-    char  store_id[STORE_ID_LEN];
+    bool success;
+    char store_id[STORE_ID_LEN];
     int32_t error_code;
 } FgaCreateStoreResponse;
 
-
 typedef struct FgaRequest
 {
-    uint32_t        request_id; /* 요청 식별자 (slot index나 generation 등) */
-    uint16_t        type;       /* FgaRequestType */
-    uint16_t        reserved;   /* alignment / flags 용 */
+    uint32_t request_id; /* 요청 식별자 (slot index나 generation 등) */
+    uint16_t type;       /* FgaRequestType */
+    uint16_t reserved;   /* alignment / flags 용 */
     union
     {
-        FgaCheckTupleRequest    checkTuple;      /* 사실상 check/write/delete와 동일 레이아웃이면 재활용 가능 */
-        FgaWriteTupleRequest    writeTuple;
-        FgaDeleteTupleRequest   deleteTuple;
-        FgaGetStoreRequest      getStore;
-        FgaCreateStoreRequest   createStore;
+        FgaCheckTupleRequest checkTuple; /* 사실상 check/write/delete와 동일 레이아웃이면 재활용 가능 */
+        FgaWriteTupleRequest writeTuple;
+        FgaDeleteTupleRequest deleteTuple;
+        FgaGetStoreRequest getStore;
+        FgaCreateStoreRequest createStore;
         /* 나중에 추가 예정인 op 들도 여기에 계속 추가 */
     } body;
 } FgaRequest;
 
 typedef struct FgaResponse
 {
-    uint16_t type;          /* FgaMessageType (요청 타입과 매칭) */
+    uint16_t type; /* FgaMessageType (요청 타입과 매칭) */
     uint16_t reserved;
-    uint32_t request_id;    /* 요청 쪽 request_id 그대로 echo */
+    uint32_t request_id; /* 요청 쪽 request_id 그대로 echo */
 
     union
     {
-        FgaCheckTupleResponse   checkTuple;
-        FgaWriteTupleResponse   writeTuple;
-        FgaDeleteTupleResponse  deleteTuple;
-        FgaGetStoreResponse     getStore;
-        FgaCreateStoreResponse  createStore;
+        FgaCheckTupleResponse checkTuple;
+        FgaWriteTupleResponse writeTuple;
+        FgaDeleteTupleResponse deleteTuple;
+        FgaGetStoreResponse getStore;
+        FgaCreateStoreResponse createStore;
     } body;
 } FgaResponse;
 

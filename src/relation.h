@@ -20,7 +20,7 @@
  */
 typedef struct RelationBitMapEntry
 {
-    char  relation_name[RELATION_MAX_LEN];
+    char relation_name[RELATION_MAX_LEN];
     uint8 bit_index;
 } RelationBitMapEntry;
 

@@ -41,8 +41,7 @@
  *       is indistinguishable from an error. Consider returning -1 or
  *       using an out parameter for the index in production code.
  */
-uint8
-get_relation_bit_index(const char *relation_name)
+uint8 get_relation_bit_index(const char *relation_name)
 {
     RelationBitMapEntry *entry;
     uint8 bit_index = 0;
@@ -57,10 +56,10 @@ get_relation_bit_index(const char *relation_name)
 
     LWLockAcquire(state->lock, LW_SHARED);
 
-    entry = (RelationBitMapEntry *) hash_search(state->relation_bitmap_map,
-                                                relation_name,
-                                                HASH_FIND,
-                                                NULL);
+    entry = (RelationBitMapEntry *)hash_search(state->relation_bitmap_map,
+                                               relation_name,
+                                               HASH_FIND,
+                                               NULL);
 
     if (entry)
         bit_index = entry->bit_index;
@@ -85,8 +84,7 @@ get_relation_bit_index(const char *relation_name)
  *
  * Note: If relation already exists, it will be overwritten.
  */
-void
-register_relation(const char *relation_name, uint8 bit_index)
+void register_relation(const char *relation_name, uint8 bit_index)
 {
     RelationBitMapEntry *entry;
     bool found;
@@ -112,10 +110,10 @@ register_relation(const char *relation_name, uint8 bit_index)
 
     LWLockAcquire(state->lock, LW_EXCLUSIVE);
 
-    entry = (RelationBitMapEntry *) hash_search(state->relation_bitmap_map,
-                                                relation_name,
-                                                HASH_ENTER,
-                                                &found);
+    entry = (RelationBitMapEntry *)hash_search(state->relation_bitmap_map,
+                                               relation_name,
+                                               HASH_ENTER,
+                                               &found);
 
     if (entry)
     {
@@ -148,8 +146,7 @@ register_relation(const char *relation_name, uint8 bit_index)
  *
  * Maximum 64 relations are supported (limited by 64-bit bitmask).
  */
-void
-init_relation_bitmap(const char *relations_str)
+void init_relation_bitmap(const char *relations_str)
 {
     char *str_copy;
     char *token;

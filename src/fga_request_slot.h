@@ -1,6 +1,8 @@
 #ifndef POSTFGA_REQUEST_SLOT_H
 #define POSTFGA_REQUEST_SLOT_H
 
+#include <postgres.h>
+
 /*
  * 슬롯 헤더: 큐에 들어가는 "메시지 헤더".
  *
@@ -9,18 +11,18 @@
  */
 typedef struct FgaRequestSlot
 {
-    uint64          request_id;   /* 이 요청 배치의 고유 ID */
-    pid_t           backend_pid;  /* 보낸 프로세스 (BackendPidGetProc 용) */
+    uint64 request_id; /* 이 요청 배치의 고유 ID */
+    pid_t backend_pid; /* 보낸 프로세스 (BackendPidGetProc 용) */
 
-    volatile uint32 state;        /* PostfgaRequestState as uint32 */
-    uint16          kind;         /* PostfgaRequestKind as uint16 */
-    uint16          flags;        /* reserved: oneway, priority 등 향후용 */
+    volatile uint32 state; /* PostfgaRequestState as uint32 */
+    uint16 kind;           /* PostfgaRequestKind as uint16 */
+    uint16 flags;          /* reserved: oneway, priority 등 향후용 */
 
-    uint32          req_off;      /* 요청 payload의 shared arena offset */
-    uint32          req_size;     /* 요청 payload의 전체 크기 (bytes) */
+    uint32 req_off;  /* 요청 payload의 shared arena offset */
+    uint32 req_size; /* 요청 payload의 전체 크기 (bytes) */
 
-    uint32          resp_off;     /* 응답 payload offset (없으면 0) */
-    uint32          resp_size;    /* 응답 payload 버퍼 크기 (capacity) */
+    uint32 resp_off;  /* 응답 payload offset (없으면 0) */
+    uint32 resp_size; /* 응답 payload 버퍼 크기 (capacity) */
 } FgaRequestSlot;
 
 #endif // POSTFGA_REQUEST_SLOT_H

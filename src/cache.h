@@ -10,7 +10,8 @@
 #include "common.h"
 
 /* ACL Cache Key Structure */
-typedef struct {
+typedef struct
+{
     char object_type[RELATION_MAX_LEN];
     char object_id[RELATION_MAX_LEN];
     char subject_type[RELATION_MAX_LEN];
@@ -18,7 +19,8 @@ typedef struct {
 } AclCacheKey;
 
 /* ACL Cache Entry */
-typedef struct {
+typedef struct
+{
     AclCacheKey key;
 
     /* Generation counters for invalidation */
@@ -44,17 +46,17 @@ typedef struct {
  */
 typedef struct Cache
 {
-    LWLock              *lock;         /* Cache 전용 잠금 (PostfgaShmemState의 lock과 별도) */
+    LWLock *lock; /* Cache 전용 잠금 (PostfgaShmemState의 lock과 별도) */
     /* ---- Global generation counter ---- */
-    uint64      next_generation;        /* cache invalidation용 전역 generation */
+    uint64 next_generation; /* cache invalidation용 전역 generation */
 
     /* ---- Hash tables ---- */
-    HTAB       *relation_bitmap_map;    /* relation name -> bit index */
-    HTAB       *acl_cache;              /* ACL cache entries */
-    HTAB       *object_type_gen_map;    /* object_type            -> generation */
-    HTAB       *object_gen_map;         /* object_type:object_id  -> generation */
-    HTAB       *subject_type_gen_map;   /* subject_type           -> generation */
-    HTAB       *subject_gen_map;        /* subject_type:subject_id-> generation */
+    HTAB *relation_bitmap_map;  /* relation name -> bit index */
+    HTAB *acl_cache;            /* ACL cache entries */
+    HTAB *object_type_gen_map;  /* object_type            -> generation */
+    HTAB *object_gen_map;       /* object_type:object_id  -> generation */
+    HTAB *subject_type_gen_map; /* subject_type           -> generation */
+    HTAB *subject_gen_map;      /* subject_type:subject_id-> generation */
 } Cache;
 
 /* 필요한 경우 헬퍼 함수들 (선택) */
@@ -64,7 +66,6 @@ postfga_cache_next_generation(Cache *cache)
 {
     return ++cache->next_generation;
 }
-
 
 Size postfga_cache_estimate_size(int max_cache_entries);
 

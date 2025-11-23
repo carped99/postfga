@@ -74,10 +74,10 @@ get_generation(const char *scope_key)
 
     LWLockAcquire(shared_state->lock, LW_SHARED);
 
-    entry = (GenerationEntry *) hash_search(gen_map,
-                                            scope_key,
-                                            HASH_FIND,
-                                            NULL);
+    entry = (GenerationEntry *)hash_search(gen_map,
+                                           scope_key,
+                                           HASH_FIND,
+                                           NULL);
 
     if (entry)
         generation = entry->generation;
@@ -99,8 +99,7 @@ get_generation(const char *scope_key)
  *
  * Side effects: Increments next_generation counter
  */
-void
-increment_generation(const char *scope_key)
+void increment_generation(const char *scope_key)
 {
     PostfgaShmemState *shared_state;
     GenerationEntry *entry;
@@ -129,10 +128,10 @@ increment_generation(const char *scope_key)
 
     LWLockAcquire(shared_state->lock, LW_EXCLUSIVE);
 
-    entry = (GenerationEntry *) hash_search(gen_map,
-                                            scope_key,
-                                            HASH_ENTER,
-                                            &found);
+    entry = (GenerationEntry *)hash_search(gen_map,
+                                           scope_key,
+                                           HASH_ENTER,
+                                           &found);
 
     if (entry)
     {
@@ -170,8 +169,7 @@ increment_generation(const char *scope_key)
  *
  * Result format: "type:id" or "type" if id is empty
  */
-void
-build_scope_key(char *dest, size_t dest_size, const char *type, const char *id)
+void build_scope_key(char *dest, size_t dest_size, const char *type, const char *id)
 {
     if (!dest || dest_size == 0)
         return;

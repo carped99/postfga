@@ -2,7 +2,8 @@
 #define OPENFGA_FDW_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #include <postgres.h>
@@ -22,37 +23,37 @@ extern "C" {
 #define OPENFGA_FDW_NAMESPACE "openfga"
 
 /* Shared memory configuration */
-#define SHMEM_SIZE (1024 * 1024 * 16)  /* 16 MB */
+#define SHMEM_SIZE (1024 * 1024 * 16) /* 16 MB */
 #define LWLOCK_TRANCHE_NAME "postfga"
 #define LWLOCK_COUNT 1
 
-/* Hooks */
-extern shmem_request_hook_type prev_shmem_request_hook;
-extern shmem_startup_hook_type prev_shmem_startup_hook;
+    /* Hooks */
+    extern shmem_request_hook_type prev_shmem_request_hook;
+    extern shmem_startup_hook_type prev_shmem_startup_hook;
 
-/* Function declarations - Entry points */
-PG_FUNCTION_INFO_V1(openfga_fdw_handler);
-Datum openfga_fdw_handler(PG_FUNCTION_ARGS);
+    /* Function declarations - Entry points */
+    PG_FUNCTION_INFO_V1(openfga_fdw_handler);
+    Datum openfga_fdw_handler(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(openfga_fdw_validator);
-Datum openfga_fdw_validator(PG_FUNCTION_ARGS);
+    PG_FUNCTION_INFO_V1(openfga_fdw_validator);
+    Datum openfga_fdw_validator(PG_FUNCTION_ARGS);
 
-/* FDW callback functions */
-void openfga_fdw_get_rel_size(PlannerInfo *root, RelOptInfo *baserel,
-                              Oid foreigntableid);
-void openfga_fdw_get_paths(PlannerInfo *root, RelOptInfo *baserel,
-                           Oid foreigntableid);
-ForeignScan *openfga_fdw_get_plan(PlannerInfo *root, RelOptInfo *baserel,
-                                  Oid foreigntableid, ForeignPath *best_path,
-                                  List *tlist, List *scan_clauses,
-                                  Plan *outer_plan);
-void openfga_fdw_begin_scan(ForeignScanState *node, int eflags);
-TupleTableSlot *openfga_fdw_iterate_scan(ForeignScanState *node);
-void openfga_fdw_rescan(ForeignScanState *node);
-void openfga_fdw_end_scan(ForeignScanState *node);
+    /* FDW callback functions */
+    void openfga_fdw_get_rel_size(PlannerInfo *root, RelOptInfo *baserel,
+                                  Oid foreigntableid);
+    void openfga_fdw_get_paths(PlannerInfo *root, RelOptInfo *baserel,
+                               Oid foreigntableid);
+    ForeignScan *openfga_fdw_get_plan(PlannerInfo *root, RelOptInfo *baserel,
+                                      Oid foreigntableid, ForeignPath *best_path,
+                                      List *tlist, List *scan_clauses,
+                                      Plan *outer_plan);
+    void openfga_fdw_begin_scan(ForeignScanState *node, int eflags);
+    TupleTableSlot *openfga_fdw_iterate_scan(ForeignScanState *node);
+    void openfga_fdw_rescan(ForeignScanState *node);
+    void openfga_fdw_end_scan(ForeignScanState *node);
 
-/* Cleanup function */
-void openfga_fdw_cleanup(void);
+    /* Cleanup function */
+    void openfga_fdw_cleanup(void);
 
 #ifdef __cplusplus
 }

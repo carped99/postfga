@@ -22,11 +22,11 @@
 #include "storage/shmem.h"
 #include "utils/hsearch.h"
 
-#include "common.h"          /* DEFAULT_CACHE_ENTRIES, MAX_PENDING_REQ 등 */
-#include "shmem.h"           /* PostfgaShmemState, postfga_get_shared_state 선언 헤더 */
-#include "queue.h"           /* PostfgaRequestQueue, postfga_init_queue */
-#include "cache.h"           /* ResponseCache, postfga_init_cache */
-#include "stats.h"           /* Stats, stats_init */
+#include "common.h" /* DEFAULT_CACHE_ENTRIES, MAX_PENDING_REQ 등 */
+#include "shmem.h"  /* PostfgaShmemState, postfga_get_shared_state 선언 헤더 */
+#include "queue.h"  /* PostfgaRequestQueue, postfga_init_queue */
+#include "cache.h"  /* ResponseCache, postfga_init_cache */
+#include "stats.h"  /* Stats, stats_init */
 
 /*-------------------------------------------------------------------------
  * Module-level state
@@ -49,12 +49,11 @@ static PostfgaShmemState *shared_state = NULL;
  *   DefineCustomIntVariable("postfga.max_cache_entries", ...)
  * 등을 통해 처리하고, 해당 GUC의 hook에서 이 static 변수를 갱신해도 된다.
  */
-static int  max_cache_entries = DEFAULT_CACHE_ENTRIES;
+static int max_cache_entries = DEFAULT_CACHE_ENTRIES;
 
 /*-------------------------------------------------------------------------
  * Static helpers (private)
  *-------------------------------------------------------------------------*/
-
 
 /*-------------------------------------------------------------------------
  * Static helper implementations
@@ -100,7 +99,6 @@ _calculate_size(void)
     return size;
 }
 
-
 /*
  * postfga_initialize_state
  *
@@ -137,14 +135,13 @@ _initialize(void)
 
     postfga_init_queue(&shared_state->request_queue,
                        queue_storage,
-                       (postfga_qsize_t) MAX_PENDING_REQ);
+                       (postfga_qsize_t)MAX_PENDING_REQ);
 
     /* Stats 초기화 */
     postfga_init_stats(&shared_state->stats);
 
     elog(DEBUG1, "PostFGA shmem: shared_state initialization complete");
 }
-
 
 /*-------------------------------------------------------------------------
  * Public lifecycle API
@@ -159,8 +156,7 @@ _initialize(void)
  * - Requests allocation via RequestAddinShmemSpace()
  * - Registers a named LWLock tranche for synchronization
  */
-void
-postfga_request_shmem(void)
+void postfga_request_shmem(void)
 {
     Size shmem_size = _calculate_size();
 
@@ -182,8 +178,7 @@ postfga_request_shmem(void)
  * - Creates or attaches to shared memory segment
  * - Initializes cache, queue, counters, and stats
  */
-void
-postfga_startup_shmem(void)
+void postfga_startup_shmem(void)
 {
     bool found = false;
 
@@ -240,8 +235,7 @@ postfga_get_cache_state(void)
  * Optional: GUC hook 이나 다른 초기화 코드에서 호출해서
  * max_cache_entries 값을 갱신하고 싶다면 이 헬퍼를 사용할 수 있다.
  */
-void
-postfga_set_max_cache_entries(int value)
+void postfga_set_max_cache_entries(int value)
 {
     if (value <= 0)
         elog(WARNING,
