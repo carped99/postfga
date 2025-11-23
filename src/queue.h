@@ -108,7 +108,7 @@ postfga_queue_available(const PostfgaRequestQueue *q)
  * - 동시성 제어(LWLock 등)는 호출자가 담당
  */
 static inline bool
-postfga_queue_enqueue(PostfgaRequestQueue *q, const RequestPayload *item)
+postfga_enqueue_request(PostfgaRequestQueue *q, const RequestPayload *item)
 {
     postfga_qsize_t idx;
 
@@ -130,7 +130,7 @@ postfga_queue_enqueue(PostfgaRequestQueue *q, const RequestPayload *item)
  * - 동시성 제어는 호출자가 담당
  */
 static inline bool
-postfga_queue_dequeue(PostfgaRequestQueue *q, RequestPayload *out_item)
+postfga_dequeue_request(PostfgaRequestQueue *q, RequestPayload *out_item)
 {
     postfga_qsize_t idx;
     if (postfga_queue_is_empty(q))
@@ -150,9 +150,9 @@ postfga_queue_dequeue(PostfgaRequestQueue *q, RequestPayload *out_item)
  * - 실제 꺼낸 개수 반환
  */
 static inline postfga_qsize_t
-postfga_queue_dequeue_batch(PostfgaRequestQueue *q, RequestPayload *out, postfga_qsize_t max_count)
+postfga_dequeue_requests(PostfgaRequestQueue *q, RequestPayload *out, postfga_qsize_t max_count)
 {
-    postfga_qsize_t n    = 0u;
+    postfga_qsize_t n    = 0;
     postfga_qsize_t mask = q->mask;
     postfga_qsize_t idx;
 

@@ -40,6 +40,7 @@ void postfga_request_shmem(void);
  */
 void postfga_startup_shmem(void);
 
+
 /*
  * get_shared_state
  *

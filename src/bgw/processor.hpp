@@ -6,14 +6,14 @@ extern "C" {
 }
 
 #include <memory>
-#include "client/config.hpp"
+#include "config/config.hpp"
 #include "client/client.hpp"
 
 namespace postfga::bgw {
 
 class Processor {
 public:
-    explicit Processor(PostfgaShmemState *state, const postfga::client::Config &config);
+    explicit Processor(PostfgaShmemState *state, const postfga::Config &config);
     void execute();
 
 private:

@@ -4,7 +4,7 @@
         "dockerfile": "../docker/Dockerfile",
         "target": "dev-builder",
         "args": {
-            "PG_MAJOR": "18"
+            "PG_MAJOR": "15"
         }
     },    
     "workspaceFolder": "/workspace",

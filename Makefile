@@ -18,7 +18,7 @@ OBJS := $(addsuffix .o,$(basename $(SRCS)))
 # Compile flags
 # --------------------------------------------------------------
 PG_CPPFLAGS += -I./src -I./api -Ithird_party/asio/asio/include
-PG_CXXFLAGS += -std=c++17 -Wall -Wextra \
+PG_CXXFLAGS += -std=c++20 -Wall -Wextra \
 				-DASIO_STANDALONE \
 				-DASIO_NO_DEPRECATED
 
@@ -30,7 +30,7 @@ SHLIB_LINK += -lgrpc++ -lgrpc -lprotobuf -lpthread
 # --------------------------------------------------------------
 # Build type (debug / release)
 # --------------------------------------------------------------
-BUILD ?= release
+BUILD ?= debug
 
 ifeq ($(BUILD),debug)
   $(info [postfga] Build type: DEBUG)
@@ -68,13 +68,13 @@ release:
 
 # Generate compile_commands.json (for VSCode/clangd)
 bear:
-	bear -- make clean all
+	bear -- make -j12
 
-up:
+up: install
 	su - postgres -c "postgres -c shared_preload_libraries=postfga"
 
 # Start PostgreSQL
-start:
+start: install
 	su - postgres -c "pg_ctl -o \"-c shared_preload_libraries=postfga\" start" 
 
 # Stop PostgreSQL
@@ -83,11 +83,11 @@ stop:
 
 # Drop extension
 drop:
-	psql -c "DROP EXTENSION IF EXISTS postfga CASCADE;"
+	su - postgres -c "psql -c \"DROP EXTENSION IF EXISTS postfga CASCADE;\""
 
 # Create extension
 create:
-	psql -c "CREATE EXTENSION IF NOT EXISTS postfga;"
+	su - postgres -c "psql -c \"CREATE EXTENSION IF NOT EXISTS postfga;\""
 
 # Reload extension
 reload: drop create

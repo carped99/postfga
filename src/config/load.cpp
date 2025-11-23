@@ -1,0 +1,21 @@
+
+extern "C" {
+#include "guc.h"
+}
+
+#include "load.hpp"
+
+namespace postfga
+{
+    Config load_config_from_guc()
+    {
+        auto guc = postfga_get_config();
+        Config cfg;
+        cfg.endpoint = guc->endpoint ? guc->endpoint : "";
+        cfg.store_id = guc->store_id ? guc->store_id : "";
+        cfg.authorization_model_id = guc->authorization_model_id ? guc->authorization_model_id : "";
+        cfg.timeout_ms = static_cast<std::uint32_t>(guc->cache_ttl_ms);
+        // cfg.use_tls = false;
+        return cfg;
+    }
+} // namespace postfga

@@ -33,7 +33,7 @@ init_hash(HTAB      **htab,
 }
 
 Size
-postfga_response_cache_estimate_size(int max_cache_entries)
+postfga_cache_estimate_size(int max_cache_entries)
 {
     Size size = 0;
 

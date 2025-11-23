@@ -8,12 +8,11 @@ extern "C" {
 #include <storage/lwlock.h>
 #include <utils/guc.h>
 #include <pgstat.h>
-
-#include "guc.h"
 }
 
 #include "worker.hpp"
 #include "processor.hpp"
+#include "config/load.hpp"
 
 namespace {
     // signal flags
@@ -38,18 +37,18 @@ namespace {
         errno = save_errno;
     }
 
-    /* Local helper: convert GUC → Config */
-    postfga::client::Config make_client_config_from_guc()
-    {
-        auto guc = postfga_get_config();
-        postfga::client::Config cfg;
-        cfg.endpoint               = guc->endpoint ? guc->endpoint : "";
-        cfg.store_id               = guc->store_id ? guc->store_id : "";
-        cfg.authorization_model_id = guc->authorization_model_id ? guc->authorization_model_id : "";
-        cfg.timeout_ms             = static_cast<std::uint32_t>(guc->cache_ttl_ms);
-        cfg.use_tls                = false;
-        return cfg;
-    }
+    // /* Local helper: convert GUC → Config */
+    // postfga::client::Config make_client_config_from_guc()
+    // {
+    //     auto guc = postfga_get_config();
+    //     postfga::client::Config cfg;
+    //     cfg.endpoint               = guc->endpoint ? guc->endpoint : "";
+    //     cfg.store_id               = guc->store_id ? guc->store_id : "";
+    //     cfg.authorization_model_id = guc->authorization_model_id ? guc->authorization_model_id : "";
+    //     cfg.timeout_ms             = static_cast<std::uint32_t>(guc->cache_ttl_ms);
+    //     cfg.use_tls                = false;
+    //     return cfg;
+    // }
 } // anonymous namespace
 
 namespace postfga::bgw {
@@ -94,11 +93,12 @@ void Worker::initialize()
 
 void Worker::process()
 {
-    auto config = make_client_config_from_guc();
+    auto config = postfga::load_config_from_guc();
     Processor processor(state_, config);
 
     while (!shutdown_requested)
     {
+        // wait for work or signal
         int rc = WaitLatch(MyLatch,
                            WL_LATCH_SET | WL_EXIT_ON_PM_DEATH,
                            -1,
@@ -110,6 +110,8 @@ void Worker::process()
         // exit if postmaster dies
         if (rc & WL_POSTMASTER_DEATH)
             proc_exit(1);
+
+        CHECK_FOR_INTERRUPTS();
 
         // handle config reload
         if (reload_requested)

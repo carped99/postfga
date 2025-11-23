@@ -3,26 +3,24 @@
 
 #include <functional>
 #include <memory>
-#include "request.h"
+#include "fga_type.h"
 #include "response.h"
 
-namespace postfga::client {
+namespace postfga::client
+{
 
-class Client {
-public:
-    using CheckHandler = std::function<void(const CheckResponse&)>;
-    using WriteHandler = std::function<void(const WriteResponse&)>;
-    //using DeleteHandler = std::function<void(const DeleteResponse&)>;
+    class Client
+    {
+    public:
+        using FgaResponseHandler = std::function<void(const FgaResponse &)>;
 
-    virtual ~Client() = default;
+        virtual ~Client() = default;
 
-    virtual bool is_healthy() const = 0;
+        virtual bool is_healthy() const = 0;
 
-    virtual void async_check(const Request& req, CheckHandler handler) = 0;
+        virtual void process(const FgaRequest &req, FgaResponseHandler handler) = 0;
 
-    virtual void async_write(const Request& req, WriteHandler handler) = 0;
-
-    virtual void shutdown() = 0;
-};
+        virtual void shutdown() = 0;
+    };
 
 } // namespace postfga::client

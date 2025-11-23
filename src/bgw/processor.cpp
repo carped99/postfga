@@ -12,7 +12,7 @@ extern "C" {
 
 namespace postfga::bgw {
 
-Processor::Processor(PostfgaShmemState *state, const postfga::client::Config &config)
+Processor::Processor(PostfgaShmemState *state, const postfga::Config &config)
       : state_(state)
 {
     Assert(state != nullptr);
@@ -24,11 +24,11 @@ void Processor::execute()
 {
     RequestPayload payload = {0};
     LWLockAcquire(state_->lock, LW_EXCLUSIVE);
-    bool ok = postfga_queue_enqueue(&state_->request_queue, &payload);
-    LWLockRelease(state_->lock);
+    // bool ok = postfga_dequeue_requests(&state_->request_queue, &payload, 1);
+    LWLockRelease(state_->lock);    
 
-    if (ok && state_->bgw_latch)
-        SetLatch(state_->bgw_latch);
+    // if (ok && state_->bgw_latch)
+    //     SetLatch(state_->bgw_latch);
 
     // RequestPayload requests[MAX_BATCH_SIZE];
     // uint32_t count = MAX_BATCH_SIZE;

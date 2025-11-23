@@ -12,6 +12,10 @@
 #define MAX_PENDING_REQ       256
 
 #define NAME_MAX_LEN 64
+
+#define STORE_ID_LEN 64
+#define STORE_NAME_LEN 64
+
 /* Default hash table sizes */
 #define DEFAULT_RELATION_COUNT    16
 #define DEFAULT_CACHE_ENTRIES     10000
