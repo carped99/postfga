@@ -3,7 +3,7 @@ extern "C" {
 #include <storage/lwlock.h>
 
 #include "shmem.h"
-#include "queue.h"
+#include "request_queue.h"
 }
 
 #include <utility>
@@ -22,7 +22,6 @@ Processor::Processor(PostfgaShmemState *state, const postfga::Config &config)
 
 void Processor::execute()
 {
-    RequestPayload payload = {0};
     LWLockAcquire(state_->lock, LW_EXCLUSIVE);
     // bool ok = postfga_dequeue_requests(&state_->request_queue, &payload, 1);
     LWLockRelease(state_->lock);    
@@ -53,35 +52,35 @@ void Processor::execute()
     // client_.poll(0);
 }
 
-void Processor::handle_batch(RequestPayload *requests, uint32_t count)
-{
-    for (uint32_t i = 0; i < count; ++i)
-        handle_single_request(requests[i]);
-}
+// void Processor::handle_batch(RequestPayload *requests, uint32_t count)
+// {
+//     for (uint32_t i = 0; i < count; ++i)
+//         handle_single_request(requests[i]);
+// }
 
-void Processor::handle_single_request(RequestPayload &payload)
-{
-    switch (payload.base.type) {
-        case REQ_TYPE_CHECK:
-            handle_check(payload);
-            break;
-        case REQ_TYPE_WRITE:
-            handle_write(payload);
-            break;
-        default:
-            elog(WARNING, "PostFGA BGW: Unsupported request type %d", payload.base.type);
-            // set_grpc_result(payload.base.request_id, false, 9999);
-            break;
-    }
-}
+// void Processor::handle_single_request(RequestPayload &payload)
+// {
+//     switch (payload.base.type) {
+//         case REQ_TYPE_CHECK:
+//             handle_check(payload);
+//             break;
+//         case REQ_TYPE_WRITE:
+//             handle_write(payload);
+//             break;
+//         default:
+//             elog(WARNING, "PostFGA BGW: Unsupported request type %d", payload.base.type);
+//             // set_grpc_result(payload.base.request_id, false, 9999);
+//             break;
+//     }
+// }
 
-void Processor::handle_check(RequestPayload &payload)
-{
-}
+// void Processor::handle_check(RequestPayload &payload)
+// {
+// }
 
-void Processor::handle_write(RequestPayload &payload)
-{
-}
+// void Processor::handle_write(RequestPayload &payload)
+// {
+// }
 
 
 } // namespace postfga::bgw

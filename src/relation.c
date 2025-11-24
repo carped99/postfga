@@ -46,7 +46,7 @@ uint8 get_relation_bit_index(const char *relation_name)
     RelationBitMapEntry *entry;
     uint8 bit_index = 0;
 
-    Cache *state = postfga_get_cache_state();
+    FgaL2Cache *state = postfga_get_cache_state();
 
     if (!relation_name || relation_name[0] == '\0')
     {
@@ -56,10 +56,10 @@ uint8 get_relation_bit_index(const char *relation_name)
 
     LWLockAcquire(state->lock, LW_SHARED);
 
-    entry = (RelationBitMapEntry *)hash_search(state->relation_bitmap_map,
-                                               relation_name,
-                                               HASH_FIND,
-                                               NULL);
+    // entry = (RelationBitMapEntry *)hash_search(state->relation_bitmap_map,
+    //                                            relation_name,
+    //                                            HASH_FIND,
+    //                                            NULL);
 
     if (entry)
         bit_index = entry->bit_index;
@@ -86,15 +86,9 @@ uint8 get_relation_bit_index(const char *relation_name)
  */
 void register_relation(const char *relation_name, uint8 bit_index)
 {
+    FgaL2Cache *cache;
     RelationBitMapEntry *entry;
     bool found;
-
-    Cache *state = postfga_get_cache_state();
-    if (!state || !state->relation_bitmap_map)
-    {
-        elog(WARNING, "PostFGA: Register relation called before initialization");
-        return;
-    }
 
     if (!relation_name || relation_name[0] == '\0')
     {
@@ -108,12 +102,14 @@ void register_relation(const char *relation_name, uint8 bit_index)
         return;
     }
 
-    LWLockAcquire(state->lock, LW_EXCLUSIVE);
+    cache = postfga_get_cache_state();
 
-    entry = (RelationBitMapEntry *)hash_search(state->relation_bitmap_map,
-                                               relation_name,
-                                               HASH_ENTER,
-                                               &found);
+    LWLockAcquire(cache->lock, LW_EXCLUSIVE);
+
+    // entry = (RelationBitMapEntry *)hash_search(cache->relation_bitmap_map,
+    //                                            relation_name,
+    //                                            HASH_ENTER,
+    //                                            &found);
 
     if (entry)
     {
@@ -129,7 +125,7 @@ void register_relation(const char *relation_name, uint8 bit_index)
         elog(WARNING, "PostFGA: Failed to register relation '%s'", relation_name);
     }
 
-    LWLockRelease(state->lock);
+    LWLockRelease(cache->lock);
 }
 
 /*

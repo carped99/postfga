@@ -1,6 +1,6 @@
 
 extern "C" {
-#include "guc.h"
+#include "config.h"
 }
 
 #include "load.hpp"

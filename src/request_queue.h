@@ -1,20 +1,15 @@
-#ifndef POSTFGA_QUEUE_H
-#define POSTFGA_QUEUE_H
+#ifndef POSTFGA_REQUSET_QUEUE_H
+#define POSTFGA_REQUSET_QUEUE_H
 
 #include <stddef.h>  // size_t
 #include <stdint.h>  // uint32_t
 #include <stdbool.h> // bool
 #include <assert.h>
 
-#include "request.h"
-
-
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
-    typedef uint32_t postfga_qsize_t;
 
 /*
  * buffer_size 가 2의 거듭제곱인지 확인하는 매크로
@@ -22,7 +17,7 @@ extern "C"
 #define POSTFGA_IS_POWER_OF_TWO(sz) (((sz) & ((sz) - 1u)) == 0u)
 
     /*
-     * PostfgaRequestQueue
+     * FgaRequestQueue
      *
      * - RequestPayload 전용 링버퍼
      * - head_index: 다음 enqueue 위치
@@ -32,13 +27,13 @@ extern "C"
      * 한 칸 비워두는 패턴을 사용하므로,
      * 실제로 담을 수 있는 최대 요소 개수는 (capacity - 1).
      */
-    typedef struct PostfgaRequestQueue
+    typedef struct FgaRequestQueue
     {
-        postfga_qsize_t mask;   /* capacity - 1 (power-of-two 전제) */
-        postfga_qsize_t head;   /* enqueue 위치 */
-        postfga_qsize_t tail;   /* dequeue 위치 */
-        RequestPayload *buffer; /* 요소 배열 (길이 = capacity) */
-    } PostfgaRequestQueue;
+        uint16_t mask;    /* capacity - 1 (2^n - 1) */
+        uint16_t head;    /* enqueue 위치 */
+        uint16_t tail;    /* dequeue 위치 */
+        uint16_t slots[]; /* slot index 배열 - FAM */
+    } FgaRequestQueue;
 
     /*
      * postfga_init_queue
@@ -48,45 +43,31 @@ extern "C"
      * - 실제로 저장 가능한 요소 최대 개수는 (capacity - 1).
      */
     static inline void
-    postfga_init_queue(PostfgaRequestQueue *q,
-                       RequestPayload *buffer,
-                       postfga_qsize_t capacity)
+    postfga_init_queue(FgaRequestQueue *q, uint16_t capacity)
     {
         assert(q != NULL);
-        assert(buffer != NULL);
         assert(capacity > 1u);
         assert(POSTFGA_IS_POWER_OF_TWO(capacity));
 
-        q->buffer = buffer;
         q->mask = capacity - 1u;
         q->head = 0u;
         q->tail = 0u;
     }
 
-    /*
-     * 현재 요소 개수 반환
-     */
-    static inline postfga_qsize_t
-    postfga_queue_size(const PostfgaRequestQueue *q)
+    static inline uint16_t
+    postfga_queue_size(const FgaRequestQueue *q)
     {
         return (q->head - q->tail) & q->mask;
     }
 
-    /*
-     * 큐가 비었는지 확인
-     */
     static inline bool
-    postfga_queue_is_empty(const PostfgaRequestQueue *q)
+    postfga_queue_is_empty(const FgaRequestQueue *q)
     {
         return q->head == q->tail;
     }
 
-    /*
-     * 큐가 가득 찼는지 확인
-     * - 한 칸 비워두는 패턴: (head - tail) & mask == mask 이면 full
-     */
     static inline bool
-    postfga_queue_is_full(const PostfgaRequestQueue *q)
+    postfga_queue_is_full(const FgaRequestQueue *q)
     {
         return postfga_queue_size(q) == q->mask;
     }
@@ -95,10 +76,10 @@ extern "C"
      * 남은 공간(더 넣을 수 있는 요소 개수) 반환
      * 최대값은 (capacity - 1)
      */
-    static inline postfga_qsize_t
-    postfga_queue_available(const PostfgaRequestQueue *q)
+    static inline uint16_t
+    postfga_queue_available(const FgaRequestQueue *q)
     {
-        postfga_qsize_t capacity = q->mask + 1u;
+        uint16_t capacity = q->mask + 1u;
         return (capacity - 1u) - postfga_queue_size(q);
     }
 
@@ -109,15 +90,12 @@ extern "C"
      * - 동시성 제어(LWLock 등)는 호출자가 담당
      */
     static inline bool
-    postfga_enqueue_request(PostfgaRequestQueue *q, const RequestPayload *item)
+    postfga_enqueue_slot(FgaRequestQueue *q, uint16_t slot)
     {
-        postfga_qsize_t idx;
-
         if (postfga_queue_is_full(q))
             return false;
 
-        idx = q->head & q->mask;
-        q->buffer[idx] = *item; /* struct 복사 */
+        q->slots[q->head & q->mask] = slot;
 
         q->head++;
 
@@ -131,14 +109,12 @@ extern "C"
      * - 동시성 제어는 호출자가 담당
      */
     static inline bool
-    postfga_dequeue_request(PostfgaRequestQueue *q, RequestPayload *out_item)
+    postfga_dequeue_slot(FgaRequestQueue *q, uint16_t *out_slot)
     {
-        postfga_qsize_t idx;
         if (postfga_queue_is_empty(q))
             return false;
 
-        idx = q->tail & q->mask;
-        *out_item = q->buffer[idx];
+        *out_slot = q->slots[q->tail & q->mask];
         q->tail++;
 
         return true;
@@ -150,17 +126,13 @@ extern "C"
      * - 최대 max_count 개까지 꺼내서 out 배열에 채움
      * - 실제 꺼낸 개수 반환
      */
-    static inline postfga_qsize_t
-    postfga_dequeue_requests(PostfgaRequestQueue *q, RequestPayload *out, postfga_qsize_t max_count)
+    static inline uint16_t
+    postfga_dequeue_slots(FgaRequestQueue *q, uint16_t *out, uint16_t max_count)
     {
-        postfga_qsize_t n = 0;
-        postfga_qsize_t mask = q->mask;
-        postfga_qsize_t idx;
-
+        uint16_t n = 0;
         while (n < max_count && !postfga_queue_is_empty(q))
         {
-            idx = q->tail & mask;
-            out[n] = q->buffer[idx];
+            out[n] = q->slots[q->tail & q->mask];
             q->tail++;
             n++;
         }
@@ -175,16 +147,13 @@ extern "C"
      * - 범위 밖이면 false 반환
      */
     static inline bool
-    postfga_queue_peek(const PostfgaRequestQueue *q, postfga_qsize_t index, RequestPayload *out_item)
+    postfga_queue_peek(const FgaRequestQueue *q, uint16_t index, uint16_t *out_slot)
     {
-        postfga_qsize_t idx;
-        postfga_qsize_t size = postfga_queue_size(q);
+        uint16_t size = postfga_queue_size(q);
         if (index >= size)
             return false;
 
-        idx = (q->tail + index) & q->mask;
-
-        *out_item = q->buffer[idx];
+        *out_slot = q->slots[(q->tail + index) & q->mask];
         return true;
     }
 
@@ -192,4 +161,4 @@ extern "C"
 }
 #endif
 
-#endif /* POSTFGA_QUEUE_H */
+#endif /* POSTFGA_REQUSET_QUEUE_H */

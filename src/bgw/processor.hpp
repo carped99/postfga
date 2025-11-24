@@ -1,13 +1,10 @@
 // processor.hpp
 #pragma once
 
-extern "C" {
-#include "shmem.h"
-}
-
 #include <memory>
 #include "config/config.hpp"
 #include "client/client.hpp"
+#include "shmem.h"
 
 namespace postfga::bgw {
 
@@ -19,11 +16,11 @@ public:
 private:
     static constexpr uint32_t MAX_BATCH_SIZE = 32;
 
-    void handle_batch(RequestPayload *requests, uint32_t count);
-    void handle_single_request(RequestPayload &payload);
+    // void handle_batch(RequestPayload *requests, uint32_t count);
+    // void handle_single_request(RequestPayload &payload);
 
-    void handle_check(RequestPayload &payload);
-    void handle_write(RequestPayload &payload);
+    // void handle_check(RequestPayload &payload);
+    // void handle_write(RequestPayload &payload);
 
     PostfgaShmemState *state_ = nullptr;
     std::unique_ptr<postfga::client::Client> client_;

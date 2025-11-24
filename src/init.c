@@ -31,8 +31,7 @@ static void postfga_shmem_startup_hook(void);
 /* ------------------------------------------------------------------------- */
 /* Module load / unload                                                      */
 /* ------------------------------------------------------------------------- */
-void
-_PG_init(void)
+void _PG_init(void)
 {
     if (!process_shared_preload_libraries_in_progress)
     {
@@ -42,7 +41,7 @@ _PG_init(void)
                  errhidestmt(true)));
     }
 
-    ereport(LOG, (errmsg("PostFGA: initializing extension")));
+    ereport(DEBUG1, (errmsg("PostFGA: initializing extension")));
 
     // Initialize GUC parameters first (may affect shmem size/config)
     postfga_guc_init();
@@ -53,14 +52,13 @@ _PG_init(void)
 
     prev_shmem_startup_hook = shmem_startup_hook;
     shmem_startup_hook = postfga_shmem_startup_hook;
-    
+
     postfga_bgw_init();
 
-    ereport(LOG, (errmsg("PostFGA: Extension initialized")));
+    ereport(DEBUG1, (errmsg("PostFGA: Extension initialized")));
 }
 
-void
-_PG_fini(void)
+void _PG_fini(void)
 {
     ereport(LOG, (errmsg("PostFGA: Extension unloading")));
 

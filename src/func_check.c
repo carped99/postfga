@@ -2,10 +2,7 @@
 #include <fmgr.h>
 #include <utils/builtins.h>
 
-#include "guc.h"   /* postfga.store_id 등 GUC 선언 */
 #include "shmem.h" /* shared state helper */
-#include "state.h" /* shared state helper */
-#include "queue.h" /* enqueue/wait helpers */
 #include "func_check.h"
 
 PG_FUNCTION_INFO_V1(postfga_check);
@@ -22,7 +19,7 @@ Datum postfga_check(PG_FUNCTION_ARGS)
     const char *subject_type = text_to_cstring(PG_GETARG_TEXT_PP(3));
     const char *subject_id = text_to_cstring(PG_GETARG_TEXT_PP(4));
 
-    PostfgaShmemState *shmem_state = postfga_get_sheme_state();
+    PostfgaShmemState *shmem_state = postfga_get_shmem_state();
 
     bool ok;
     // ok = enqueue_grpc_request(object_type, object_id, subject_type, subject_id, relation);

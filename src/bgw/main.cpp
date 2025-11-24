@@ -21,12 +21,12 @@ extern "C" {
 #include <postgres.h>
 #include <storage/ipc.h>
 #include <postmaster/bgworker.h>
-#include "shmem.h"
 }
 
 #include <string.h>
 #include <exception>
 #include "worker.hpp"
+#include "shmem.h"
 
 extern "C" void
 postfga_bgw_init(void)
@@ -60,9 +60,9 @@ postfga_bgw_main(Datum arg)
     
     PG_TRY();
     {
-        PostfgaShmemState *state = postfga_get_sheme_state();
+        PostfgaShmemState *state = postfga_get_shmem_state();
         if (state == nullptr)
-            ereport(ERROR, (errmsg("postfga bgw: shared memory state is not initialized")));
+            ereport(FATAL, (errmsg("postfga bgw: shared memory state is not initialized")));
 
         try
         {

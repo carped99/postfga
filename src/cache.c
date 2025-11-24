@@ -8,18 +8,24 @@
 
 #include "postfga.h"
 #include "cache.h"
-#include "relation.h"
-#include "generation.h"
 
+/*-------------------------------------------------------------------------
+ * Static helpers
+ *-------------------------------------------------------------------------*/
+static bool postfga_cache_acl_lookup(HTAB *ht, const FgaAclCacheKey *key, uint16_t generation, uint64_t now_ms, bool *allowed_out);
+static bool postfga_cache_acl_store(HTAB *ht, const FgaAclCacheKey *key, uint16_t generation, uint64_t now_ms, uint64_t ttl_ms, bool allowed);
 
-FgaCacheKey
+/*-------------------------------------------------------------------------
+ * Public API
+ *-------------------------------------------------------------------------*/
+FgaAclCacheKey
 postfga_make_check_key(const FgaCheckTupleRequest *req)
 {
-    FgaCacheKey key;
+    FgaAclCacheKey key;
 
     char buf[2048]; /* 상당히 넉넉하게 */
-    
-    // store_id|object_type|object_id|subject_type|subject_id|relation 
+
+    // store_id|object_type|object_id|subject_type|subject_id|relation
     int len = snprintf(buf, sizeof(buf),
                        "%s|%s|%s|%s|%s|%s",
                        req->store_id,
@@ -31,292 +37,138 @@ postfga_make_check_key(const FgaCheckTupleRequest *req)
 
     if (len < 0)
         len = 0;
-    if (len > (int) sizeof(buf))
+    if (len > (int)sizeof(buf))
         len = sizeof(buf);
 
-    /* Postgres hash_any 사용 (uint32 반환) → 두 번 돌려서 64bit 구성 */
-    key.hash  = (uint64_t) XXH64(buf, (size_t) len, 0);
-    key.hash2 = (uint64_t) XXH64(buf, (size_t) len, 1);    
+    {
+        XXH128_hash_t h = XXH3_128bits(buf, (size_t)len);
+        key.low = h.low64;
+        key.high = h.high64;
+    }
 
     return key;
 }
 
-typedef struct FgaL1HashEntry
-{
-    FgaCacheKey   key;
-    FgaCacheEntry entry;
-} FgaL1HashEntry;
-
-void
-postfga_l1_init(FgaL1Cache *cache, MemoryContext parent_ctx, long size_hint)
+void postfga_l1_init(FgaL1Cache *cache, MemoryContext parent_ctx, long size_hint)
 {
     HASHCTL ctl;
 
     memset(&ctl, 0, sizeof(ctl));
-    ctl.keysize = sizeof(FgaCacheKey);
-    ctl.entrysize = sizeof(FgaL1HashEntry);
+    ctl.keysize = sizeof(FgaAclCacheKey);
+    ctl.entrysize = sizeof(FgaAclCacheEntry);
     ctl.hcxt = AllocSetContextCreate(parent_ctx,
                                      "PostFGA L1 Cache",
                                      ALLOCSET_SMALL_SIZES);
 
-    cache->ht = hash_create("PostFGA L1 Cache",
-                            size_hint > 0 ? size_hint : 1024,
-                            &ctl,
-                            HASH_ELEM | HASH_BLOBS | HASH_CONTEXT);
+    cache->acl = hash_create("PostFGA L1 Cache",
+                             size_hint > 0 ? size_hint : 1024,
+                             &ctl,
+                             HASH_ELEM | HASH_BLOBS | HASH_CONTEXT);
 
     cache->ctx = ctl.hcxt;
     cache->generation = 0;
 }
 
-bool
-postfga_l1_lookup(FgaL1Cache *cache,
-                  const FgaCacheKey *key,
-                  uint16_t cur_generation,
-                  uint64_t now_ms,
-                  bool *allowed_out)
+bool postfga_l1_lookup(FgaL1Cache *cache,
+                       const FgaAclCacheKey *key,
+                       uint16_t cur_generation,
+                       uint64_t now_ms,
+                       bool *allowed_out)
 {
-    bool found;
-    FgaCacheEntry *ce;
-    FgaL1HashEntry *he;
-
-    if (cache->ht == NULL)
+    if (cache->acl == NULL)
         return false;
 
-    he = (FgaL1HashEntry *) hash_search(cache->ht,
-                                        (void *) key,
-                                        HASH_FIND,
-                                        &found);
-    if (!found)
-        return false;
-
-    ce = &he->entry;
-
-    /* generation mismatch → stale */
-    if (ce->generation != cur_generation)
-        return false;
-
-    /* TTL 만료 */
-    if (ce->expires_at_ms != 0 && ce->expires_at_ms < now_ms)
-        return false;
-
-    *allowed_out = ce->allowed;
-    return true;
+    return postfga_cache_acl_lookup(cache->acl, key, cur_generation, now_ms, allowed_out);
 }
 
-void
-postfga_l1_store(FgaL1Cache *cache,
-                 const FgaCacheKey *key,
-                 uint16_t generation,
-                 uint64_t now_ms,
-                 uint64_t ttl_ms,
-                 bool allowed)
+void postfga_l1_store(FgaL1Cache *cache,
+                      const FgaAclCacheKey *key,
+                      uint16_t generation,
+                      uint64_t now_ms,
+                      uint64_t ttl_ms,
+                      bool allowed)
 {
-    bool found;
-    FgaL1HashEntry *he;
-
-    if (cache->ht == NULL)
+    if (cache->acl == NULL)
         return;
-
-    he = (FgaL1HashEntry *) hash_search(cache->ht,
-                                        (void *) key,
-                                        HASH_ENTER,
-                                        &found);
-
-    he->key = *key;
-    he->entry.key = *key;
-    he->entry.allowed = allowed;
-    he->entry.generation = generation;
-    he->entry.expires_at_ms = (ttl_ms > 0) ? (now_ms + ttl_ms) : 0;
+    postfga_cache_acl_store(cache->acl, key, generation, now_ms, ttl_ms, allowed);
 }
 
-typedef struct FgaL2HashEntry
+bool postfga_l2_lookup(FgaL2Cache *cache,
+                       const FgaAclCacheKey *key,
+                       uint16_t cur_generation,
+                       uint64_t now_ms,
+                       bool *allowed_out)
 {
-    FgaCacheKey   key;
-    FgaCacheEntry entry;
-} FgaL2HashEntry;
+    bool found = false;
 
-void
-postfga_l2_init(FgaL2Cache *cache, long size_hint, LWLock *lock)
-{
-    HASHCTL ctl;
+    if (cache->acl != NULL)
+    {
+        LWLockAcquire(cache->lock, LW_SHARED);
 
-    memset(&ctl, 0, sizeof(ctl));
-    ctl.keysize = sizeof(FgaCacheKey);
-    ctl.entrysize = sizeof(FgaL2HashEntry);
-    ctl.hcxt = ShmemInitStruct("PostFGA L2 Cache Context",
-                               0,
-                               NULL);
+        found = postfga_cache_acl_lookup(cache->acl, key, cur_generation, now_ms, allowed_out);
 
-    cache->ht = ShmemInitHash("PostFGA L2 Cache",
-                              size_hint > 0 ? size_hint : 16384,
-                              size_hint > 0 ? size_hint : 16384,
-                              &ctl,
-                              HASH_ELEM | HASH_BLOBS | HASH_CONTEXT | HASH_SHARED_MEM);
+        LWLockRelease(cache->lock);
+    }
 
-    cache->lock = lock;
-    cache->generation = 0;
+    return found;
 }
 
-bool
-postfga_l2_lookup(FgaL2Cache *cache,
-                  const FgaCacheKey *key,
-                  uint16_t cur_generation,
-                  uint64_t now_ms,
-                  bool *allowed_out)
+void postfga_l2_store(FgaL2Cache *cache,
+                      const FgaAclCacheKey *key,
+                      uint16_t generation,
+                      uint64_t now_ms,
+                      uint64_t ttl_ms,
+                      bool allowed)
 {
-    bool found;
-    FgaCacheEntry *ce;
-    FgaL2HashEntry *he;
-
-    if (cache->ht == NULL)
-        return false;
-
-    LWLockAcquire(cache->lock, LW_SHARED);
-
-    he = (FgaL2HashEntry *) hash_search(cache->ht,
-                                        (void *) key,
-                                        HASH_FIND,
-                                        &found);
-    if (!found)
-    {
-        LWLockRelease(cache->lock);
-        return false;
-    }
-
-    ce = &he->entry;
-
-    /* generation mismatch */
-    if (ce->generation != cur_generation)
-    {
-        LWLockRelease(cache->lock);
-        return false;
-    }
-
-    /* TTL 만료 */
-    if (ce->expires_at_ms != 0 && ce->expires_at_ms < now_ms)
-    {
-        LWLockRelease(cache->lock);
-        return false;
-    }
-
-    *allowed_out = ce->allowed;
-
-    LWLockRelease(cache->lock);
-    return true;
-}
-
-void
-postfga_l2_store(FgaL2Cache *cache,
-                 const FgaCacheKey *key,
-                 uint16_t generation,
-                 uint64_t now_ms,
-                 uint64_t ttl_ms,
-                 bool allowed)
-{
-    bool found;
-    FgaL2HashEntry *he;
-
-    if (cache->ht == NULL)
+    if (cache->acl == NULL)
         return;
 
     LWLockAcquire(cache->lock, LW_EXCLUSIVE);
-
-    he = (FgaL2HashEntry *) hash_search(cache->ht,
-                                        (void *) key,
-                                        HASH_ENTER,
-                                        &found);
-
-    he->key = *key;
-    he->entry.key = *key;
-    he->entry.allowed = allowed;
-    he->entry.generation = generation;
-    he->entry.expires_at_ms = (ttl_ms > 0) ? (now_ms + ttl_ms) : 0;
-
+    postfga_cache_acl_store(cache->acl, key, generation, now_ms, ttl_ms, allowed);
     LWLockRelease(cache->lock);
 }
 
-Size
-postfga_l2_estimate_shmem_size(long size_hint)
+static bool postfga_cache_acl_lookup(HTAB *ht, const FgaAclCacheKey *key, uint16_t generation, uint64_t now_ms, bool *allowed_out)
 {
-    long n = (size_hint > 0) ? size_hint : 16384;
+    bool found;
+    FgaAclCacheEntry *e = (FgaAclCacheEntry *)hash_search(ht,
+                                                          (const void *)key,
+                                                          HASH_FIND,
+                                                          &found);
 
-    /* FgaL2HashEntry 는 L2 해시에서 쓰는 entry 구조체 */
-    return EstimateSharedHashTableSize(n, sizeof(FgaL2HashEntry));
+    if (!found)
+        return false;
+
+    /* generation mismatch → stale */
+    if (e->generation != generation)
+        return false;
+
+    /* TTL 만료 */
+    if (e->expires_at_ms != 0 && e->expires_at_ms < now_ms)
+        return false;
+
+    *allowed_out = e->allowed;
+
+    return true;
 }
 
-Size postfga_cache_estimate_size(int max_cache_entries)
+static bool postfga_cache_acl_store(HTAB *ht,
+                                    const FgaAclCacheKey *key,
+                                    uint16_t generation,
+                                    uint64_t now_ms,
+                                    uint64_t ttl_ms,
+                                    bool allowed)
 {
-    Size size = 0;
+    bool found;
+    FgaAclCacheEntry *e = (FgaAclCacheEntry *)hash_search(ht,
+                                                          (const void *)key,
+                                                          HASH_ENTER,
+                                                          &found);
 
-    // /* relation bitmap map */
-    // size = add_size(size,
-    //                 hash_estimate_size(DEFAULT_RELATION_COUNT,
-    //                                    sizeof(RelationBitMapEntry)));
+    e->key = *key;
+    e->allowed = allowed;
+    e->generation = generation;
+    e->expires_at_ms = (ttl_ms > 0) ? (now_ms + ttl_ms) : 0;
 
-    // /* ACL cache */
-    // size = add_size(size,
-    //                 hash_estimate_size(max_cache_entries,
-    //                                    sizeof(AclCacheEntry)));
-
-    // /* Generation maps (object/subject 타입 & 값) */
-    // size = add_size(size,
-    //                 hash_estimate_size(DEFAULT_GEN_MAP_SIZE,
-    //                                    sizeof(GenerationEntry))); /* object_type */
-    // size = add_size(size,
-    //                 hash_estimate_size(max_cache_entries,
-    //                                    sizeof(GenerationEntry))); /* object */
-    // size = add_size(size,
-    //                 hash_estimate_size(DEFAULT_GEN_MAP_SIZE,
-    //                                    sizeof(GenerationEntry))); /* subject_type */
-    // size = add_size(size,
-    //                 hash_estimate_size(max_cache_entries,
-    //                                    sizeof(GenerationEntry))); /* subject */
-
-    return size;
-}
-
-void postfga_init_cache(Cache *cache, int max_cache_entries)
-{
-    Assert(cache != NULL);
-
-    memset(cache, 0, sizeof(Cache));
-
-//     /* Relation bitmap hash */
-//     init_hash(&cache->relation_bitmap_map,
-//               "PostFGA Relation Bitmap",
-//               DEFAULT_RELATION_COUNT,
-//               RELATION_MAX_LEN,
-//               sizeof(RelationBitMapEntry));
-
-//     /* ACL cache */
-//     init_hash(&cache->acl_cache,
-//               "PostFGA ACL Cache",
-//               max_cache_entries,
-//               sizeof(AclCacheKey),
-//               sizeof(AclCacheEntry));
-
-//     /* Generation maps */
-//     init_hash(&cache->object_type_gen_map,
-//               "PostFGA Object Type Gen",
-//               DEFAULT_GEN_MAP_SIZE,
-//               NAME_MAX_LEN * 2,
-//               sizeof(GenerationEntry));
-
-//     init_hash(&cache->object_gen_map,
-//               "PostFGA Object Gen",
-//               max_cache_entries,
-//               NAME_MAX_LEN * 2,
-//               sizeof(GenerationEntry));
-
-//     init_hash(&cache->subject_type_gen_map,
-//               "PostFGA Subject Type Gen",
-//               DEFAULT_GEN_MAP_SIZE,
-//               NAME_MAX_LEN * 2,
-//               sizeof(GenerationEntry));
-
-//     init_hash(&cache->subject_gen_map,
-//               "PostFGA Subject Gen",
-//               max_cache_entries,
-//               NAME_MAX_LEN * 2,
-//               sizeof(GenerationEntry));
+    return found;
 }
