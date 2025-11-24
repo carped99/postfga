@@ -2,7 +2,7 @@ extern "C" {
 #include <postgres.h>
 #include <storage/lwlock.h>
 
-#include "state.h"
+#include "shmem.h"
 #include "queue.h"
 }
 

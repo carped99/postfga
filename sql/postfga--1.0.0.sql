@@ -34,8 +34,10 @@ CREATE OR REPLACE FUNCTION postfga_check(
     relation text
 )
 RETURNS boolean
-AS 'MODULE_PATHNAME', 'postfga_check'
-LANGUAGE C STRICT PARALLEL SAFE;  
+AS 'MODULE_PATHNAME'
+LANGUAGE C 
+STRICT 
+PARALLEL SAFE;  
 
 -- Create the FDW
 -- CREATE FOREIGN DATA WRAPPER postfga_fdw

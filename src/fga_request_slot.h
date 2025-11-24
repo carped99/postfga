@@ -25,4 +25,21 @@ typedef struct FgaRequestSlot
     uint32 resp_size; /* 응답 payload 버퍼 크기 (capacity) */
 } FgaRequestSlot;
 
+typedef enum FgaSlotState
+{
+    FGA_SLOT_EMPTY = 0,
+    FGA_SLOT_ENQUEUED,
+    FGA_SLOT_PROCESSING,
+    FGA_SLOT_DONE
+} FgaSlotState;
+
+typedef struct FgaSlot
+{
+    pg_atomic_uint32 state;      /* FgaSlotState */
+    uint16           pad;
+
+    FgaRequest       request;
+    FgaResponse      response;
+} FgaSlot;
+
 #endif // POSTFGA_REQUEST_SLOT_H

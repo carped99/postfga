@@ -2,7 +2,7 @@
 #pragma once
 
 extern "C" {
-#include "state.h"
+#include "shmem.h"
 }
 
 #include <memory>

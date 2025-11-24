@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "common.h"
+#include "postfga.h"
 
 #define FGA_MAX_BATCH 64
 
@@ -41,9 +41,8 @@ typedef enum FgaRequestType
 
 typedef struct FgaCheckTupleRequest
 {
-    uint16_t op_count; /* slot의 op_count와 동일하게 유지 */
-    uint16_t _pad;
-    FgaTuple tuples[FGA_MAX_BATCH];
+    char store_id[STORE_ID_LEN];
+    FgaTuple tuple;
 } FgaCheckTupleRequest;
 
 typedef struct FgaCheckTupleResponse
@@ -111,12 +110,12 @@ typedef struct FgaCreateStoreResponse
 
 typedef struct FgaRequest
 {
-    uint32_t request_id; /* 요청 식별자 (slot index나 generation 등) */
+    uint64_t request_id; /* request identifier */
     uint16_t type;       /* FgaRequestType */
     uint16_t reserved;   /* alignment / flags 용 */
     union
     {
-        FgaCheckTupleRequest checkTuple; /* 사실상 check/write/delete와 동일 레이아웃이면 재활용 가능 */
+        FgaCheckTupleRequest checkTuple;
         FgaWriteTupleRequest writeTuple;
         FgaDeleteTupleRequest deleteTuple;
         FgaGetStoreRequest getStore;
@@ -127,9 +126,9 @@ typedef struct FgaRequest
 
 typedef struct FgaResponse
 {
+    uint64_t request_id; /* request_id echo */
     uint16_t type; /* FgaMessageType (요청 타입과 매칭) */
     uint16_t reserved;
-    uint32_t request_id; /* 요청 쪽 request_id 그대로 echo */
 
     union
     {

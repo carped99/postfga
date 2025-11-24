@@ -25,7 +25,7 @@ PG_CXXFLAGS += -std=c++20 -Wall -Wextra \
 # --------------------------------------------------------------
 # Link flags
 # --------------------------------------------------------------
-SHLIB_LINK += -lgrpc++ -lgrpc -lprotobuf -lpthread
+SHLIB_LINK += -lgrpc++ -lgrpc -lprotobuf -lpthread -lxxhash
 
 # --------------------------------------------------------------
 # Build type (debug / release)

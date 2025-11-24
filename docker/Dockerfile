@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     cmake git autoconf libtool pkg-config bear \
     libgrpc++-dev libprotobuf-dev protobuf-compiler-grpc \
+    libxxhash-dev \
     postgresql-server-dev-${PG_MAJOR} \
     nodejs npm \
     && rm -rf /var/lib/apt/lists/*

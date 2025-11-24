@@ -7,36 +7,36 @@
 #include <storage/lwlock.h>
 #include <c.h>
 
-#include "common.h"
-
-/* ACL Cache Key Structure */
-typedef struct
-{
-    char object_type[RELATION_MAX_LEN];
-    char object_id[RELATION_MAX_LEN];
-    char subject_type[RELATION_MAX_LEN];
-    char subject_id[RELATION_MAX_LEN];
-} AclCacheKey;
+#include "postfga.h"
+#include "fga_type.h"
 
 /* ACL Cache Entry */
-typedef struct
+typedef struct FgaCacheEntry
 {
-    AclCacheKey key;
+    FgaCacheKey key;
 
-    /* Generation counters for invalidation */
-    uint64 object_type_gen;
-    uint64 object_gen;
-    uint64 subject_type_gen;
-    uint64 subject_gen;
+    bool allowed;
+    uint16_t generation; /* generation mismatch 시 invalid */
+    uint16_t pad;
 
-    /* Relation bitmasks */
-    uint64 allow_bits;
-    uint64 deny_bits;
+    uint64_t expires_at_ms; /* TTL 기준 만료 시간 (epoch ms) */
+    // TimestampTz last_updated;
+    // TimestampTz expire_at;
+} FgaCacheEntry;
 
-    /* Timestamps */
-    TimestampTz last_updated;
-    TimestampTz expire_at;
-} AclCacheEntry;
+typedef struct FgaL1Cache
+{
+    HTAB *ht;            /* key: FgaCheckKey, entry: FgaCacheEntry */
+    MemoryContext ctx;   /* 캐시 엔트리용 컨텍스트 */
+    uint16_t generation; /* L2 generation을 미러링할 때 사용 */
+} FgaL1Cache;
+
+typedef struct FgaL2Cache
+{
+    HTAB *ht;            /* shared hash table (shmem) */
+    LWLock *lock;        /* shared cache 락 */
+    uint16_t generation; /* global generation */
+} FgaL2Cache;
 
 /*
  * Cache
@@ -58,6 +58,53 @@ typedef struct Cache
     HTAB *subject_type_gen_map; /* subject_type           -> generation */
     HTAB *subject_gen_map;      /* subject_type:subject_id-> generation */
 } Cache;
+
+/* -------------------------------------------------------------------------
+ * Cache API
+ * ------------------------------------------------------------------------- */
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+    FgaCacheKey postfga_make_check_key(const FgaCheckTupleRequest *req);
+
+    /* L1 Cache API */
+    void postfga_l1_init(FgaL1Cache *cache, MemoryContext parent_ctx, long size_hint);
+    bool postfga_l1_lookup(FgaL1Cache *cache,
+                           const FgaCacheKey *key,
+                           uint16_t cur_generation,
+                           uint64_t now_ms,
+                           bool *allowed_out);
+    void postfga_l1_store(FgaL1Cache *cache,
+                          const FgaCacheKey *key,
+                          uint16_t generation,
+                          uint64_t now_ms,
+                          uint64_t ttl_ms,
+                          bool allowed);
+
+    /* L2 Cache API */
+    void postfga_l2_init(FgaL2Cache *cache, long size_hint, LWLock *lock);
+    bool postfga_l2_lookup(FgaL2Cache *cache,
+                           const FgaCacheKey *key,
+                           uint16_t cur_generation,
+                           uint64_t now_ms,
+                           bool *allowed_out);
+    void postfga_l2_store(FgaL2Cache *cache,
+                          const FgaCacheKey *key,
+                          uint16_t generation,
+                          uint64_t now_ms,
+                          uint64_t ttl_ms,
+                          bool allowed);
+
+    /* L2 shared hash table 에 필요한 shmem 크기 추정 */
+    Size postfga_l2_estimate_shmem_size(long size_hint);
+
+    /* generation bump (invalidation) */
+    void postfga_l2_bump_generation(FgaL2Cache *cache);
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 /* 필요한 경우 헬퍼 함수들 (선택) */
 

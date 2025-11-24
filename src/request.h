@@ -9,8 +9,6 @@
 #ifndef POSTFGA_REQUEST_H
 #define POSTFGA_REQUEST_H
 
-#include "common.h"
-
 #ifdef __cplusplus
 extern "C"
 {
@@ -19,6 +17,8 @@ extern "C"
 #include <postgres.h>
 #include <datatype/timestamp.h>
 #include <storage/latch.h>
+
+#include "postfga.h"
 
 #ifdef __cplusplus
 }

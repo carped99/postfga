@@ -13,7 +13,35 @@
 #ifndef POSTFGA_SHMEM_H
 #define POSTFGA_SHMEM_H
 
-#include "state.h"
+#include <postgres.h>
+#include <storage/lwlock.h>
+#include <storage/latch.h>
+
+#include "cache.h"
+#include "stats.h"
+#include "queue.h"
+
+/*
+ * PostfgaShmemState
+ */
+typedef struct PostfgaShmemState
+{
+    /* ---- Synchronization ---- */
+    LWLock *lock;     /* Master lock for all shared data */
+
+    Latch *bgw_latch; /* Background worker latch */
+
+    FgaSlot      *slots;                     /* Request slots 배열 */
+    pg_atomic_uint64 next_request_id;
+    PostfgaRequestQueue request_queue;
+
+    /* L2 캐시 */
+    FgaL2Cache l2_cache;
+
+    /* ---- Statistics ---- */
+    Stats stats;
+
+} PostfgaShmemState;
 
 /*
  * C++에서 이 헤더를 include할 때
@@ -23,31 +51,17 @@
 extern "C"
 {
 #endif
+    /* 전역 shared state 포인터 조회용 */
+    extern PostfgaShmemState *PostfgaSharedState;
 
-    /*
-     * postfga_request_shmem
-     *
-     * _PG_init() 에서 호출해야 하는 함수.
-     * RequestAddinShmemSpace / RequestNamedLWLockTranche 를 통해
-     * PostgreSQL의 shared memory 예약을 수행한다.
-     */
-    void postfga_request_shmem(void);
+    /* Shmem lifecycle API */
+    void postfga_shmem_request(void);
+    void postfga_shmem_startup(void);
 
-    /*
-     * postfga_startup_shmem
-     *
-     * shmem_startup_hook 에서 호출해야 하는 함수.
-     * 실제 shared memory 영역을 초기화하고, global shared_state 포인터를 설정한다.
-     */
-    void postfga_startup_shmem(void);
-
-    /*
-     * get_shared_state
-     *
-     * 초기화된 shared memory 상태 구조체 포인터를 반환한다.
-     * 아직 초기화되지 않았다면 NULL 을 반환할 수 있다.
-     */
-    PostfgaShmemState *postfga_get_shared_state(void);
+    static inline PostfgaShmemState *postfga_get_sheme_state(void)
+    {
+        return PostfgaSharedState;
+    }
 
     Cache *postfga_get_cache_state(void);
 

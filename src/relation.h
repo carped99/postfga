@@ -11,7 +11,7 @@
 
 #include <postgres.h>
 
-#include "common.h"
+#include "postfga.h"
 
 #define RELATION_BIT_NOT_FOUND ((uint8)0xFF)
 

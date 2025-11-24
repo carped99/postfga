@@ -78,7 +78,7 @@ postfga_shmem_request_hook(void)
     if (prev_shmem_request_hook)
         prev_shmem_request_hook();
 
-    postfga_request_shmem();
+    postfga_shmem_request();
 }
 
 static void
@@ -87,5 +87,5 @@ postfga_shmem_startup_hook(void)
     if (prev_shmem_startup_hook)
         prev_shmem_startup_hook();
 
-    postfga_startup_shmem();
+    postfga_shmem_startup();
 }

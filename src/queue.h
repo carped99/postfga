@@ -6,7 +6,8 @@
 #include <stdbool.h> // bool
 #include <assert.h>
 
-#include "request.h" // RequestPayload 정의
+#include "request.h"
+
 
 #ifdef __cplusplus
 extern "C"

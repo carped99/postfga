@@ -60,7 +60,7 @@ postfga_bgw_main(Datum arg)
     
     PG_TRY();
     {
-        PostfgaShmemState *state = postfga_get_shared_state();
+        PostfgaShmemState *state = postfga_get_sheme_state();
         if (state == nullptr)
             ereport(ERROR, (errmsg("postfga bgw: shared memory state is not initialized")));
 

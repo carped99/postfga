@@ -1,5 +1,6 @@
-#ifndef POSTFGA_COMMON_H
-#define POSTFGA_COMMON_H
+#ifndef POSTFGA_H
+#define POSTFGA_H
+
 /* -------------------------------------------------------------------------
  * Constants
  * -------------------------------------------------------------------------
@@ -21,4 +22,14 @@
 #define DEFAULT_CACHE_ENTRIES     10000
 #define DEFAULT_GEN_MAP_SIZE      1024
 
-#endif /* POSTFGA_COMMON_H */
+/* -------------------------------------------------------------------------
+ * Types
+ * ------------------------------------------------------------------------- */
+typedef struct FgaCacheKey
+{
+    uint64_t hash;   /* canonical한 문자열/struct로부터 계산한 해시 값 */
+    uint64_t hash2;  /* 보조 해시 or store_id 해시 등 (충돌 줄이기용) */    
+} FgaCacheKey;
+
+
+#endif /* POSTFGA_H */
