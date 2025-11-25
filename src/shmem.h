@@ -40,8 +40,8 @@ typedef struct PostfgaShmemState
     pg_atomic_uint64 request_id; /* Request identifier */
 
     FgaCheckChannel *check_channel; /* Request channel */
-    FgaL2Cache l2_cache;            /* Shared L2 cache */
-    FgaStats stats;                 /* Statistics */
+    // FgaL2Cache l2_cache;            /* Shared L2 cache */
+    // FgaStats stats; /* Statistics */
 
 } PostfgaShmemState;
 

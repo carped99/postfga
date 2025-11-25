@@ -181,13 +181,15 @@ pool_init(FgaCheckSlotPool *pool, uint32 max_slots)
 
 Size postfga_check_channel_shmem_size(uint32 slot_count)
 {
-    Size size = 0;
-    size += channel_shmem_size();
+    elog(LOG, "PostFGA: init check channel with slot_count=%u", slot_count);
+
+    Size size = channel_shmem_size();
+
     // pool
-    size += pool_shmem_size(slot_count);
+    size = add_size(size, pool_shmem_size(slot_count));
 
     // queue
-    size += queue_shmem_size(slot_count);
+    size = add_size(size, queue_shmem_size(slot_count));
     return size;
 }
 
@@ -204,12 +206,11 @@ void postfga_check_channel_shmem_init(uint32 slot_count)
         return;
 
     {
-        char *ptr;
         FgaCheckSlotPool *pool;
         FgaCheckSlotQueue *queue;
 
         // Channel struct
-        ptr = (char *)ch + channel_shmem_size();
+        char *ptr = (char *)ch + channel_shmem_size();
 
         // pool
         pool = (FgaCheckSlotPool *)ptr;

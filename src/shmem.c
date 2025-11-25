@@ -40,95 +40,56 @@ int postfga_l2_cache_size = 16384;
 /*-------------------------------------------------------------------------
  * Static helpers (private)
  *-------------------------------------------------------------------------*/
-static Size postfga_shmem_calculate_size(void);
-static void postfga_shmem_initialize_state(bool found);
-
-static Size postfga_shmem_channel_size(void);
-// static void postfga_shmem_request_slots_init(void);
-// static Size postfga_shmem_request_queue_size(void);
-
-static Size postfga_shmem_cache_size(void);
-static void postfga_shmem_cache_init(PostfgaShmemState *state);
-static uint64_t postfga_generate_hash_seed();
-
-/*-------------------------------------------------------------------------
- * Public lifecycle API
- *-------------------------------------------------------------------------*/
-/*
- * postfga_shmem_request
- *
- * Called from _PG_init() before PostgreSQL allocates shared memory.
- *
- * - Estimates total shared memory size for this extension
- * - Requests allocation via RequestAddinShmemSpace()
- * - Registers a named LWLock tranche for synchronization
- */
-void postfga_shmem_request(void)
+static uint64_t
+_generate_hash_seed()
 {
-    Size size = postfga_shmem_calculate_size();
-
-    RequestAddinShmemSpace(size);
-    RequestNamedLWLockTranche(POSTFGA_LWLOCK_TRANCHE_NAME,
-                              POSTFGA_LWLOCK_TRANCHE_NUM);
-
-    elog(DEBUG1,
-         "PostFGA shmem: requested %zu bytes (max_cache_entries=%d)",
-         size,
-         max_cache_entries);
+    uint64_t seed;
+    if (!pg_strong_random(&seed, sizeof(seed)))
+    {
+        ereport(ERROR,
+                errmsg("failed to generate hash seed"));
+    }
+    return seed;
 }
 
-/*
- * postfga_shmem_startup
- *
- * Called from shmem_startup_hook after PostgreSQL allocates shared memory.
- *
- * - Uses AddinShmemInitLock to ensure single initialization
- * - Creates or attaches to shared memory segment
- * - Initializes cache, queue, counters, and stats
- */
-void postfga_shmem_startup(void)
+static Size postfga_shmem_cache_size()
 {
-    bool found = false;
-    Size size;
+    PostfgaConfig *cfg = postfga_get_config();
+    Size size = 0;
 
-    ereport(LOG, (errmsg("PostFGA: starting shared memory")));
+    size = add_size(size, MAXALIGN(hash_estimate_size(cfg->max_cache_entries, sizeof(FgaAclCacheEntry))));
 
-    // if (postfga_shmem_state != NULL)
-    //     return;
+    size = add_size(size, MAXALIGN(hash_estimate_size(cfg->max_relations, sizeof(FgaRelationCacheEntry))));
 
-    LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
-
-    size = postfga_shmem_calculate_size();
-
-    postfga_shmem_state = ShmemInitStruct("PostFGA Data", size, &found);
-
-    // ereport(LOG, (errmsg("PostFGA: 3. setting hash seed")));
-    // postfga_shmem_state->hash_seed = postfga_generate_hash_seed();
-
-    /* 실제 필드 초기화 */
-    postfga_shmem_initialize_state(found);
-    LWLockRelease(AddinShmemInitLock);
-
-    ereport(LOG,
-            (errmsg("PostFGA: shared memory startup complete (found=%s)",
-                    found ? "true" : "false")));
+    return size;
 }
 
-/*-------------------------------------------------------------------------
- * Public  API
- *-------------------------------------------------------------------------*/
-PostfgaShmemState *postfga_get_shmem_state(void)
+static void postfga_shmem_cache_init(PostfgaShmemState *state)
 {
-    return postfga_shmem_state;
-}
+    PostfgaConfig *cfg = postfga_get_config();
+    // FgaL2Cache *cache = &state->l2_cache;
 
-FgaL2Cache *postfga_get_cache_state(void)
-{
-    return &postfga_shmem_state->l2_cache;
+    // HASHCTL ctl;
+    // MemSet(&ctl, 0, sizeof(ctl));
+    // ctl.keysize = sizeof(FgaAclCacheKey);
+    // ctl.entrysize = sizeof(FgaAclCacheEntry);
+    // cache->acl = ShmemInitHash("PostFGA L2 cache",
+    //                            cfg->max_cache_entries, /* init_size */
+    //                            cfg->max_cache_entries, /* max_size  */
+    //                            &ctl,
+    //                            HASH_ELEM | HASH_BLOBS | HASH_SHARED_MEM);
+
+    // MemSet(&ctl, 0, sizeof(ctl));
+    // ctl.entrysize = sizeof(FgaRelationCacheEntry);
+    // cache->relation = ShmemInitHash("PostFGA Relation cache",
+    //                                 cfg->max_relations, /* init_size */
+    //                                 cfg->max_relations, /* max_size  */
+    //                                 &ctl,
+    //                                 HASH_ELEM | HASH_STRINGS | HASH_SHARED_MEM);
 }
 
 static Size
-postfga_shmem_calculate_size(void)
+_calculate_size(void)
 {
     PostfgaConfig *cfg = postfga_get_config();
     Size size = 0;
@@ -136,28 +97,25 @@ postfga_shmem_calculate_size(void)
     /* 1. shmem state struct */
     size = MAXALIGN(sizeof(PostfgaShmemState));
 
-    /* 2. request_slot */
-    size = add_size(size, postfga_check_channel_shmem_size(cfg->max_slots));
+    /* 2. check_channel */
+    size = add_size(size, MAXALIGN(postfga_check_channel_shmem_size(cfg->max_slots)));
 
-    // size = add_size(size, postfga_check_channel_shmem_size());
+    // size = add_size(size, MAXALIGN(postfga_shmem_cache_size()));
 
-    /* 3. request_queue */
-    // size = add_size(size, postfga_shmem_request_queue_size());
-
-    /* 4. L2 cache */
-    size = add_size(size, postfga_shmem_cache_size());
+    elog(LOG, "PostFGA: calc_size=%zu, max_slots=%u, max_cache_entries=%u",
+         size, cfg->max_slots, cfg->max_cache_entries);
 
     return size;
 }
 
 /*
- * postfga_shmem_initialize_state
+ * _initialize_state
  *
  *   - found == false 이면 shared memory 처음 attach 된 것 → 전체 초기화
  *   - found == true 이면 이미 다른 프로세스가 초기화한 상태 → 포인터/락만 다시 세팅
  */
 static void
-postfga_shmem_initialize_state(bool found)
+_initialize_state(bool found)
 {
     PostfgaConfig *cfg = postfga_get_config();
     LWLockPadded *locks;
@@ -179,7 +137,7 @@ postfga_shmem_initialize_state(bool found)
 
     /* 전체 영역은 ShmemInitStruct 가 이미 zero 로 초기화해 줌 */
     postfga_shmem_state->bgw_latch = NULL;
-    postfga_shmem_state->hash_seed = postfga_generate_hash_seed();
+    postfga_shmem_state->hash_seed = _generate_hash_seed();
 
     ptr = (char *)postfga_shmem_state;
 
@@ -189,14 +147,81 @@ postfga_shmem_initialize_state(bool found)
     postfga_shmem_state->check_channel = (FgaCheckChannel *)ptr;
     ptr += postfga_check_channel_shmem_size(cfg->max_slots);
 
-    /* 3. request_queue */
-    // postfga_shmem_state->request_queue = (FgaRequestQueue *)ptr;
-    // ptr += postfga_shmem_request_queue_size();
-
     postfga_check_channel_shmem_init(cfg->max_slots);
+
     /* 4. L2 cache */
-    postfga_shmem_state->l2_cache.lock = &locks[2].lock;
-    postfga_shmem_cache_init(postfga_shmem_state);
+    // postfga_shmem_state->l2_cache.lock = &locks[2].lock;
+    // postfga_shmem_cache_init(postfga_shmem_state);
+}
+
+static Size postfga_shmem_channel_size(void);
+// static void postfga_shmem_request_slots_init(void);
+// static Size postfga_shmem_request_queue_size(void);
+
+static Size postfga_shmem_cache_size(void);
+static void postfga_shmem_cache_init(PostfgaShmemState *state);
+
+/*-------------------------------------------------------------------------
+ * Public lifecycle API
+ *-------------------------------------------------------------------------*/
+/*
+ * postfga_shmem_request
+ *
+ * Called from _PG_init() before PostgreSQL allocates shared memory.
+ *
+ * - Estimates total shared memory size for this extension
+ * - Requests allocation via RequestAddinShmemSpace()
+ * - Registers a named LWLock tranche for synchronization
+ */
+void postfga_shmem_request(void)
+{
+    Size size = _calculate_size();
+
+    ereport(LOG, errmsg("2. PostFGA: request shared memory (size=%zu bytes)", size));
+
+    RequestAddinShmemSpace(size);
+    RequestNamedLWLockTranche(POSTFGA_LWLOCK_TRANCHE_NAME,
+                              POSTFGA_LWLOCK_TRANCHE_NUM);
+
+    ereport(LOG,
+            errmsg("3. PostFGA shmem: requested %zu bytes (max_cache_entries=%d)", size, max_cache_entries));
+}
+
+/*
+ * postfga_shmem_startup
+ *
+ * Called from shmem_startup_hook after PostgreSQL allocates shared memory.
+ *
+ * - Uses AddinShmemInitLock to ensure single initialization
+ * - Creates or attaches to shared memory segment
+ * - Initializes cache, queue, counters, and stats
+ */
+void postfga_shmem_startup(void)
+{
+    bool found = false;
+    Size size = _calculate_size();
+
+    LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
+
+    postfga_shmem_state = ShmemInitStruct("PostFGA Data", size, &found);
+
+    /* 실제 필드 초기화 */
+    _initialize_state(found);
+    LWLockRelease(AddinShmemInitLock);
+}
+
+/*-------------------------------------------------------------------------
+ * Public  API
+ *-------------------------------------------------------------------------*/
+PostfgaShmemState *postfga_get_shmem_state(void)
+{
+    return postfga_shmem_state;
+}
+
+FgaL2Cache *postfga_get_cache_state(void)
+{
+    // return &postfga_shmem_state->l2_cache;
+    return NULL;
 }
 
 // void postfga_shmem_request_slots_init()
@@ -218,42 +243,6 @@ postfga_shmem_initialize_state(bool found)
 //     return MAXALIGN(offsetof(FgaRequestQueue, slots) + sizeof(uint16_t) * cfg->max_slots);
 // }
 
-Size postfga_shmem_cache_size()
-{
-    PostfgaConfig *cfg = postfga_get_config();
-    Size size = 0;
-
-    size = add_size(size, hash_estimate_size(cfg->max_cache_entries, sizeof(FgaAclCacheEntry)));
-
-    size = add_size(size, hash_estimate_size(cfg->max_relations, sizeof(FgaRelationCacheEntry)));
-
-    return size;
-}
-
-void postfga_shmem_cache_init(PostfgaShmemState *state)
-{
-    PostfgaConfig *cfg = postfga_get_config();
-    FgaL2Cache *cache = &state->l2_cache;
-
-    HASHCTL ctl;
-    MemSet(&ctl, 0, sizeof(ctl));
-    ctl.keysize = sizeof(FgaAclCacheKey);
-    ctl.entrysize = sizeof(FgaAclCacheEntry);
-    cache->acl = ShmemInitHash("PostFGA L2 cache",
-                               cfg->max_cache_entries, /* init_size */
-                               cfg->max_cache_entries, /* max_size  */
-                               &ctl,
-                               HASH_ELEM | HASH_BLOBS | HASH_SHARED_MEM);
-
-    MemSet(&ctl, 0, sizeof(ctl));
-    ctl.entrysize = sizeof(FgaRelationCacheEntry);
-    cache->relation = ShmemInitHash("PostFGA Relation cache",
-                                    cfg->max_relations, /* init_size */
-                                    cfg->max_relations, /* max_size  */
-                                    &ctl,
-                                    HASH_ELEM | HASH_STRINGS | HASH_SHARED_MEM);
-}
-
 /*
  * Optional: GUC hook 이나 다른 초기화 코드에서 호출해서
  * max_cache_entries 값을 갱신하고 싶다면 이 헬퍼를 사용할 수 있다.
@@ -272,14 +261,3 @@ void postfga_set_max_cache_entries(int value)
 /*-------------------------------------------------------------------------
  * Private helpers
  *-------------------------------------------------------------------------*/
-uint64_t
-postfga_generate_hash_seed()
-{
-    uint64_t seed;
-    if (!pg_strong_random(&seed, sizeof(seed)))
-    {
-        ereport(ERROR,
-                (errmsg("PostFGA: failed to generate hash seed")));
-    }
-    return seed;
-}
