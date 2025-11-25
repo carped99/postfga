@@ -1,0 +1,41 @@
+/* slot.h */
+#ifndef POSTFGA_CHANNLE_H
+#define POSTFGA_CHANNLE_H
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#include <postgres.h>
+#include <port/atomics.h>
+#include <storage/lwlock.h>
+#include <lib/ilist.h>
+
+#include "fga_type.h"
+#include "channel_queue.h"
+#include "channel_slot.h"
+
+#ifdef __cplusplus
+}
+#endif
+
+typedef struct FgaChannel
+{
+    LWLock *lock;            /* 큐 + 슬롯풀 공용 락 */
+    FgaChannelQueue *queue;  /* ring buffer (FAM) */
+    FgaChannelSlotPool pool; /* 슬롯 배열 + freelist */
+} FgaChannel;
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+    void postfga_ch_write(FgaChannel *channel, const FgaRequest *request, uint16 *out_slot_index);
+    bool postfga_ch_read(FgaChannel *channel, uint16 slot_index, FgaResponse *out_response);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* POSTFGA_CHANNLE_H */

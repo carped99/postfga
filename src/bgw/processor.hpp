@@ -4,26 +4,26 @@
 #include <memory>
 #include "config/config.hpp"
 #include "client/client.hpp"
-#include "shmem.h"
 
-namespace postfga::bgw {
+namespace postfga::bgw
+{
 
-class Processor {
-public:
-    explicit Processor(PostfgaShmemState *state, const postfga::Config &config);
-    void execute();
+    class Processor
+    {
+    public:
+        explicit Processor(const postfga::Config &config);
+        void execute();
 
-private:
-    static constexpr uint32_t MAX_BATCH_SIZE = 32;
+    private:
+        static constexpr uint32_t MAX_BATCH_SIZE = 32;
 
-    // void handle_batch(RequestPayload *requests, uint32_t count);
-    // void handle_single_request(RequestPayload &payload);
+        // void handle_batch(RequestPayload *requests, uint32_t count);
+        // void handle_single_request(RequestPayload &payload);
 
-    // void handle_check(RequestPayload &payload);
-    // void handle_write(RequestPayload &payload);
+        // void handle_check(RequestPayload &payload);
+        // void handle_write(RequestPayload &payload);
 
-    PostfgaShmemState *state_ = nullptr;
-    std::unique_ptr<postfga::client::Client> client_;
-};
+        std::unique_ptr<postfga::client::Client> client_;
+    };
 
 } // namespace postfga::bgw

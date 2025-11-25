@@ -17,7 +17,8 @@
  * the actual worker logic is implemented in C++ (worker.hpp / Worker::run()).
  */
 
-extern "C" {
+extern "C"
+{
 #include <postgres.h>
 #include <storage/ipc.h>
 #include <postmaster/bgworker.h>
@@ -37,7 +38,7 @@ postfga_bgw_init(void)
     worker.bgw_start_time = BgWorkerStart_RecoveryFinished;
     worker.bgw_restart_time = 1;
     worker.bgw_notify_pid = 0;
-    worker.bgw_main_arg = (Datum) 0;
+    worker.bgw_main_arg = (Datum)0;
 
     strlcpy(worker.bgw_library_name, "postfga", BGW_MAXLEN);
     strlcpy(worker.bgw_function_name, "postfga_bgw_main", BGW_MAXLEN);
@@ -57,7 +58,7 @@ extern "C" PGDLLEXPORT void
 postfga_bgw_main(Datum arg)
 {
     (void)arg;
-    
+
     PG_TRY();
     {
         PostfgaShmemState *state = postfga_get_shmem_state();

@@ -53,7 +53,7 @@ void postfga_l1_init(FgaL1Cache *cache, MemoryContext parent_ctx, long size_hint
 {
     HASHCTL ctl;
 
-    memset(&ctl, 0, sizeof(ctl));
+    MemSet(&ctl, 0, sizeof(ctl));
     ctl.keysize = sizeof(FgaAclCacheKey);
     ctl.entrysize = sizeof(FgaAclCacheEntry);
     ctl.hcxt = AllocSetContextCreate(parent_ctx,

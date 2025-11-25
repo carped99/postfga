@@ -4,13 +4,10 @@
 
 #include "shmem.h" /* shared state helper */
 #include "func_check.h"
+#include "check_channel.h"
 
 PG_FUNCTION_INFO_V1(postfga_check);
 
-/*
- * SQL:
- *   postfga_check(object_type, object_id, relation, subject_type, subject_id)
- */
 Datum postfga_check(PG_FUNCTION_ARGS)
 {
     const char *object_type = text_to_cstring(PG_GETARG_TEXT_PP(0));
@@ -19,18 +16,44 @@ Datum postfga_check(PG_FUNCTION_ARGS)
     const char *subject_type = text_to_cstring(PG_GETARG_TEXT_PP(3));
     const char *subject_id = text_to_cstring(PG_GETARG_TEXT_PP(4));
 
-    PostfgaShmemState *shmem_state = postfga_get_shmem_state();
+    PostfgaShmemState *state = postfga_get_shmem_state();
+    if (state == NULL)
+    {
+        elog(WARNING, "PostFGA: shared memory is not initialized");
+        PG_RETURN_BOOL(false);
+    }
+
+    FgaCheckTupleRequest request;
+    memset(&request, 0, sizeof(request));
+    strncpy(request.store_id, "default", sizeof(request.store_id) - 1);
+    strncpy(request.tuple.object_type, object_type, sizeof(request.tuple.object_type) - 1);
+    strncpy(request.tuple.object_id, object_id, sizeof(request.tuple.object_id) - 1);
+    strncpy(request.tuple.relation, relation, sizeof(request.tuple.relation) - 1);
+    strncpy(request.tuple.subject_type, subject_type, sizeof(request.tuple.subject_type) - 1);
+    strncpy(request.tuple.subject_id, subject_id, sizeof(request.tuple.subject_id) - 1);
+
+    FgaCheckChannel *channel = state->check_channel;
+    FgaCheckSlot *slot = postfga_check_write(channel, &request);
+    if (slot == NULL)
+    {
+        elog(WARNING, "PostFGA: failed to write check request");
+        PG_RETURN_BOOL(false);
+    }
+
+    postfga_check_read(channel, slot);
+
+    // postfga_enqueue_check_request(&request);
+
+    // bool ok = postfga_enqueue_check(shmem_state,
+    //                             object_type,
+    //                             object_id,
+    //                             subject_type,
+    //                             subject_id,
+    //                             relation);
 
     bool ok;
     // ok = enqueue_grpc_request(object_type, object_id, subject_type, subject_id, relation);
 
-    /*
-     * ok == false → 내부적으로 타임아웃/큐 오류 등.
-     * 정책에 따라:
-     *   - 바로 ERROR
-     *   - false 반환
-     * 를 GUC로 제어해도 좋음.
-     */
     if (!ok)
         PG_RETURN_BOOL(false);
 

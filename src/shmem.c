@@ -27,7 +27,7 @@
 
 /* Named LWLock tranche 이름과 필요한 락 개수 */
 #define POSTFGA_LWLOCK_TRANCHE_NAME "postfga"
-#define POSTFGA_LWLOCK_TRANCHE_NUM 2 /* 0: global, 1: cache */
+#define POSTFGA_LWLOCK_TRANCHE_NUM 3
 
 static int max_cache_entries = DEFAULT_CACHE_ENTRIES;
 
@@ -42,8 +42,11 @@ int postfga_l2_cache_size = 16384;
  *-------------------------------------------------------------------------*/
 static Size postfga_shmem_calculate_size(void);
 static void postfga_shmem_initialize_state(bool found);
-static Size postfga_shmem_request_slot_size(void);
-static Size postfga_shmem_request_queue_size(void);
+
+static Size postfga_shmem_channel_size(void);
+// static void postfga_shmem_request_slots_init(void);
+// static Size postfga_shmem_request_queue_size(void);
+
 static Size postfga_shmem_cache_size(void);
 static void postfga_shmem_cache_init(PostfgaShmemState *state);
 static uint64_t postfga_generate_hash_seed();
@@ -62,8 +65,6 @@ static uint64_t postfga_generate_hash_seed();
  */
 void postfga_shmem_request(void)
 {
-    ereport(LOG, (errmsg("PostFGA: requesting shared memory")));
-
     Size size = postfga_shmem_calculate_size();
 
     RequestAddinShmemSpace(size);
@@ -89,7 +90,6 @@ void postfga_shmem_startup(void)
 {
     bool found = false;
     Size size;
-    LWLockPadded *locks;
 
     ereport(LOG, (errmsg("PostFGA: starting shared memory")));
 
@@ -98,24 +98,13 @@ void postfga_shmem_startup(void)
 
     LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
 
-    ereport(LOG, (errmsg("PostFGA: 1. calculating shared memory size")));
     size = postfga_shmem_calculate_size();
 
-    ereport(LOG, (errmsg("PostFGA: 2. ShmemInitStruct")));
-    postfga_shmem_state = ShmemInitStruct("PostFGA Shmem State", size, &found);
+    postfga_shmem_state = ShmemInitStruct("PostFGA Data", size, &found);
 
     // ereport(LOG, (errmsg("PostFGA: 3. setting hash seed")));
     // postfga_shmem_state->hash_seed = postfga_generate_hash_seed();
 
-    /* Named LWLock tranche에서 락 배열 가져오기 */
-    ereport(LOG, (errmsg("PostFGA: 4. GetNamedLWLockTranche")));
-    locks = GetNamedLWLockTranche(POSTFGA_LWLOCK_TRANCHE_NAME);
-
-    /* state 내 락 포인터 설정 */
-    postfga_shmem_state->lock = &locks[0].lock;
-    postfga_shmem_state->l2_cache.lock = &locks[1].lock;
-
-    ereport(LOG, (errmsg("PostFGA: 5. allocating shared memory")));
     /* 실제 필드 초기화 */
     postfga_shmem_initialize_state(found);
     LWLockRelease(AddinShmemInitLock);
@@ -141,16 +130,19 @@ FgaL2Cache *postfga_get_cache_state(void)
 static Size
 postfga_shmem_calculate_size(void)
 {
+    PostfgaConfig *cfg = postfga_get_config();
     Size size = 0;
 
     /* 1. shmem state struct */
     size = MAXALIGN(sizeof(PostfgaShmemState));
 
     /* 2. request_slot */
-    size = add_size(size, postfga_shmem_request_slot_size());
+    size = add_size(size, postfga_check_channel_shmem_size(cfg->max_slots));
+
+    // size = add_size(size, postfga_check_channel_shmem_size());
 
     /* 3. request_queue */
-    size = add_size(size, postfga_shmem_request_queue_size());
+    // size = add_size(size, postfga_shmem_request_queue_size());
 
     /* 4. L2 cache */
     size = add_size(size, postfga_shmem_cache_size());
@@ -167,6 +159,8 @@ postfga_shmem_calculate_size(void)
 static void
 postfga_shmem_initialize_state(bool found)
 {
+    PostfgaConfig *cfg = postfga_get_config();
+    LWLockPadded *locks;
     char *ptr;
     int i;
 
@@ -175,6 +169,13 @@ postfga_shmem_initialize_state(bool found)
         /* 이미 다른 backend가 초기화 완료 */
         return;
     }
+
+    /* Named LWLock tranche에서 락 배열 가져오기 */
+    ereport(LOG, (errmsg("PostFGA: 4. GetNamedLWLockTranche")));
+    locks = GetNamedLWLockTranche(POSTFGA_LWLOCK_TRANCHE_NAME);
+
+    /* state 내 락 포인터 설정 */
+    postfga_shmem_state->lock = &locks[0].lock;
 
     /* 전체 영역은 ShmemInitStruct 가 이미 zero 로 초기화해 줌 */
     postfga_shmem_state->bgw_latch = NULL;
@@ -185,29 +186,37 @@ postfga_shmem_initialize_state(bool found)
     /* 1. shmem state struct */
     ptr += MAXALIGN(sizeof(PostfgaShmemState));
 
-    /* 2. request_slot */
-    postfga_shmem_state->request_slot = (FgaRequestSlot *)ptr;
-    ptr += postfga_shmem_request_slot_size();
+    postfga_shmem_state->check_channel = (FgaCheckChannel *)ptr;
+    ptr += postfga_check_channel_shmem_size(cfg->max_slots);
 
     /* 3. request_queue */
-    postfga_shmem_state->request_queue = (FgaRequestQueue *)ptr;
-    ptr += postfga_shmem_request_queue_size();
+    // postfga_shmem_state->request_queue = (FgaRequestQueue *)ptr;
+    // ptr += postfga_shmem_request_queue_size();
 
+    postfga_check_channel_shmem_init(cfg->max_slots);
     /* 4. L2 cache */
+    postfga_shmem_state->l2_cache.lock = &locks[2].lock;
     postfga_shmem_cache_init(postfga_shmem_state);
 }
 
-Size postfga_shmem_request_slot_size()
-{
-    PostfgaConfig *cfg = postfga_get_config();
-    return MAXALIGN(mul_size(sizeof(FgaRequestSlot), cfg->max_slots));
-}
+// void postfga_shmem_request_slots_init()
+// {
+//     PostfgaConfig *cfg = postfga_get_config();
+//     for (uint16 i = 0; i < cfg->max_slots; i++)
+//     {
+//         FgaRequestSlot *slot = &postfga_shmem_state->request_slots[i];
+//         pg_atomic_init_u32(&slot->state, FGA_SLOT_EMPTY);
 
-Size postfga_shmem_request_queue_size()
-{
-    PostfgaConfig *cfg = postfga_get_config();
-    return MAXALIGN(offsetof(FgaRequestQueue, slots) + sizeof(uint16_t) * cfg->max_slots);
-}
+//         MemSet(&slot->request, 0, sizeof(FgaRequest));
+//         MemSet(&slot->response, 0, sizeof(FgaResponse));
+//     }
+// }
+
+// Size postfga_shmem_request_queue_size()
+// {
+//     PostfgaConfig *cfg = postfga_get_config();
+//     return MAXALIGN(offsetof(FgaRequestQueue, slots) + sizeof(uint16_t) * cfg->max_slots);
+// }
 
 Size postfga_shmem_cache_size()
 {

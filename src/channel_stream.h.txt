@@ -1,0 +1,160 @@
+#ifndef POSTFGA_CHANNEL_STREAM_H
+#define POSTFGA_CHANNEL_STREAM_H
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+#include <postgres.h>
+
+#include <stddef.h>  // size_t
+#include <stdint.h>  // uint32_t
+#include <stdbool.h> // bool
+#include <assert.h>
+#ifdef __cplusplus
+}
+#endif
+
+#define FGA_STREAM_CAPACITY 50
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+    typedef enum FgaChannelStreamState
+    {
+        FGA_CHANNEL_STREAM_IDLE = 0, /* 아직 안 열림 */
+        FGA_CHANNEL_STREAM_OPEN,     /* 스트림 진행 중 (chunk 더 올 수 있음) */
+        FGA_CHANNEL_STREAM_DONE,     /* 정상 종료 (EOF) */
+        FGA_CHANNEL_STREAM_ERROR     /* 에러로 종료 */
+    } FgaChannelStreamState;
+
+    typedef struct FgaChannelStreamChunk
+    {
+        uint16_t kind;     /* 응답 타입 (예: ROW_BATCH, ERROR_MSG, CONTROL 등) */
+        uint16_t count;    /* 이 chunk 안에 들어 있는 엔트리 개수 (row 개수 등) */
+        uint32_t data_off; /* shared arena 안에서의 오프셋 or 인덱스 */
+    } FgaChannelStreamChunk;
+
+    typedef struct FgaChannelStream
+    {
+        pg_atomic_uint32 state; /* FgaChannelStreamState */
+
+        uint16_t mask; /* FGA_STREAM_CAPACITY - 1, 2^n - 1 */
+        uint16_t head; /* BGW가 쓰는 위치 */
+        uint16_t tail; /* Backend가 읽는 위치 */
+        FgaChannelStreamChunk chunks[FGA_STREAM_CAPACITY];
+    } FgaChannelStream;
+
+/*
+ * buffer_size 가 2의 거듭제곱인지 확인하는 매크로
+ */
+#define POSTFGA_IS_POWER_OF_TWO(sz) (((sz) & ((sz) - 1u)) == 0u)
+    /*
+     * postfga_init_queue
+     *
+     * - buffer      : 사전에 할당된 RequestPayload 배열
+     * - capacity    : 배열 길이(요소 개수). 반드시 2의 거듭제곱이어야 함.
+     * - 실제로 저장 가능한 요소 최대 개수는 (capacity - 1).
+     */
+    static inline void
+    postfga_ch_stream_init(FgaChannelStream *s, uint16_t capacity)
+    {
+        assert(s != NULL);
+        assert(capacity > 1u);
+        assert(POSTFGA_IS_POWER_OF_TWO(capacity));
+
+        s->mask = capacity - 1u;
+        s->head = 0u;
+        s->tail = 0u;
+    }
+
+    static inline uint16_t
+    postfga_ch_stream_size(const FgaChannelStream *s)
+    {
+        return (s->head - s->tail) & s->mask;
+    }
+
+    static inline bool
+    postfga_ch_stream_is_empty(const FgaChannelStream *s)
+    {
+        return s->head == s->tail;
+    }
+
+    static inline bool
+    postfga_ch_stream_is_full(const FgaChannelStream *s)
+    {
+        return postfga_ch_stream_size(s) == s->mask;
+    }
+
+    /*
+     * 남은 공간(더 넣을 수 있는 요소 개수) 반환
+     * 최대값은 (capacity - 1)
+     */
+    static inline uint16_t
+    postfga_ch_stream_available(const FgaChannelStream *s)
+    {
+        uint16_t capacity = s->mask + 1u;
+        return (capacity - 1u) - postfga_ch_stream_size(s);
+    }
+
+    /*
+     * enqueue 하나
+     *
+     * - 성공 시 true, 큐가 가득 차 있으면 false
+     * - 동시성 제어(LWLock 등)는 호출자가 담당
+     */
+    static inline bool
+    postfga_ch_stream_push(FgaChannelStream *s, const FgaChannelStreamChunk *chunk)
+    {
+        if (postfga_ch_stream_is_full(s))
+            return false;
+
+        s->chunks[s->head & s->mask] = *chunk;
+
+        s->head++;
+
+        return true;
+    }
+
+    /*
+     * dequeue 하나
+     *
+     * - 성공 시 true, 큐가 비어 있으면 false
+     * - 동시성 제어는 호출자가 담당
+     */
+    static inline bool
+    postfga_ch_stream_pop(FgaChannelStream *s, FgaChannelStreamChunk *out_chunk)
+    {
+        pg_read_barrier();
+        if (postfga_ch_stream_is_empty(s))
+            return false;
+
+        *out_chunk = s->chunks[s->tail & s->mask];
+        s->tail++;
+
+        return true;
+    }
+
+    /*
+     * 맨 앞 요소를 제거 없이 조회 (index는 0이 가장 오래된 요소)
+     *
+     * - index 범위: 0 <= index < postfga_queue_size(q)
+     * - 범위 밖이면 false 반환
+     */
+    static inline bool
+    postfga_ch_stream_peek(const FgaChannelStream *s, uint16_t index, FgaChannelStreamChunk *out_chunk)
+    {
+        uint16_t size = postfga_ch_stream_size(s);
+        if (index >= size)
+            return false;
+
+        *out_chunk = s->chunks[(s->tail + index) & s->mask];
+        return true;
+    }
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* POSTFGA_CHANNEL_STREAM_H */

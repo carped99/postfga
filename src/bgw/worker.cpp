@@ -1,4 +1,5 @@
-extern "C" {
+extern "C"
+{
 #include <postgres.h>
 #include <miscadmin.h>
 #include <postmaster/bgworker.h>
@@ -14,13 +15,15 @@ extern "C" {
 #include "processor.hpp"
 #include "config/load.hpp"
 
-namespace {
+namespace
+{
     // signal flags
     volatile sig_atomic_t shutdown_requested = false;
-    volatile sig_atomic_t reload_requested   = false;
+    volatile sig_atomic_t reload_requested = false;
 
     // SIGTERM handler: request shutdown
-    void bgw_sigterm_handler(SIGNAL_ARGS) {
+    void bgw_sigterm_handler(SIGNAL_ARGS)
+    {
         int save_errno = errno;
         shutdown_requested = true;
         if (MyLatch)
@@ -29,7 +32,8 @@ namespace {
     }
 
     // SIGHUP handler: request config reload
-    void bgw_sighup_handler(SIGNAL_ARGS) {
+    void bgw_sighup_handler(SIGNAL_ARGS)
+    {
         int save_errno = errno;
         reload_requested = true;
         if (MyLatch)
@@ -51,86 +55,87 @@ namespace {
     // }
 } // anonymous namespace
 
-namespace postfga::bgw {
-
-Worker::Worker(PostfgaShmemState *state)
-    : state_(state)
+namespace postfga::bgw
 {
-    Assert(state_ != nullptr);
 
-    initialize();
-}
-
-void Worker::run()
-{
-    /* register latch in shared state */
-    LWLockAcquire(state_->lock, LW_EXCLUSIVE);
-    state_->bgw_latch = MyLatch;
-    LWLockRelease(state_->lock);
-
-    /* enter main loop */
-    process();
-
-    /* unregister latch on exit */
-    LWLockAcquire(state_->lock, LW_EXCLUSIVE);
-    state_->bgw_latch = NULL;
-    LWLockRelease(state_->lock);
-}
-
-void Worker::initialize()
-{
-    // install signal handlers
-    pqsignal(SIGTERM, bgw_sigterm_handler);
-    pqsignal(SIGHUP,  bgw_sighup_handler);
-
-    // allow signals to be delivered
-    BackgroundWorkerUnblockSignals();
-
-    /* optional: connect to database
-     * BackgroundWorkerInitializeConnection(NULL, NULL, 0);
-     */
-}
-
-void Worker::process()
-{
-    auto config = postfga::load_config_from_guc();
-    Processor processor(state_, config);
-
-    while (!shutdown_requested)
+    Worker::Worker(PostfgaShmemState *state)
+        : state_(state)
     {
-        // wait for work or signal
-        int rc = WaitLatch(MyLatch,
-                           WL_LATCH_SET | WL_EXIT_ON_PM_DEATH,
-                           -1,
-                           PG_WAIT_EXTENSION);
+        Assert(state_ != nullptr);
 
-        // latch reset
-        ResetLatch(MyLatch);
-
-        // exit if postmaster dies
-        if (rc & WL_POSTMASTER_DEATH)
-            proc_exit(1);
-
-        CHECK_FOR_INTERRUPTS();
-
-        // handle config reload
-        if (reload_requested)
-        {
-            reload_requested = false;
-            ProcessConfigFile(PGC_SIGHUP);
-        }
-
-        // report activity: processing requests
-        pgstat_report_activity(STATE_RUNNING, "postfga bgw: processing requests");
-
-        processor.execute();
-        
-        // report activity: idle
-        pgstat_report_activity(STATE_IDLE, NULL);
+        initialize();
     }
 
-    // report activity: stopped
-    pgstat_report_activity(STATE_IDLE, "postfga bgw: stopped");
-}
+    void Worker::run()
+    {
+        /* register latch in shared state */
+        LWLockAcquire(state_->lock, LW_EXCLUSIVE);
+        state_->bgw_latch = MyLatch;
+        LWLockRelease(state_->lock);
+
+        /* enter main loop */
+        process();
+
+        /* unregister latch on exit */
+        LWLockAcquire(state_->lock, LW_EXCLUSIVE);
+        state_->bgw_latch = NULL;
+        LWLockRelease(state_->lock);
+    }
+
+    void Worker::initialize()
+    {
+        // install signal handlers
+        pqsignal(SIGTERM, bgw_sigterm_handler);
+        pqsignal(SIGHUP, bgw_sighup_handler);
+
+        // allow signals to be delivered
+        BackgroundWorkerUnblockSignals();
+
+        /* optional: connect to database
+         * BackgroundWorkerInitializeConnection(NULL, NULL, 0);
+         */
+    }
+
+    void Worker::process()
+    {
+        auto config = postfga::load_config_from_guc();
+        Processor processor(config);
+
+        while (!shutdown_requested)
+        {
+            // wait for work or signal
+            int rc = WaitLatch(MyLatch,
+                               WL_LATCH_SET | WL_EXIT_ON_PM_DEATH,
+                               -1,
+                               PG_WAIT_EXTENSION);
+
+            // latch reset
+            ResetLatch(MyLatch);
+
+            // exit if postmaster dies
+            if (rc & WL_POSTMASTER_DEATH)
+                proc_exit(1);
+
+            CHECK_FOR_INTERRUPTS();
+
+            // handle config reload
+            if (reload_requested)
+            {
+                reload_requested = false;
+                ProcessConfigFile(PGC_SIGHUP);
+            }
+
+            // report activity: processing requests
+            pgstat_report_activity(STATE_RUNNING, "postfga bgw: processing requests");
+
+            processor.execute();
+
+            // report activity: idle
+            pgstat_report_activity(STATE_IDLE, NULL);
+        }
+
+        // report activity: stopped
+        pgstat_report_activity(STATE_IDLE, "postfga bgw: stopped");
+    }
 
 } // namespace postfga::bgw

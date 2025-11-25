@@ -24,9 +24,7 @@ extern "C"
 
 #include "cache.h"
 #include "stats_type.h"
-#include "request_queue.h"
-#include "request_slot.h"
-
+#include "check_channel.h"
 #ifdef __cplusplus
 }
 #endif
@@ -36,12 +34,12 @@ extern "C"
  */
 typedef struct PostfgaShmemState
 {
-    LWLock *lock;                   /* Master lock for all shared data */
-    Latch *bgw_latch;               /* Background worker latch */
-    uint64_t hash_seed;             /* Hash seed for consistent hashing */
-    pg_atomic_uint64 request_id;    /* Request identifier */
-    FgaRequestSlot *request_slot;   /* Request slot */
-    FgaRequestQueue *request_queue; /* Request queue */
+    LWLock *lock;                /* Master lock for all shared data */
+    Latch *bgw_latch;            /* Background worker latch */
+    uint64_t hash_seed;          /* Hash seed for consistent hashing */
+    pg_atomic_uint64 request_id; /* Request identifier */
+
+    FgaCheckChannel *check_channel; /* Request channel */
     FgaL2Cache l2_cache;            /* Shared L2 cache */
     FgaStats stats;                 /* Statistics */
 
