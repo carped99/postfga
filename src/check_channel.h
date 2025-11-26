@@ -31,13 +31,12 @@ typedef struct FgaCheckChannel
 extern "C"
 {
 #endif
-    FgaCheckSlot *postfga_check_write(FgaCheckChannel *channel,
-                                      const FgaCheckTupleRequest *request);
-    void postfga_check_read(FgaCheckChannel *channel,
-                            FgaCheckSlot *slot);
+    uint16 postfga_channel_drain_slots(FgaCheckChannel *channel,
+                                       uint16_t max_count,
+                                       FgaCheckSlot **out_slots);
 
-    Size postfga_check_channel_shmem_size(uint32 slot_count);
-    void postfga_check_channel_shmem_init(uint32 slot_count);
+    bool postfga_check_execute(const FgaCheckTupleRequest *request);
+
 #ifdef __cplusplus
 }
 #endif

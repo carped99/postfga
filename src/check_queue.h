@@ -2,7 +2,6 @@
 #define POSTFGA_CHECK_TUPLE_SLOT_QUEUE_H
 
 #include <postgres.h>
-#include <c.h>
 
 typedef struct FgaCheckSlotQueue
 {
@@ -13,7 +12,7 @@ typedef struct FgaCheckSlotQueue
 } FgaCheckSlotQueue;
 
 /*
- * postfga_init_queue
+ * queue_init
  *
  * - buffer      : 사전에 할당된 RequestPayload 배열
  * - capacity    : 배열 길이(요소 개수). 반드시 2의 거듭제곱이어야 함.
@@ -23,7 +22,6 @@ static inline void
 queue_init(FgaCheckSlotQueue *q, uint16 capacity)
 {
     Assert(q != NULL);
-    Assert(values != NULL);
     Assert(capacity > 0);
     Assert((capacity & (capacity - 1)) == 0); // 2의 거듭제곱 확인
 

@@ -2,7 +2,6 @@
 #include <fmgr.h>
 #include <utils/builtins.h>
 
-#include "shmem.h" /* shared state helper */
 #include "func_check.h"
 #include "check_channel.h"
 
@@ -16,13 +15,6 @@ Datum postfga_check(PG_FUNCTION_ARGS)
     const char *subject_type = text_to_cstring(PG_GETARG_TEXT_PP(3));
     const char *subject_id = text_to_cstring(PG_GETARG_TEXT_PP(4));
 
-    PostfgaShmemState *state = postfga_get_shmem_state();
-    if (state == NULL)
-    {
-        elog(WARNING, "PostFGA: shared memory is not initialized");
-        PG_RETURN_BOOL(false);
-    }
-
     FgaCheckTupleRequest request;
     memset(&request, 0, sizeof(request));
     strncpy(request.store_id, "default", sizeof(request.store_id) - 1);
@@ -32,30 +24,7 @@ Datum postfga_check(PG_FUNCTION_ARGS)
     strncpy(request.tuple.subject_type, subject_type, sizeof(request.tuple.subject_type) - 1);
     strncpy(request.tuple.subject_id, subject_id, sizeof(request.tuple.subject_id) - 1);
 
-    FgaCheckChannel *channel = state->check_channel;
-    FgaCheckSlot *slot = postfga_check_write(channel, &request);
-    if (slot == NULL)
-    {
-        elog(WARNING, "PostFGA: failed to write check request");
-        PG_RETURN_BOOL(false);
-    }
+    bool allowed = postfga_check_execute(&request);
 
-    postfga_check_read(channel, slot);
-
-    // postfga_enqueue_check_request(&request);
-
-    // bool ok = postfga_enqueue_check(shmem_state,
-    //                             object_type,
-    //                             object_id,
-    //                             subject_type,
-    //                             subject_id,
-    //                             relation);
-
-    bool ok;
-    // ok = enqueue_grpc_request(object_type, object_id, subject_type, subject_id, relation);
-
-    if (!ok)
-        PG_RETURN_BOOL(false);
-
-    PG_RETURN_BOOL(true);
+    PG_RETURN_BOOL(allowed);
 }

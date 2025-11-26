@@ -24,6 +24,7 @@
 #include "postfga.h"
 #include "config.h"
 #include "shmem.h"
+#include "check_shmem.h"
 
 /* Named LWLock tranche 이름과 필요한 락 개수 */
 #define POSTFGA_LWLOCK_TRANCHE_NAME "postfga"
@@ -145,9 +146,10 @@ _initialize_state(bool found)
     ptr += MAXALIGN(sizeof(PostfgaShmemState));
 
     postfga_shmem_state->check_channel = (FgaCheckChannel *)ptr;
+    postfga_shmem_state->check_channel->lock = &locks[1].lock;
     ptr += postfga_check_channel_shmem_size(cfg->max_slots);
 
-    postfga_check_channel_shmem_init(cfg->max_slots);
+    postfga_check_channel_shmem_init(postfga_shmem_state->check_channel, cfg->max_slots);
 
     /* 4. L2 cache */
     // postfga_shmem_state->l2_cache.lock = &locks[2].lock;

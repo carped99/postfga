@@ -16,8 +16,9 @@
  *-------------------------------------------------------------------------*/
 static FgaStats *postfga_get_stats_state(void)
 {
-    PostfgaShmemState *state = postfga_get_shmem_state();
-    return state ? &state->stats : NULL;
+    // PostfgaShmemState *state = postfga_get_shmem_state();
+    // return state ? &state->stats : NULL;
+    return NULL;
 }
 
 /*

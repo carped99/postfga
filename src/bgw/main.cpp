@@ -22,12 +22,15 @@ extern "C"
 #include <postgres.h>
 #include <storage/ipc.h>
 #include <postmaster/bgworker.h>
+#include <utils/memutils.h>
 }
 
 #include <string.h>
 #include <exception>
 #include "worker.hpp"
 #include "shmem.h"
+
+static MemoryContext PostfgaBgwMemoryContext = NULL;
 
 extern "C" void
 postfga_bgw_init(void)

@@ -106,7 +106,7 @@ namespace postfga::bgw
             // wait for work or signal
             int rc = WaitLatch(MyLatch,
                                WL_LATCH_SET | WL_EXIT_ON_PM_DEATH,
-                               -1,
+                               0,
                                PG_WAIT_EXTENSION);
 
             // latch reset

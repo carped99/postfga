@@ -37,6 +37,12 @@ namespace postfga::client
         void shutdown();
 
     private:
+        // void handle_request(const CheckTupleRequest &req, Client::FgaResponseHandler handler);
+        // void handle_request(const WriteTupleRequest &req, Client::FgaResponseHandler handler);
+        // void handle_request(const DeleteTupleRequest &req, Client::FgaResponseHandler handler);
+        // void handle_request(const GetStoreRequest &req, Client::FgaResponseHandler handler);
+        // void handle_request(const CreateStoreRequest &req, Client::FgaResponseHandler handler);
+
         Config config_;
         asio::thread_pool pool_;
         std::shared_ptr<grpc::Channel> channel_;

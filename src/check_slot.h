@@ -9,9 +9,6 @@ extern "C"
 #include <postgres.h>
 #include <miscadmin.h>
 #include <port/atomics.h>
-#include <storage/latch.h>
-#include <utils/elog.h>
-#include <pgstat.h>
 #include <lib/ilist.h>
 
 #include "fga_type.h"
@@ -43,6 +40,28 @@ extern "C"
         slist_head head;
         FgaCheckSlot slots[FLEXIBLE_ARRAY_MEMBER];
     } FgaCheckSlotPool;
+
+    static void
+    pool_init(FgaCheckSlotPool *pool, uint32 max_slots)
+    {
+        uint32 i;
+
+        slist_init(&pool->head);
+
+        for (i = 0; i < max_slots; i++)
+        {
+            FgaCheckSlot *slot = &pool->slots[i];
+
+            slist_push_head(&pool->head, &slot->node);
+
+            pg_atomic_init_u32(&slot->state, FGA_CHECK_SLOT_EMPTY);
+            slot->backend_pid = InvalidPid;
+            slot->request_id = 0;
+            MemSet(&slot->request, 0, sizeof(FgaCheckTupleRequest));
+            slot->allowed = false;
+            slot->error_code = 0;
+        }
+    }
 
 #ifdef __cplusplus
 }

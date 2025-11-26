@@ -4,26 +4,29 @@
 #include <memory>
 #include "config/config.hpp"
 #include "client/client.hpp"
+#include "util/counter.hpp"
+
+struct FgaCheckTupleRequest;
 
 namespace postfga::bgw
 {
 
-    class Processor
+    class Processor : public std::enable_shared_from_this<Processor>
     {
     public:
         explicit Processor(const postfga::Config &config);
         void execute();
 
     private:
+        using FgaCheckTupleResponseHandler = std::function<void(const FgaCheckTupleResponse &)>;
+
         static constexpr uint32_t MAX_BATCH_SIZE = 32;
 
-        // void handle_batch(RequestPayload *requests, uint32_t count);
-        // void handle_single_request(RequestPayload &payload);
-
-        // void handle_check(RequestPayload &payload);
-        // void handle_write(RequestPayload &payload);
+        FgaCheckTupleResponse check(const FgaCheckTupleRequest &request);
+        void check_async(const FgaCheckTupleRequest &request, FgaCheckTupleResponseHandler handler);
 
         std::unique_ptr<postfga::client::Client> client_;
+        postfga::util::Counter inflight_;
     };
 
 } // namespace postfga::bgw
