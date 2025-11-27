@@ -159,7 +159,7 @@ void postfga_channel_execute(const FgaRequest* request, FgaResponse* response)
     PostfgaShmemState* state = postfga_get_shmem_state();
     FgaChannel* channel = state->channel;
     FgaChannelSlot* slot = write_request(channel, request);
-    FgaChannelSlotState state;
+    FgaChannelSlotState slot_state;
 
     if (slot == NULL)
     {
@@ -169,9 +169,9 @@ void postfga_channel_execute(const FgaRequest* request, FgaResponse* response)
     /* BGW 깨우기 */
     SetLatch(state->bgw_latch);
 
-    state = wait_response(channel, slot);
+    slot_state = wait_response(channel, slot);
 
-    if (state == FGA_CHANNEL_SLOT_CANCELED)
+    if (slot_state == FGA_CHANNEL_SLOT_CANCELED)
     {
         /* 여기까지 왔으면 논리적으로는 이미 위에서 ERROR가 났을 확률이 높지만,
          * 방어 코드로 이렇게 한 번 더 정리해줄 수 있음.
