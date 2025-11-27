@@ -63,7 +63,7 @@ namespace postfga::client
         // return channel_->WaitForConnected(deadline);
     }
 
-    void OpenFgaGrpcClient::process(const FgaRequest& req, FgaResponseHandler handler, void* ctx)
+    void OpenFgaGrpcClient::process(const FgaRequest& req, FgaResponse& res, FgaResponseHandler handler, void* ctx)
     {
         // if (stopping_.load(std::memory_order_relaxed))
         // {
@@ -85,7 +85,8 @@ namespace postfga::client
         // }
 
         auto variant = make_request_variant(req);
-        std::visit([this, handler, ctx](const auto& arg) { this->handle_request(arg, handler, ctx); }, variant);
+        std::visit([this, &res, handler, ctx](const auto& arg) { this->handle_request(arg, res, handler, ctx); },
+                   variant);
     }
 
     void OpenFgaGrpcClient::shutdown()

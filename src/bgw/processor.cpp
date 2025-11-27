@@ -55,7 +55,7 @@ namespace postfga::bgw
             wakeBackend(slot);
         }
 
-        void handleResponse(const FgaResponse& resp, void* ctx) noexcept
+        static void handleResponse(const FgaResponse& resp, void* ctx) noexcept
         {
             auto& slot = *static_cast<FgaChannelSlot*>(ctx);
 
@@ -126,7 +126,7 @@ namespace postfga::bgw
 
             try
             {
-                client_->process(slot->request, &handleResponse, slot);
+                client_->process(slot->request, slot->response, &handleResponse, slot);
             }
             catch (const std::exception& e)
             {

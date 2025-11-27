@@ -2,47 +2,44 @@
 #pragma once
 
 #include <asio.hpp>
-
-#include <functional>
-#include <memory>
-#include <string>
 #include <atomic>
 #include <chrono>
-#include <semaphore>
+#include <functional>
 #include <limits>
+#include <memory>
+#include <semaphore>
+#include <string>
 
 // gRPC / OpenFGA proto
-#include <grpcpp/grpcpp.h>
-
-#include "config/config.hpp"
 #include "client.hpp"
-#include "util/counter.hpp"
-#include "request_variant.hpp"
+#include "config/config.hpp"
 #include "openfga/v1/openfga_service.grpc.pb.h"
+#include "request_variant.hpp"
+#include "util/counter.hpp"
+
+#include <grpcpp/grpcpp.h>
 
 namespace postfga::client
 {
 
-    class OpenFgaGrpcClient
-        : public Client,
-          public std::enable_shared_from_this<OpenFgaGrpcClient>
+    class OpenFgaGrpcClient : public Client, public std::enable_shared_from_this<OpenFgaGrpcClient>
     {
-    public:
-        explicit OpenFgaGrpcClient(const Config &config);
+      public:
+        explicit OpenFgaGrpcClient(const Config& config);
         ~OpenFgaGrpcClient();
 
         bool is_healthy() const;
 
-        void process(const FgaRequest &req, FgaResponseHandler handler, void *ctx) override;
+        void process(const FgaRequest& req, FgaResponse& res, FgaResponseHandler handler, void* ctx) override;
 
         void shutdown() override;
 
-    private:
-        void handle_request(const CheckTupleRequest &req, FgaResponseHandler handler, void *ctx);
-        void handle_request(const WriteTupleRequest &req, FgaResponseHandler handler, void *ctx);
-        void handle_request(const DeleteTupleRequest &req, FgaResponseHandler handler, void *ctx);
-        void handle_request(const GetStoreRequest &req, FgaResponseHandler handler, void *ctx);
-        void handle_request(const CreateStoreRequest &req, FgaResponseHandler handler, void *ctx);
+      private:
+        void handle_request(const CheckTupleRequest& req, FgaResponse& res, FgaResponseHandler handler, void* ctx);
+        void handle_request(const WriteTupleRequest& req, FgaResponse& res, FgaResponseHandler handler, void* ctx);
+        void handle_request(const DeleteTupleRequest& req, FgaResponse& res, FgaResponseHandler handler, void* ctx);
+        void handle_request(const GetStoreRequest& req, FgaResponse& res, FgaResponseHandler handler, void* ctx);
+        void handle_request(const CreateStoreRequest& req, FgaResponse& res, FgaResponseHandler handler, void* ctx);
 
         Config config_;
         asio::thread_pool pool_;
