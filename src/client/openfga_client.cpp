@@ -1,21 +1,27 @@
 // openfga.cpp
 
+#include "openfga_client.hpp"
+
+#include "channel_factory.hpp"
+#include "util/logger.hpp"
+
 #include <algorithm>
 #include <cstring>
 #include <thread>
 
-#include "channel_factory.hpp"
-#include "openfga_client.hpp"
-#include "util/logger.hpp"
-
 namespace postfga::client
 {
+
 
     /* ========================================================================
      * ctor / dtor
      * ====================================================================== */
-    OpenFgaGrpcClient::OpenFgaGrpcClient(const Config &config)
-        : config_(config), pool_(config.concurrency.worker_threads), channel_(make_channel(config_)), stub_(openfga::v1::OpenFGAService::NewStub(channel_)), inflight_(1000) // 기본값, 필요시 설정 가능
+    OpenFgaGrpcClient::OpenFgaGrpcClient(const Config& config)
+        : config_(config),
+          pool_(config.concurrency.worker_threads),
+          channel_(make_channel(config_)),
+          stub_(openfga::v1::OpenFGAService::NewStub(channel_)),
+          inflight_(1000) // 기본값, 필요시 설정 가능
     {
     }
 
@@ -57,7 +63,7 @@ namespace postfga::client
         // return channel_->WaitForConnected(deadline);
     }
 
-    void OpenFgaGrpcClient::process(const FgaRequest &req, FgaResponseHandler handler, void *ctx)
+    void OpenFgaGrpcClient::process(const FgaRequest& req, FgaResponseHandler handler, void* ctx)
     {
         // if (stopping_.load(std::memory_order_relaxed))
         // {
@@ -79,12 +85,7 @@ namespace postfga::client
         // }
 
         auto variant = make_request_variant(req);
-        std::visit(
-            [this, handler, ctx](const auto &arg)
-            {
-                this->handle_request(arg, handler, ctx);
-            },
-            variant);
+        std::visit([this, handler, ctx](const auto& arg) { this->handle_request(arg, handler, ctx); }, variant);
     }
 
     void OpenFgaGrpcClient::shutdown()

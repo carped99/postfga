@@ -30,7 +30,12 @@
       "Bash(strip:*)",
       "Bash(nm:*)",
       "Bash(sudo cmake:*)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(gdb:*)",
+      "Bash(find:*)",
+      "Bash(clang-format:*)",
+      "Bash(apt-get update:*)",
+      "Bash(apt-get install:*)"
     ],
     "deny": [],
     "ask": []

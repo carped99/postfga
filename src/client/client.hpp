@@ -7,18 +7,18 @@ struct FgaResponse;
 namespace postfga::client
 {
 
-    class Client
-    {
-    public:
-        using FgaResponseHandler = void (*)(const FgaResponse &, void *ctx) noexcept;
+class Client
+{
+  public:
+    using FgaResponseHandler = void (*)(const FgaResponse&, void* ctx) noexcept;
 
-        virtual ~Client() = default;
+    virtual ~Client() = default;
 
-        virtual bool is_healthy() const = 0;
+    virtual bool is_healthy() const = 0;
 
-        virtual void process(const FgaRequest &req, FgaResponseHandler handler, void *ctx) = 0;
+    virtual void process(const FgaRequest& req, FgaResponseHandler handler, void* ctx) = 0;
 
-        virtual void shutdown() = 0;
-    };
+    virtual void shutdown() = 0;
+};
 
 } // namespace postfga::client

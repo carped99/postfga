@@ -1,0 +1,83 @@
+# 기본 스타일
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++20
+
+# 들여쓰기
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+
+# 줄 길이
+ColumnLimit: 120
+
+# 중괄호 스타일 (Allman = 열 때 줄 바꿈)
+BreakBeforeBraces: Allman
+BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: false
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: true
+  BeforeElse: true
+
+# 포인터 / 레퍼런스
+PointerAlignment: Left
+
+# 짧은 구문
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortLambdasOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+
+# 함수 인자 / 매개변수
+AlignAfterOpenBracket: Align
+BinPackArguments: false
+BinPackParameters: false
+
+# 연산자 정렬
+AlignOperands: Align
+
+# 주석
+ReflowComments: true
+AlignTrailingComments: true
+SpacesBeforeTrailingComments: 1
+
+# 공백 관련
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpacesInAngles: Never
+
+# include 정렬 (가장 일반적인 형태: 프로젝트 → 시스템)
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+
+# 생성자 초기화 리스트 / 상속 리스트
+BreakConstructorInitializers: BeforeColon
+PackConstructorInitializers: Never
+BreakInheritanceList: BeforeColon
+
+# 네임스페이스
+CompactNamespaces: false
+FixNamespaceComments: true
+NamespaceIndentation: All
+
+# 빈 줄
+MaxEmptyLinesToKeep: 2
+KeepEmptyLinesAtTheStartOfBlocks: false
+
+# 기타
+AlwaysBreakAfterReturnType: None
+AlwaysBreakTemplateDeclarations: Yes
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+BreakStringLiterals: true
+Cpp11BracedListStyle: true
+InsertNewlineAtEOF: true
+UseCRLF: false
