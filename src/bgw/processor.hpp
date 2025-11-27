@@ -10,7 +10,7 @@ struct PostfgaShmemState;
 
 namespace postfga::bgw
 {
-    class Processor : public std::enable_shared_from_this<Processor>
+    class Processor
     {
     public:
         explicit Processor(PostfgaShmemState *state, const postfga::Config &config);
@@ -19,7 +19,7 @@ namespace postfga::bgw
     private:
         static constexpr uint32_t MAX_BATCH_SIZE = 32;
 
-        std::unique_ptr<postfga::client::Client> client_;
+        std::shared_ptr<postfga::client::Client> client_;
         postfga::util::Counter inflight_;
         PostfgaShmemState *state_ = nullptr;
     };

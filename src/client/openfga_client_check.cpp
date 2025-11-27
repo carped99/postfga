@@ -17,10 +17,8 @@ namespace postfga::client
 
             auto *tuple_key = out.mutable_tuple_key();
 
-            tuple_key->set_object(tuple.object_id);
-
-            std::string user = std::string(tuple.subject_type) + ":" + tuple.subject_id;
-            tuple_key->set_user(user);
+            tuple_key->set_object(std::string(tuple.object_type) + ":" + tuple.object_id);
+            tuple_key->set_user(std::string(tuple.subject_type) + ":" + tuple.subject_id);
             tuple_key->set_relation(tuple.relation);
         }
 
@@ -35,34 +33,22 @@ namespace postfga::client
     void OpenFgaGrpcClient::handle_request(const CheckTupleRequest &req, FgaResponseHandler handler, void *ctx)
     {
 
+        auto client = shared_from_this();
         auto context = std::make_shared<CheckContext>();
 
         auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(config_.timeout_ms);
         context->ctx.set_deadline(deadline);
         fill_check_request(req, context->req);
 
-        postfga::util::info("OpenFgaGrpcClient: Check request received" + std::to_string(config_.timeout_ms));
+        postfga::util::info(std::format("OpenFgaGrpcClient: stub={}", context->req.DebugString().c_str()));
 
         stub_->async()->Check(
             &context->ctx,
             &context->req,
             &context->res,
-            [context = std::move(context), handler, ctx](grpc::Status status) mutable
+            [client, context = std::move(context)](grpc::Status status) mutable
             {
                 fprintf(stderr, "OpenFgaGrpcClient: Check response received with status: %s\n", status.error_message().c_str());
-                FgaResponse out{};
-                if (status.ok())
-                {
-                    // out.allowed = gresp.allowed() ? 1 : 0;
-                }
-                else
-                {
-                    // out.status_code = static_cast<int>(status.error_code());
-                    // std::strncpy(out.error_message, status.error_message().c_str(), sizeof(out.error_message) - 1);
-                }
-
-                handler(out, ctx);
-                // out.status_code = 0;
             });
     }
 

@@ -9,6 +9,6 @@
 namespace postfga::client
 {
 
-    std::unique_ptr<Client> make_client(const Config &cfg);
+    std::shared_ptr<Client> make_client(const Config &cfg);
 
 } // namespace postfga::client

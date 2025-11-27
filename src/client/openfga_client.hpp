@@ -35,7 +35,7 @@ namespace postfga::client
 
         void process(const FgaRequest &req, FgaResponseHandler handler, void *ctx) override;
 
-        void shutdown();
+        void shutdown() override;
 
     private:
         void handle_request(const CheckTupleRequest &req, FgaResponseHandler handler, void *ctx);
