@@ -10,13 +10,13 @@
 // 앞에서 C 쪽에 정의된 shared memory slot
 extern "C"
 {
-    typedef struct FgaCheckSlot FgaCheckSlot;
+    typedef struct FgaChannelSlot FgaChannelSlot;
 }
 
 struct GrpcAsyncSlot
 {
     uint16_t slot_index = 0; // shared memory slot index
-    FgaCheckSlot *slot_ptr = nullptr;
+    FgaChannelSlot *slot_ptr = nullptr;
 
     // 필요하면 여기에 gRPC 핸들, retry 상태 등을 추가
     // grpc_call* call = nullptr;

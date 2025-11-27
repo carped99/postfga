@@ -24,10 +24,11 @@ extern "C"
 
 #include "cache.h"
 #include "stats_type.h"
-#include "check_channel.h"
 #ifdef __cplusplus
 }
 #endif
+
+typedef struct FgaChannel FgaChannel; // forward declaration
 
 /*-------------------------------------------------------------------------
  * PostfgaShmemState
@@ -39,7 +40,7 @@ typedef struct PostfgaShmemState
     uint64_t hash_seed;          /* Hash seed for consistent hashing */
     pg_atomic_uint64 request_id; /* Request identifier */
 
-    FgaCheckChannel *check_channel; /* Request channel */
+    FgaChannel *channel; /* Request channel */
     // FgaL2Cache l2_cache;            /* Shared L2 cache */
     // FgaStats stats; /* Statistics */
 

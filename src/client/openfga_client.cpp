@@ -6,6 +6,7 @@
 
 #include "channel_factory.hpp"
 #include "openfga_client.hpp"
+#include "util/logger.hpp"
 
 namespace postfga::client
 {
@@ -58,6 +59,7 @@ namespace postfga::client
 
     void OpenFgaGrpcClient::process(const FgaRequest &req, FgaResponseHandler handler)
     {
+        postfga::info("OpenFgaGrpcClient: processing request");
         // if (stopping_.load(std::memory_order_relaxed))
         // {
         //     FgaResponse resp{};

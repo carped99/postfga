@@ -9,7 +9,7 @@
 #include <lib/ilist.h>
 
 #include "shmem.h"
-#include "check_channel.h"
+#include "channel.h"
 
 #define MAX_DRAIN 64
 
@@ -17,31 +17,11 @@
  * Static helpers
  *-------------------------------------------------------------------------
  */
-static FgaCheckSlot *
-acquire_slot(FgaCheckSlotPool *pool)
+static FgaChannelSlot *
+enqueue_slot(FgaChannel *channel)
 {
-    slist_node *node;
-
-    /* 빈 슬롯 없으면 에러 (또는 나중에 backoff/retry 설계 가능) */
-    if (slist_is_empty(&pool->head))
-        return NULL;
-
-    node = slist_pop_head_node(&pool->head);
-    return slist_container(FgaCheckSlot, node, node);
-}
-
-static void
-release_slot(FgaCheckSlotPool *pool, FgaCheckSlot *slot)
-{
-    pg_atomic_write_u32(&slot->state, FGA_CHECK_SLOT_EMPTY);
-    slist_push_head(&pool->head, &slot->node);
-}
-
-static FgaCheckSlot *
-enqueue_slot(FgaCheckChannel *channel)
-{
-    FgaCheckSlot *slot;
-    FgaCheckSlotIndex index;
+    FgaChannelSlot *slot;
+    FgaChannelSlotIndex index;
 
     LWLockAcquire(channel->lock, LW_EXCLUSIVE);
     slot = acquire_slot(channel->pool);
@@ -67,11 +47,11 @@ enqueue_slot(FgaCheckChannel *channel)
     return slot;
 }
 
-static FgaCheckSlot *
-write_request(FgaCheckChannel *channel,
-              const FgaCheckTupleRequest *request)
+static FgaChannelSlot *
+write_request(FgaChannel *channel,
+              const FgaRequest *request)
 {
-    FgaCheckSlot *slot = enqueue_slot(channel);
+    FgaChannelSlot *slot = enqueue_slot(channel);
     if (slot == NULL)
     {
         ereport(ERROR,
@@ -83,18 +63,14 @@ write_request(FgaCheckChannel *channel,
     slot->error_code = 0;
     slot->request = *request;
 
-    pg_atomic_write_u32(&slot->state,
-                        FGA_CHECK_SLOT_PENDING);
-
     return slot;
 }
 
 static void
-read_request(FgaCheckChannel *channel,
-             FgaCheckSlot *slot)
+read_request(FgaChannel *channel,
+             FgaChannelSlot *slot)
 {
-    Latch *latch;
-    FgaCheckSlotState state;
+    FgaChannelSlotState state;
 
     Assert(channel != NULL);
     Assert(slot != NULL);
@@ -115,7 +91,7 @@ read_request(FgaCheckChannel *channel,
 
             CHECK_FOR_INTERRUPTS();
 
-            state = (FgaCheckSlotState)
+            state = (FgaChannelSlotState)
                 pg_atomic_read_u32(&slot->state);
 
         } while (state != FGA_CHECK_SLOT_DONE && state != FGA_CHECK_SLOT_ERROR);
@@ -135,9 +111,9 @@ read_request(FgaCheckChannel *channel,
  *-------------------------------------------------------------------------
  */
 uint16
-postfga_channel_drain_slots(FgaCheckChannel *channel,
+postfga_channel_drain_slots(FgaChannel *channel,
                             uint16 max_count,
-                            FgaCheckSlot **out_slots)
+                            FgaChannelSlot **out_slots)
 {
     uint16 count;
     uint16 buf[MAX_DRAIN];
@@ -158,18 +134,15 @@ postfga_channel_drain_slots(FgaCheckChannel *channel,
     return count;
 }
 
-bool postfga_check_execute(const FgaCheckTupleRequest *request)
+bool postfga_channel_execute(const FgaRequest *request)
 {
-    ereport(LOG,
-            errmsg("PostFGA: executing check request"));
-
     PostfgaShmemState *state = postfga_get_shmem_state();
-    FgaCheckChannel *channel = state->check_channel;
-    FgaCheckSlot *slot = write_request(channel, request);
+    FgaChannel *channel = state->channel;
+    FgaChannelSlot *slot = write_request(channel, request);
     if (slot == NULL)
     {
         ereport(ERROR,
-                (errmsg("PostFGA: failed to enqueue check request")));
+                errmsg("postfga: failed to enqueue check request"));
     }
     SetLatch(state->bgw_latch);
     read_request(channel, slot);

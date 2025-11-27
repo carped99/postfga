@@ -6,7 +6,7 @@
 
 #include "shmem.h"
 #include "fga_type.h"
-#include "check_queue.h"
+#include "channel_queue.h"
 
 /*-------------------------------------------------------------------------
  * Static helpers

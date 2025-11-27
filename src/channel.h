@@ -13,29 +13,28 @@ extern "C"
 #include <lib/ilist.h>
 
 #include "fga_type.h"
-#include "check_slot.h"
-#include "check_queue.h"
+#include "channel_slot.h"
+#include "channel_queue.h"
 
 #ifdef __cplusplus
 }
 #endif
 
-typedef struct FgaCheckChannel
+typedef struct FgaChannel
 {
     LWLock *lock;
-    FgaCheckSlotPool *pool;
-    FgaCheckSlotQueue *queue;
-} FgaCheckChannel;
-
+    FgaChannelSlotPool *pool;
+    FgaChannelSlotQueue *queue;
+} FgaChannel;
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-    uint16 postfga_channel_drain_slots(FgaCheckChannel *channel,
+    uint16 postfga_channel_drain_slots(FgaChannel *channel,
                                        uint16_t max_count,
-                                       FgaCheckSlot **out_slots);
+                                       FgaChannelSlot **out_slots);
 
-    bool postfga_check_execute(const FgaCheckTupleRequest *request);
+    bool postfga_channel_execute(const FgaRequest *request);
 
 #ifdef __cplusplus
 }

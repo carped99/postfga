@@ -12,7 +12,7 @@ extern "C"
 #include "processor.hpp"
 #include "client/client_factory.hpp"
 #include "util/logger.hpp"
-#include "check_channel.h"
+#include "channel.h"
 #include "task_slot.hpp"
 
 namespace postfga::bgw
@@ -23,7 +23,7 @@ namespace postfga::bgw
 
     namespace
     {
-        void wakeBackend(FgaCheckSlot *slot)
+        void wakeBackend(FgaChannelSlot *slot)
         {
             auto pid = slot->backend_pid;
             if (pid <= 0)
@@ -50,7 +50,7 @@ namespace postfga::bgw
             SetLatch(&proc->procLatch);
         }
 
-        void complete_check(FgaCheckSlot *slot, const FgaCheckTupleResponse &resp)
+        void complete_check(FgaChannelSlot *slot, const FgaResponse &resp)
         {
             // slot->response = resp;
             pg_write_barrier();
@@ -73,11 +73,8 @@ namespace postfga::bgw
             return;
         }
 
-        uint16_t count = 0;
-        FgaCheckSlot *slots[50];
-        count = postfga_channel_drain_slots(state->check_channel,
-                                            50,
-                                            slots);
+        FgaChannelSlot *slots[50];
+        uint16_t count = postfga_channel_drain_slots(state->channel, 50, slots);
         if (count == 0)
             return;
 
@@ -97,7 +94,12 @@ namespace postfga::bgw
                 continue;
             }
 
-            // task_pool.acquire();
+            client_->process(
+                slot->request,
+                [slot](const FgaResponse &resp)
+                {
+                    complete_check(slot, resp);
+                });
         }
     }
 

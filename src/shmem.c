@@ -24,7 +24,8 @@
 #include "postfga.h"
 #include "config.h"
 #include "shmem.h"
-#include "check_shmem.h"
+#include "channel_shmem.h"
+#include "channel.h"
 
 /* Named LWLock tranche 이름과 필요한 락 개수 */
 #define POSTFGA_LWLOCK_TRANCHE_NAME "postfga"
@@ -98,8 +99,8 @@ _calculate_size(void)
     /* 1. shmem state struct */
     size = MAXALIGN(sizeof(PostfgaShmemState));
 
-    /* 2. check_channel */
-    size = add_size(size, MAXALIGN(postfga_check_channel_shmem_size(cfg->max_slots)));
+    /* 2. channel */
+    size = add_size(size, MAXALIGN(postfga_channel_shmem_size(cfg->max_slots)));
 
     // size = add_size(size, MAXALIGN(postfga_shmem_cache_size()));
 
@@ -121,7 +122,6 @@ _initialize_state(bool found)
     PostfgaConfig *cfg = postfga_get_config();
     LWLockPadded *locks;
     char *ptr;
-    int i;
 
     if (found)
     {
@@ -145,11 +145,11 @@ _initialize_state(bool found)
     /* 1. shmem state struct */
     ptr += MAXALIGN(sizeof(PostfgaShmemState));
 
-    postfga_shmem_state->check_channel = (FgaCheckChannel *)ptr;
-    postfga_shmem_state->check_channel->lock = &locks[1].lock;
-    ptr += postfga_check_channel_shmem_size(cfg->max_slots);
+    postfga_shmem_state->channel = (FgaChannel *)ptr;
+    postfga_shmem_state->channel->lock = &locks[1].lock;
+    ptr += postfga_channel_shmem_size(cfg->max_slots);
 
-    postfga_check_channel_shmem_init(postfga_shmem_state->check_channel, cfg->max_slots);
+    postfga_channel_shmem_init(postfga_shmem_state->channel, cfg->max_slots);
 
     /* 4. L2 cache */
     // postfga_shmem_state->l2_cache.lock = &locks[2].lock;

@@ -22,7 +22,7 @@ namespace postfga::bgw
     {
         std::atomic<SlotState> state{SlotState::Idle};
 
-        std::uint32_t token{}; // PG FgaCheckSlot을 찾기 위한 식별자
+        std::uint32_t token{}; // PG FgaChannelSlot을 찾기 위한 식별자
         bool allowed{};
         std::array<char, 64> error_msg{};
     };

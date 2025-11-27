@@ -38,7 +38,7 @@ namespace postfga
         std::string s(msg);
 
         ereport(elevel,
-                (errmsg_internal("%s", s.c_str())));
+                errmsg("%s", s.c_str()));
     }
 
 } // namespace postfga
