@@ -25,4 +25,4 @@ namespace postfga
 
         std::string load_balancing_policy; // 예: "round_robin"
     };
-} // namespace postfga::config
+} // namespace postfga

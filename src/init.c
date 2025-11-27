@@ -5,14 +5,15 @@
  */
 
 #include <postgres.h>
+
 #include <fmgr.h>
 #include <miscadmin.h>
-#include <storage/ipc.h>
 #include <postmaster/bgworker.h>
+#include <storage/ipc.h>
 
+#include "bgw/main.h"
 #include "guc.h"
 #include "shmem.h"
-#include "bgw/main.h"
 
 /* Module magic */
 PG_MODULE_MAGIC;
@@ -70,8 +71,7 @@ void _PG_fini(void)
     shmem_startup_hook = prev_shmem_startup_hook;
 }
 
-static void
-postfga_shmem_request_hook(void)
+static void postfga_shmem_request_hook(void)
 {
     if (prev_shmem_request_hook)
         prev_shmem_request_hook();
@@ -79,8 +79,7 @@ postfga_shmem_request_hook(void)
     postfga_shmem_request();
 }
 
-static void
-postfga_shmem_startup_hook(void)
+static void postfga_shmem_startup_hook(void)
 {
     if (prev_shmem_startup_hook)
         prev_shmem_startup_hook();

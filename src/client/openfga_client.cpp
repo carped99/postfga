@@ -2,12 +2,12 @@
 
 #include "openfga_client.hpp"
 
-#include "channel_factory.hpp"
-#include "util/logger.hpp"
-
 #include <algorithm>
 #include <cstring>
 #include <thread>
+
+#include "channel_factory.hpp"
+#include "util/logger.hpp"
 
 namespace postfga::client
 {

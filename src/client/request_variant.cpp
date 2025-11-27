@@ -1,7 +1,9 @@
 
+#include "client/request_variant.hpp"
+
 #include <stdexcept>
 #include <string>
-#include "client/request_variant.hpp"
+
 #include "request.h" // FgaRequest, FgaRequestType, FGA_REQ_* 실제 정의
 
 namespace postfga::client
@@ -11,7 +13,7 @@ namespace postfga::client
         return in.request_id;
     }
 
-    const FgaCheckTupleRequest &CheckTupleRequest::payload() const noexcept
+    const FgaCheckTupleRequest& CheckTupleRequest::payload() const noexcept
     {
         return in.body.checkTuple;
     }
@@ -21,7 +23,7 @@ namespace postfga::client
         return in.request_id;
     }
 
-    const FgaWriteTupleRequest &WriteTupleRequest::payload() const noexcept
+    const FgaWriteTupleRequest& WriteTupleRequest::payload() const noexcept
     {
         return in.body.writeTuple;
     }
@@ -31,7 +33,7 @@ namespace postfga::client
         return in.request_id;
     }
 
-    const FgaDeleteTupleRequest &DeleteTupleRequest::payload() const noexcept
+    const FgaDeleteTupleRequest& DeleteTupleRequest::payload() const noexcept
     {
         return in.body.deleteTuple;
     }
@@ -41,7 +43,7 @@ namespace postfga::client
         return in.request_id;
     }
 
-    const FgaGetStoreRequest &GetStoreRequest::payload() const noexcept
+    const FgaGetStoreRequest& GetStoreRequest::payload() const noexcept
     {
         return in.body.getStore;
     }
@@ -51,14 +53,14 @@ namespace postfga::client
         return in.request_id;
     }
 
-    const FgaCreateStoreRequest &CreateStoreRequest::payload() const noexcept
+    const FgaCreateStoreRequest& CreateStoreRequest::payload() const noexcept
     {
         return in.body.createStore;
     }
 
     // ----- variant factory 구현 -----
 
-    RequestVariant make_request_variant(const FgaRequest &req)
+    RequestVariant make_request_variant(const FgaRequest& req)
     {
         switch (static_cast<FgaRequestType>(req.type))
         {
@@ -74,8 +76,7 @@ namespace postfga::client
             return CreateStoreRequest{req};
         }
 
-        throw std::logic_error(
-            "unknown FgaRequest type: " + std::to_string(req.type));
+        throw std::logic_error("unknown FgaRequest type: " + std::to_string(req.type));
     }
 
 } // namespace postfga::client

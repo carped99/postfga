@@ -30,12 +30,12 @@ typedef struct RelationBitMapEntry
  */
 
 /* Get bit index for a relation name */
-uint8 get_relation_bit_index(const char *relation_name);
+uint8 get_relation_bit_index(const char* relation_name);
 
 /* Register a relation with a bit index */
-void register_relation(const char *relation_name, uint8 bit_index);
+void register_relation(const char* relation_name, uint8 bit_index);
 
 /* Initialize relation bitmap from GUC string */
-void init_relation_bitmap(const char *relations_str);
+void init_relation_bitmap(const char* relations_str);
 
 #endif /* POSTFGA_RELATION_H */

@@ -1,5 +1,6 @@
 
-extern "C" {
+extern "C"
+{
 #include "config.h"
 }
 

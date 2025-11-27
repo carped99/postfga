@@ -1,15 +1,16 @@
 /* channel_slot.c */
 
 #include <postgres.h>
+
+#include <lib/ilist.h>
 #include <miscadmin.h>
+#include <pgstat.h>
 #include <storage/latch.h>
 #include <storage/shmem.h>
 #include <utils/elog.h>
-#include <pgstat.h>
-#include <lib/ilist.h>
 
-#include "shmem.h"
 #include "channel.h"
+#include "shmem.h"
 
 #define MAX_DRAIN 64
 
@@ -18,11 +19,10 @@
  *-------------------------------------------------------------------------
  */
 
-static FgaChannelSlot *
-acquire_slot(FgaChannelSlotPool *pool)
+static FgaChannelSlot* acquire_slot(FgaChannelSlotPool* pool)
 {
-    slist_node *node;
-    FgaChannelSlot *slot;
+    slist_node* node;
+    FgaChannelSlot* slot;
 
     /* 빈 슬롯 없으면 에러 (또는 나중에 backoff/retry 설계 가능) */
     if (slist_is_empty(&pool->head))
@@ -36,17 +36,15 @@ acquire_slot(FgaChannelSlotPool *pool)
     return slot;
 }
 
-static void
-release_slot(FgaChannelSlotPool *pool, FgaChannelSlot *slot)
+static void release_slot(FgaChannelSlotPool* pool, FgaChannelSlot* slot)
 {
     pg_atomic_write_u32(&slot->state, FGA_CHECK_SLOT_EMPTY);
     slist_push_head(&pool->head, &slot->node);
 }
 
-static FgaChannelSlot *
-enqueue_slot(FgaChannel *channel)
+static FgaChannelSlot* enqueue_slot(FgaChannel* channel)
 {
-    FgaChannelSlot *slot;
+    FgaChannelSlot* slot;
     FgaChannelSlotIndex index;
 
     LWLockAcquire(channel->lock, LW_EXCLUSIVE);
@@ -55,8 +53,7 @@ enqueue_slot(FgaChannel *channel)
     if (slot == NULL)
     {
         LWLockRelease(channel->lock);
-        ereport(LOG,
-                errmsg("PostFGA: failed to acquire slot"));
+        ereport(LOG, errmsg("PostFGA: failed to acquire slot"));
         return NULL;
     }
     index = (slot - channel->pool->slots);
@@ -73,11 +70,9 @@ enqueue_slot(FgaChannel *channel)
     return slot;
 }
 
-static FgaChannelSlot *
-write_request(FgaChannel *channel,
-              const FgaRequest *request)
+static FgaChannelSlot* write_request(FgaChannel* channel, const FgaRequest* request)
 {
-    FgaChannelSlot *slot = enqueue_slot(channel);
+    FgaChannelSlot* slot = enqueue_slot(channel);
     if (slot == NULL)
     {
         return NULL;
@@ -90,9 +85,7 @@ write_request(FgaChannel *channel,
     return slot;
 }
 
-static void
-read_request(FgaChannel *channel,
-             FgaChannelSlot *slot)
+static void read_request(FgaChannel* channel, FgaChannelSlot* slot)
 {
     FgaChannelSlotState state;
 
@@ -105,18 +98,14 @@ read_request(FgaChannel *channel,
     {
         do
         {
-            int rc = WaitLatch(MyLatch,
-                               WL_LATCH_SET | WL_EXIT_ON_PM_DEATH,
-                               0,
-                               PG_WAIT_EXTENSION);
+            int rc = WaitLatch(MyLatch, WL_LATCH_SET | WL_EXIT_ON_PM_DEATH, 0, PG_WAIT_EXTENSION);
 
             if (rc & WL_LATCH_SET)
                 ResetLatch(MyLatch);
 
             CHECK_FOR_INTERRUPTS();
 
-            state = (FgaChannelSlotState)
-                pg_atomic_read_u32(&slot->state);
+            state = (FgaChannelSlotState)pg_atomic_read_u32(&slot->state);
 
         } while (state != FGA_CHECK_SLOT_DONE && state != FGA_CHECK_SLOT_ERROR);
     }
@@ -134,10 +123,7 @@ read_request(FgaChannel *channel,
  * Public API
  *-------------------------------------------------------------------------
  */
-uint16
-postfga_channel_drain_slots(FgaChannel *channel,
-                            uint16 max_count,
-                            FgaChannelSlot **out_slots)
+uint16 postfga_channel_drain_slots(FgaChannel* channel, uint16 max_count, FgaChannelSlot** out_slots)
 {
     uint16 count;
     uint16 buf[MAX_DRAIN];
@@ -158,16 +144,15 @@ postfga_channel_drain_slots(FgaChannel *channel,
     return count;
 }
 
-FgaResponse *postfga_channel_execute(const FgaRequest *request)
+FgaResponse* postfga_channel_execute(const FgaRequest* request)
 {
-    PostfgaShmemState *state = postfga_get_shmem_state();
-    FgaChannel *channel = state->channel;
-    FgaChannelSlot *slot = write_request(channel, request);
+    PostfgaShmemState* state = postfga_get_shmem_state();
+    FgaChannel* channel = state->channel;
+    FgaChannelSlot* slot = write_request(channel, request);
 
     if (slot == NULL)
     {
-        ereport(ERROR,
-                errmsg("postfga: failed to enqueue check request"));
+        ereport(ERROR, errmsg("postfga: failed to enqueue check request"));
     }
     SetLatch(state->bgw_latch);
     read_request(channel, slot);
@@ -175,22 +160,25 @@ FgaResponse *postfga_channel_execute(const FgaRequest *request)
     return &slot->response;
 }
 
-bool postfga_channel_check(const char *object_type,
-                           const char *object_id,
-                           const char *subject_type,
-                           const char *subject_id,
-                           const char *relation)
+bool postfga_channel_check(const char* object_type,
+                           const char* object_id,
+                           const char* subject_type,
+                           const char* subject_id,
+                           const char* relation)
 {
     FgaRequest request;
     MemSet(&request, 0, sizeof(request));
     request.type = FGA_REQUEST_CHECK_TUPLE;
     strncpy(request.body.checkTuple.store_id, "default", sizeof(request.body.checkTuple.store_id) - 1);
-    strncpy(request.body.checkTuple.tuple.object_type, object_type, sizeof(request.body.checkTuple.tuple.object_type) - 1);
+    strncpy(
+        request.body.checkTuple.tuple.object_type, object_type, sizeof(request.body.checkTuple.tuple.object_type) - 1);
     strncpy(request.body.checkTuple.tuple.object_id, object_id, sizeof(request.body.checkTuple.tuple.object_id) - 1);
     strncpy(request.body.checkTuple.tuple.relation, relation, sizeof(request.body.checkTuple.tuple.relation) - 1);
-    strncpy(request.body.checkTuple.tuple.subject_type, subject_type, sizeof(request.body.checkTuple.tuple.subject_type) - 1);
+    strncpy(request.body.checkTuple.tuple.subject_type,
+            subject_type,
+            sizeof(request.body.checkTuple.tuple.subject_type) - 1);
     strncpy(request.body.checkTuple.tuple.subject_id, subject_id, sizeof(request.body.checkTuple.tuple.subject_id) - 1);
 
-    FgaResponse *response = postfga_channel_execute(&request);
+    FgaResponse* response = postfga_channel_execute(&request);
     return response->body.checkTuple.allow;
 }

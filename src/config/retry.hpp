@@ -12,4 +12,4 @@ namespace postfga
         bool retry_unavailable = true;
         bool retry_deadline_exceeded = false;
     };
-} // namespace postfga::config
+} // namespace postfga

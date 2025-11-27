@@ -7,14 +7,14 @@
  */
 #include <postgres.h>
 
+#include "shmem.h"
 #include "stats_api.h"
 #include "stats_type.h"
-#include "shmem.h"
 
 /*-------------------------------------------------------------------------
  * Static helpers
  *-------------------------------------------------------------------------*/
-static FgaStats *postfga_get_stats_state(void)
+static FgaStats* postfga_get_stats_state(void)
 {
     // PostfgaShmemState *state = postfga_get_shmem_state();
     // return state ? &state->stats : NULL;
@@ -28,7 +28,7 @@ static FgaStats *postfga_get_stats_state(void)
  */
 void postfga_init_stats()
 {
-    FgaStats *stats = postfga_get_stats_state();
+    FgaStats* stats = postfga_get_stats_state();
     if (!stats)
         return;
 
@@ -48,7 +48,7 @@ void postfga_init_stats()
  */
 void stats_inc_cache_hit()
 {
-    FgaStats *stats = postfga_get_stats_state();
+    FgaStats* stats = postfga_get_stats_state();
     if (stats)
         pg_atomic_fetch_add_u64(&stats->cache_hits, 1);
 }
@@ -60,7 +60,7 @@ void stats_inc_cache_hit()
  */
 void stats_inc_cache_miss()
 {
-    FgaStats *stats = postfga_get_stats_state();
+    FgaStats* stats = postfga_get_stats_state();
     if (stats)
         pg_atomic_fetch_add_u64(&stats->cache_misses, 1);
 }
@@ -72,7 +72,7 @@ void stats_inc_cache_miss()
  */
 void stats_inc_cache_entry()
 {
-    FgaStats *stats = postfga_get_stats_state();
+    FgaStats* stats = postfga_get_stats_state();
     if (stats)
         pg_atomic_fetch_add_u64(&stats->cache_entries, 1);
 }
@@ -84,7 +84,7 @@ void stats_inc_cache_entry()
  */
 void stats_dec_cache_entry()
 {
-    FgaStats *stats = postfga_get_stats_state();
+    FgaStats* stats = postfga_get_stats_state();
     if (stats)
     {
         uint64 current = pg_atomic_read_u64(&stats->cache_entries);
@@ -100,7 +100,7 @@ void stats_dec_cache_entry()
  */
 void stats_inc_cache_eviction()
 {
-    FgaStats *stats = postfga_get_stats_state();
+    FgaStats* stats = postfga_get_stats_state();
     if (stats)
         pg_atomic_fetch_add_u64(&stats->cache_evictions, 1);
 }
@@ -112,7 +112,7 @@ void stats_inc_cache_eviction()
  */
 void stats_inc_bgw_wakeup()
 {
-    FgaStats *stats = postfga_get_stats_state();
+    FgaStats* stats = postfga_get_stats_state();
     if (stats)
         pg_atomic_fetch_add_u64(&stats->bgw_wakeups, 1);
 }
@@ -124,7 +124,7 @@ void stats_inc_bgw_wakeup()
  */
 void stats_inc_request_enqueued()
 {
-    FgaStats *stats = postfga_get_stats_state();
+    FgaStats* stats = postfga_get_stats_state();
     if (stats)
         pg_atomic_fetch_add_u64(&stats->requests_enqueued, 1);
 }
@@ -136,7 +136,7 @@ void stats_inc_request_enqueued()
  */
 void stats_inc_request_processed()
 {
-    FgaStats *stats = postfga_get_stats_state();
+    FgaStats* stats = postfga_get_stats_state();
     if (stats)
         pg_atomic_fetch_add_u64(&stats->requests_processed, 1);
 }
@@ -146,10 +146,9 @@ void stats_inc_request_processed()
  *
  * Get current cache hit count.
  */
-uint64_t
-stats_get_cache_hits()
+uint64_t stats_get_cache_hits()
 {
-    FgaStats *stats = postfga_get_stats_state();
+    FgaStats* stats = postfga_get_stats_state();
     return stats ? pg_atomic_read_u64(&stats->cache_hits) : 0;
 }
 
@@ -158,10 +157,9 @@ stats_get_cache_hits()
  *
  * Get current cache miss count.
  */
-uint64_t
-stats_get_cache_misses()
+uint64_t stats_get_cache_misses()
 {
-    FgaStats *stats = postfga_get_stats_state();
+    FgaStats* stats = postfga_get_stats_state();
     return stats ? pg_atomic_read_u64(&stats->cache_misses) : 0;
 }
 
@@ -170,9 +168,8 @@ stats_get_cache_misses()
  *
  * Get current cache entry count.
  */
-uint64_t
-stats_get_cache_entries()
+uint64_t stats_get_cache_entries()
 {
-    FgaStats *stats = postfga_get_stats_state();
+    FgaStats* stats = postfga_get_stats_state();
     return stats ? pg_atomic_read_u64(&stats->cache_entries) : 0;
 }

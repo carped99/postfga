@@ -1,17 +1,16 @@
 /* backend_request.c */
 
-#include "postgres.h"
+#include "channel_queue.h"
 #include "fmgr.h"
 #include "miscadmin.h"
-
-#include "shmem.h"
+#include "postgres.h"
 #include "request.h"
-#include "channel_queue.h"
+#include "shmem.h"
 
 /*-------------------------------------------------------------------------
  * Static helpers
  *-------------------------------------------------------------------------*/
-FgaRequest *postfga_init_check_request(FgaRequest *req, const FgaCheckTupleRequest *body)
+FgaRequest* postfga_init_check_request(FgaRequest* req, const FgaCheckTupleRequest* body)
 {
     MemSet(req, 0, sizeof(FgaRequest));
     // req->request_id = request_id;

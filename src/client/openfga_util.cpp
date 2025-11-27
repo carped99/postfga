@@ -2,16 +2,16 @@
 
 #include <string>
 
+#include "openfga/v1/openfga_service.grpc.pb.h"
 #include "request.h"
 #include "request_variant.hpp"
-#include "openfga/v1/openfga_service.grpc.pb.h"
 
 namespace postfga::client
 {
     namespace
     {
 
-        inline std::string make_user(const FgaTuple &r)
+        inline std::string make_user(const FgaTuple& r)
         {
             std::string user;
             user.reserve(64);
@@ -19,7 +19,7 @@ namespace postfga::client
             return user;
         }
 
-        inline std::string make_object(const FgaTuple &r)
+        inline std::string make_object(const FgaTuple& r)
         {
             std::string obj;
             obj.reserve(64);
@@ -27,7 +27,7 @@ namespace postfga::client
             return obj;
         }
 
-        openfga::v1::CheckRequest make_check_request(const FgaCheckTupleRequest &in)
+        openfga::v1::CheckRequest make_check_request(const FgaCheckTupleRequest& in)
         {
             // auto object = make_object(in);
             // auto user   = make_user(in);

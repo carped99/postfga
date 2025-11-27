@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <cstdint>
+#include <string>
 #include <thread>
 
 #include "grpc.hpp"
@@ -23,11 +23,11 @@ namespace postfga
         std::string authorization_model_id; // optional, can be empty
 
         std::uint32_t timeout_ms = 5000;
-        
-        GrpcTlsOptions       tls;
-        GrpcChannelOptions   channel;
-        RetryOptions         retry;
-        ConcurrencyOptions   concurrency;
+
+        GrpcTlsOptions tls;
+        GrpcChannelOptions channel;
+        RetryOptions retry;
+        ConcurrencyOptions concurrency;
     };
 
 } // namespace postfga

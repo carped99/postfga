@@ -7,6 +7,7 @@ extern "C"
 #endif
 
 #include <postgres.h>
+
 #include <fmgr.h>
 #include <foreign/fdwapi.h>
 #include <nodes/pg_list.h>
@@ -39,18 +40,19 @@ extern "C"
     Datum openfga_fdw_validator(PG_FUNCTION_ARGS);
 
     /* FDW callback functions */
-    void openfga_fdw_get_rel_size(PlannerInfo *root, RelOptInfo *baserel,
-                                  Oid foreigntableid);
-    void openfga_fdw_get_paths(PlannerInfo *root, RelOptInfo *baserel,
-                               Oid foreigntableid);
-    ForeignScan *openfga_fdw_get_plan(PlannerInfo *root, RelOptInfo *baserel,
-                                      Oid foreigntableid, ForeignPath *best_path,
-                                      List *tlist, List *scan_clauses,
-                                      Plan *outer_plan);
-    void openfga_fdw_begin_scan(ForeignScanState *node, int eflags);
-    TupleTableSlot *openfga_fdw_iterate_scan(ForeignScanState *node);
-    void openfga_fdw_rescan(ForeignScanState *node);
-    void openfga_fdw_end_scan(ForeignScanState *node);
+    void openfga_fdw_get_rel_size(PlannerInfo* root, RelOptInfo* baserel, Oid foreigntableid);
+    void openfga_fdw_get_paths(PlannerInfo* root, RelOptInfo* baserel, Oid foreigntableid);
+    ForeignScan* openfga_fdw_get_plan(PlannerInfo* root,
+                                      RelOptInfo* baserel,
+                                      Oid foreigntableid,
+                                      ForeignPath* best_path,
+                                      List* tlist,
+                                      List* scan_clauses,
+                                      Plan* outer_plan);
+    void openfga_fdw_begin_scan(ForeignScanState* node, int eflags);
+    TupleTableSlot* openfga_fdw_iterate_scan(ForeignScanState* node);
+    void openfga_fdw_rescan(ForeignScanState* node);
+    void openfga_fdw_end_scan(ForeignScanState* node);
 
     /* Cleanup function */
     void openfga_fdw_cleanup(void);

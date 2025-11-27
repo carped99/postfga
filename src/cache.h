@@ -2,10 +2,11 @@
 #define POSTFGA_CACHE_H
 
 #include <postgres.h>
+
+#include <c.h>
+#include <storage/lwlock.h>
 #include <utils/hsearch.h>
 #include <utils/timestamp.h>
-#include <storage/lwlock.h>
-#include <c.h>
 
 #include "postfga.h"
 #include "request.h"
@@ -34,16 +35,16 @@ typedef struct FgaL1Cache
 {
     MemoryContext ctx;   /* 캐시 엔트리용 컨텍스트 */
     uint16_t generation; /* L2 generation을 미러링할 때 사용 */
-    HTAB *acl;           /* key: FgaCheckKey, entry: FgaCacheEntry */
-    HTAB *relation;      /* relation name -> bit index */
+    HTAB* acl;           /* key: FgaCheckKey, entry: FgaCacheEntry */
+    HTAB* relation;      /* relation name -> bit index */
 } FgaL1Cache;
 
 typedef struct FgaL2Cache
 {
-    LWLock *lock;        /* shared cache 락 */
+    LWLock* lock;        /* shared cache 락 */
     uint16_t generation; /* global generation */
-    HTAB *acl;           /* shared hash table (shmem) */
-    HTAB *relation;      /* relation name -> bit index */
+    HTAB* acl;           /* shared hash table (shmem) */
+    HTAB* relation;      /* relation name -> bit index */
 } FgaL2Cache;
 
 /*
@@ -75,31 +76,25 @@ extern "C"
 {
 #endif
 
-    FgaAclCacheKey postfga_make_check_key(const FgaCheckTupleRequest *req);
+    FgaAclCacheKey postfga_make_check_key(const FgaCheckTupleRequest* req);
 
     /* L1 Cache API */
-    void postfga_l1_init(FgaL1Cache *cache, MemoryContext parent_ctx, long size_hint);
-    bool postfga_l1_lookup(FgaL1Cache *cache,
-                           const FgaAclCacheKey *key,
-                           uint16_t cur_generation,
-                           uint64_t now_ms,
-                           bool *allowed_out);
-    void postfga_l1_store(FgaL1Cache *cache,
-                          const FgaAclCacheKey *key,
+    void postfga_l1_init(FgaL1Cache* cache, MemoryContext parent_ctx, long size_hint);
+    bool postfga_l1_lookup(
+        FgaL1Cache* cache, const FgaAclCacheKey* key, uint16_t cur_generation, uint64_t now_ms, bool* allowed_out);
+    void postfga_l1_store(FgaL1Cache* cache,
+                          const FgaAclCacheKey* key,
                           uint16_t generation,
                           uint64_t now_ms,
                           uint64_t ttl_ms,
                           bool allowed);
 
     /* L2 Cache API */
-    void postfga_l2_init(FgaL2Cache *cache, long size_hint, LWLock *lock);
-    bool postfga_l2_lookup(FgaL2Cache *cache,
-                           const FgaAclCacheKey *key,
-                           uint16_t cur_generation,
-                           uint64_t now_ms,
-                           bool *allowed_out);
-    void postfga_l2_store(FgaL2Cache *cache,
-                          const FgaAclCacheKey *key,
+    void postfga_l2_init(FgaL2Cache* cache, long size_hint, LWLock* lock);
+    bool postfga_l2_lookup(
+        FgaL2Cache* cache, const FgaAclCacheKey* key, uint16_t cur_generation, uint64_t now_ms, bool* allowed_out);
+    void postfga_l2_store(FgaL2Cache* cache,
+                          const FgaAclCacheKey* key,
                           uint16_t generation,
                           uint64_t now_ms,
                           uint64_t ttl_ms,
@@ -109,7 +104,7 @@ extern "C"
     Size postfga_l2_estimate_shmem_size(long size_hint);
 
     /* generation bump (invalidation) */
-    void postfga_l2_bump_generation(FgaL2Cache *cache);
+    void postfga_l2_bump_generation(FgaL2Cache* cache);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

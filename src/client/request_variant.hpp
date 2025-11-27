@@ -1,7 +1,7 @@
 #pragma once
 
-#include <variant>
 #include <cstdint>
+#include <variant>
 
 // forward declaration
 struct FgaRequest;
@@ -15,52 +15,48 @@ namespace postfga::client
 {
     struct CheckTupleRequest
     {
-        const FgaRequest &in;
+        const FgaRequest& in;
 
         std::uint32_t request_id() const noexcept;
-        const FgaCheckTupleRequest &payload() const noexcept;
+        const FgaCheckTupleRequest& payload() const noexcept;
     };
 
     struct WriteTupleRequest
     {
-        const FgaRequest &in;
+        const FgaRequest& in;
 
         std::uint32_t request_id() const noexcept;
-        const FgaWriteTupleRequest &payload() const noexcept;
+        const FgaWriteTupleRequest& payload() const noexcept;
     };
 
     struct DeleteTupleRequest
     {
-        const FgaRequest &in;
+        const FgaRequest& in;
 
         std::uint32_t request_id() const noexcept;
-        const FgaDeleteTupleRequest &payload() const noexcept;
+        const FgaDeleteTupleRequest& payload() const noexcept;
     };
 
     struct GetStoreRequest
     {
-        const FgaRequest &in;
+        const FgaRequest& in;
 
         std::uint32_t request_id() const noexcept;
-        const FgaGetStoreRequest &payload() const noexcept;
+        const FgaGetStoreRequest& payload() const noexcept;
     };
 
     struct CreateStoreRequest
     {
-        const FgaRequest &in;
+        const FgaRequest& in;
 
         std::uint32_t request_id() const noexcept;
-        const FgaCreateStoreRequest &payload() const noexcept;
+        const FgaCreateStoreRequest& payload() const noexcept;
     };
 
-    using RequestVariant = std::variant<
-        CheckTupleRequest,
-        WriteTupleRequest,
-        DeleteTupleRequest,
-        GetStoreRequest,
-        CreateStoreRequest>;
+    using RequestVariant =
+        std::variant<CheckTupleRequest, WriteTupleRequest, DeleteTupleRequest, GetStoreRequest, CreateStoreRequest>;
 
     // 구현은 .cpp 에서
-    RequestVariant make_request_variant(const FgaRequest &req);
+    RequestVariant make_request_variant(const FgaRequest& req);
 
 } // namespace postfga::client

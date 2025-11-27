@@ -1,32 +1,34 @@
 #include <postgres.h>
-#include <utils/hsearch.h>
-#include <utils/memutils.h>
+
 #include <storage/lwlock.h>
 #include <storage/shmem.h>
-
+#include <utils/hsearch.h>
+#include <utils/memutils.h>
 #include <xxhash.h>
 
-#include "postfga.h"
 #include "cache.h"
+#include "postfga.h"
 
 /*-------------------------------------------------------------------------
  * Static helpers
  *-------------------------------------------------------------------------*/
-static bool postfga_cache_acl_lookup(HTAB *ht, const FgaAclCacheKey *key, uint16_t generation, uint64_t now_ms, bool *allowed_out);
-static bool postfga_cache_acl_store(HTAB *ht, const FgaAclCacheKey *key, uint16_t generation, uint64_t now_ms, uint64_t ttl_ms, bool allowed);
+static bool
+postfga_cache_acl_lookup(HTAB* ht, const FgaAclCacheKey* key, uint16_t generation, uint64_t now_ms, bool* allowed_out);
+static bool postfga_cache_acl_store(
+    HTAB* ht, const FgaAclCacheKey* key, uint16_t generation, uint64_t now_ms, uint64_t ttl_ms, bool allowed);
 
 /*-------------------------------------------------------------------------
  * Public API
  *-------------------------------------------------------------------------*/
-FgaAclCacheKey
-postfga_make_check_key(const FgaCheckTupleRequest *req)
+FgaAclCacheKey postfga_make_check_key(const FgaCheckTupleRequest* req)
 {
     FgaAclCacheKey key;
 
     char buf[2048]; /* 상당히 넉넉하게 */
 
     // store_id|object_type|object_id|subject_type|subject_id|relation
-    int len = snprintf(buf, sizeof(buf),
+    int len = snprintf(buf,
+                       sizeof(buf),
                        "%s|%s|%s|%s|%s|%s",
                        req->store_id,
                        req->tuple.object_type,
@@ -49,31 +51,24 @@ postfga_make_check_key(const FgaCheckTupleRequest *req)
     return key;
 }
 
-void postfga_l1_init(FgaL1Cache *cache, MemoryContext parent_ctx, long size_hint)
+void postfga_l1_init(FgaL1Cache* cache, MemoryContext parent_ctx, long size_hint)
 {
     HASHCTL ctl;
 
     MemSet(&ctl, 0, sizeof(ctl));
     ctl.keysize = sizeof(FgaAclCacheKey);
     ctl.entrysize = sizeof(FgaAclCacheEntry);
-    ctl.hcxt = AllocSetContextCreate(parent_ctx,
-                                     "PostFGA L1 Cache",
-                                     ALLOCSET_SMALL_SIZES);
+    ctl.hcxt = AllocSetContextCreate(parent_ctx, "PostFGA L1 Cache", ALLOCSET_SMALL_SIZES);
 
-    cache->acl = hash_create("PostFGA L1 Cache",
-                             size_hint > 0 ? size_hint : 1024,
-                             &ctl,
-                             HASH_ELEM | HASH_BLOBS | HASH_CONTEXT);
+    cache->acl =
+        hash_create("PostFGA L1 Cache", size_hint > 0 ? size_hint : 1024, &ctl, HASH_ELEM | HASH_BLOBS | HASH_CONTEXT);
 
     cache->ctx = ctl.hcxt;
     cache->generation = 0;
 }
 
-bool postfga_l1_lookup(FgaL1Cache *cache,
-                       const FgaAclCacheKey *key,
-                       uint16_t cur_generation,
-                       uint64_t now_ms,
-                       bool *allowed_out)
+bool postfga_l1_lookup(
+    FgaL1Cache* cache, const FgaAclCacheKey* key, uint16_t cur_generation, uint64_t now_ms, bool* allowed_out)
 {
     if (cache->acl == NULL)
         return false;
@@ -81,23 +76,16 @@ bool postfga_l1_lookup(FgaL1Cache *cache,
     return postfga_cache_acl_lookup(cache->acl, key, cur_generation, now_ms, allowed_out);
 }
 
-void postfga_l1_store(FgaL1Cache *cache,
-                      const FgaAclCacheKey *key,
-                      uint16_t generation,
-                      uint64_t now_ms,
-                      uint64_t ttl_ms,
-                      bool allowed)
+void postfga_l1_store(
+    FgaL1Cache* cache, const FgaAclCacheKey* key, uint16_t generation, uint64_t now_ms, uint64_t ttl_ms, bool allowed)
 {
     if (cache->acl == NULL)
         return;
     postfga_cache_acl_store(cache->acl, key, generation, now_ms, ttl_ms, allowed);
 }
 
-bool postfga_l2_lookup(FgaL2Cache *cache,
-                       const FgaAclCacheKey *key,
-                       uint16_t cur_generation,
-                       uint64_t now_ms,
-                       bool *allowed_out)
+bool postfga_l2_lookup(
+    FgaL2Cache* cache, const FgaAclCacheKey* key, uint16_t cur_generation, uint64_t now_ms, bool* allowed_out)
 {
     bool found = false;
 
@@ -113,12 +101,8 @@ bool postfga_l2_lookup(FgaL2Cache *cache,
     return found;
 }
 
-void postfga_l2_store(FgaL2Cache *cache,
-                      const FgaAclCacheKey *key,
-                      uint16_t generation,
-                      uint64_t now_ms,
-                      uint64_t ttl_ms,
-                      bool allowed)
+void postfga_l2_store(
+    FgaL2Cache* cache, const FgaAclCacheKey* key, uint16_t generation, uint64_t now_ms, uint64_t ttl_ms, bool allowed)
 {
     if (cache->acl == NULL)
         return;
@@ -128,13 +112,11 @@ void postfga_l2_store(FgaL2Cache *cache,
     LWLockRelease(cache->lock);
 }
 
-static bool postfga_cache_acl_lookup(HTAB *ht, const FgaAclCacheKey *key, uint16_t generation, uint64_t now_ms, bool *allowed_out)
+static bool
+postfga_cache_acl_lookup(HTAB* ht, const FgaAclCacheKey* key, uint16_t generation, uint64_t now_ms, bool* allowed_out)
 {
     bool found;
-    FgaAclCacheEntry *e = (FgaAclCacheEntry *)hash_search(ht,
-                                                          (const void *)key,
-                                                          HASH_FIND,
-                                                          &found);
+    FgaAclCacheEntry* e = (FgaAclCacheEntry*)hash_search(ht, (const void*)key, HASH_FIND, &found);
 
     if (!found)
         return false;
@@ -152,18 +134,11 @@ static bool postfga_cache_acl_lookup(HTAB *ht, const FgaAclCacheKey *key, uint16
     return true;
 }
 
-static bool postfga_cache_acl_store(HTAB *ht,
-                                    const FgaAclCacheKey *key,
-                                    uint16_t generation,
-                                    uint64_t now_ms,
-                                    uint64_t ttl_ms,
-                                    bool allowed)
+static bool postfga_cache_acl_store(
+    HTAB* ht, const FgaAclCacheKey* key, uint16_t generation, uint64_t now_ms, uint64_t ttl_ms, bool allowed)
 {
     bool found;
-    FgaAclCacheEntry *e = (FgaAclCacheEntry *)hash_search(ht,
-                                                          (const void *)key,
-                                                          HASH_ENTER,
-                                                          &found);
+    FgaAclCacheEntry* e = (FgaAclCacheEntry*)hash_search(ht, (const void*)key, HASH_ENTER, &found);
 
     e->key = *key;
     e->allowed = allowed;

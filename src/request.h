@@ -1,8 +1,8 @@
 #ifndef POSTFGA_TUPLE_H
 #define POSTFGA_TUPLE_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "postfga.h"
 

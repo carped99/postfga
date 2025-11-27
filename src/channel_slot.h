@@ -7,9 +7,10 @@ extern "C"
 #endif
 
 #include <postgres.h>
+
+#include <lib/ilist.h>
 #include <miscadmin.h>
 #include <port/atomics.h>
-#include <lib/ilist.h>
 
 #include "request.h"
 
@@ -40,8 +41,7 @@ extern "C"
         FgaChannelSlot slots[FLEXIBLE_ARRAY_MEMBER];
     } FgaChannelSlotPool;
 
-    static void
-    pool_init(FgaChannelSlotPool *pool, uint32 max_slots)
+    static void pool_init(FgaChannelSlotPool* pool, uint32 max_slots)
     {
         uint32 i;
 
@@ -49,7 +49,7 @@ extern "C"
 
         for (i = 0; i < max_slots; i++)
         {
-            FgaChannelSlot *slot = &pool->slots[i];
+            FgaChannelSlot* slot = &pool->slots[i];
 
             slist_push_head(&pool->head, &slot->node);
 

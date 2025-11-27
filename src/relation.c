@@ -14,8 +14,8 @@
 #include <postgres.h>
 
 #include <storage/lwlock.h>
-#include <utils/hsearch.h>
 #include <string.h>
+#include <utils/hsearch.h>
 
 #include "relation.h"
 #include "shmem.h"
@@ -41,12 +41,12 @@
  *       is indistinguishable from an error. Consider returning -1 or
  *       using an out parameter for the index in production code.
  */
-uint8 get_relation_bit_index(const char *relation_name)
+uint8 get_relation_bit_index(const char* relation_name)
 {
-    RelationBitMapEntry *entry;
+    RelationBitMapEntry* entry;
     uint8 bit_index = 0;
 
-    FgaL2Cache *state = postfga_get_cache_state();
+    FgaL2Cache* state = postfga_get_cache_state();
 
     if (!relation_name || relation_name[0] == '\0')
     {
@@ -84,10 +84,10 @@ uint8 get_relation_bit_index(const char *relation_name)
  *
  * Note: If relation already exists, it will be overwritten.
  */
-void register_relation(const char *relation_name, uint8 bit_index)
+void register_relation(const char* relation_name, uint8 bit_index)
 {
-    FgaL2Cache *cache;
-    RelationBitMapEntry *entry;
+    FgaL2Cache* cache;
+    RelationBitMapEntry* entry;
     bool found;
 
     if (!relation_name || relation_name[0] == '\0')
@@ -117,8 +117,7 @@ void register_relation(const char *relation_name, uint8 bit_index)
         entry->relation_name[sizeof(entry->relation_name) - 1] = '\0';
         entry->bit_index = bit_index;
 
-        elog(DEBUG1, "PostFGA: Registered relation '%s' with bit index %u",
-             relation_name, bit_index);
+        elog(DEBUG1, "PostFGA: Registered relation '%s' with bit index %u", relation_name, bit_index);
     }
     else
     {
@@ -142,11 +141,11 @@ void register_relation(const char *relation_name, uint8 bit_index)
  *
  * Maximum 64 relations are supported (limited by 64-bit bitmask).
  */
-void init_relation_bitmap(const char *relations_str)
+void init_relation_bitmap(const char* relations_str)
 {
-    char *str_copy;
-    char *token;
-    char *saveptr = NULL;
+    char* str_copy;
+    char* token;
+    char* saveptr = NULL;
     uint8 bit_index = 0;
 
     if (!relations_str || relations_str[0] == '\0')
@@ -170,8 +169,7 @@ void init_relation_bitmap(const char *relations_str)
         {
             if (bit_index >= 64)
             {
-                elog(WARNING, "PostFGA: Too many relations (max 64), ignoring '%s' and subsequent",
-                     token);
+                elog(WARNING, "PostFGA: Too many relations (max 64), ignoring '%s' and subsequent", token);
                 break;
             }
 

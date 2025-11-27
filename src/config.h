@@ -8,9 +8,9 @@
  */
 typedef struct PostfgaConfig
 {
-    char *endpoint;                /* gRPC endpoint */
-    char *store_id;                /* Store ID */
-    char *authorization_model_id;  /* Authorization Model ID */
+    char* endpoint;                /* gRPC endpoint */
+    char* store_id;                /* Store ID */
+    char* authorization_model_id;  /* Authorization Model ID */
     int cache_ttl_ms;              /* Cache TTL in milliseconds */
     int max_cache_entries;         /* Maximum cache entries */
     int bgw_workers;               /* Number of background workers */
@@ -26,7 +26,7 @@ extern "C"
 {
 #endif
 
-    PostfgaConfig *postfga_get_config(void);
+    PostfgaConfig* postfga_get_config(void);
 
 #ifdef __cplusplus
 }

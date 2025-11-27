@@ -6,6 +6,7 @@ extern "C"
 {
 #endif
 #include <postgres.h>
+
 #include <port/atomics.h>
 #ifdef __cplusplus
 }

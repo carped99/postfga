@@ -2,11 +2,12 @@
 #define POSTFGA_GUC_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-void postfga_guc_init(void);
-void postfga_guc_fini(void);
+    void postfga_guc_init(void);
+    void postfga_guc_fini(void);
 
 #ifdef __cplusplus
 }

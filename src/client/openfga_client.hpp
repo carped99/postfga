@@ -1,7 +1,6 @@
 // openfga.hpp
 #pragma once
 
-#include <asio.hpp>
 #include <atomic>
 #include <chrono>
 #include <functional>
@@ -11,13 +10,13 @@
 #include <string>
 
 // gRPC / OpenFGA proto
+#include <grpcpp/grpcpp.h>
+
 #include "client.hpp"
 #include "config/config.hpp"
 #include "openfga/v1/openfga_service.grpc.pb.h"
 #include "request_variant.hpp"
 #include "util/counter.hpp"
-
-#include <grpcpp/grpcpp.h>
 
 namespace postfga::client
 {

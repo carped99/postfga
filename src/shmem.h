@@ -19,8 +19,9 @@ extern "C"
 #endif
 
 #include <postgres.h>
-#include <storage/lwlock.h>
+
 #include <storage/latch.h>
+#include <storage/lwlock.h>
 
 #include "cache.h"
 #include "stats_type.h"
@@ -35,12 +36,12 @@ typedef struct FgaChannel FgaChannel; // forward declaration
  */
 typedef struct PostfgaShmemState
 {
-    LWLock *lock;                /* Master lock for all shared data */
-    Latch *bgw_latch;            /* Background worker latch */
-    uint64_t hash_seed;          /* Hash seed for consistent hashing */
-    
+    LWLock* lock;       /* Master lock for all shared data */
+    Latch* bgw_latch;   /* Background worker latch */
+    uint64_t hash_seed; /* Hash seed for consistent hashing */
 
-    FgaChannel *channel; /* Request channel */
+
+    FgaChannel* channel; /* Request channel */
     // FgaL2Cache l2_cache;            /* Shared L2 cache */
     // FgaStats stats; /* Statistics */
 
@@ -55,8 +56,8 @@ extern "C"
     void postfga_shmem_startup(void);
 
     // Accessor for global shmem state
-    PostfgaShmemState *postfga_get_shmem_state(void);
-    FgaL2Cache *postfga_get_cache_state(void);
+    PostfgaShmemState* postfga_get_shmem_state(void);
+    FgaL2Cache* postfga_get_cache_state(void);
 
 #ifdef __cplusplus
 }

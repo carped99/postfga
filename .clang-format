@@ -54,10 +54,6 @@ SpacesInParentheses: false
 SpacesInSquareBrackets: false
 SpacesInAngles: Never
 
-# include 정렬 (가장 일반적인 형태: 프로젝트 → 시스템)
-SortIncludes: CaseSensitive
-IncludeBlocks: Regroup
-
 # 생성자 초기화 리스트 / 상속 리스트
 BreakConstructorInitializers: BeforeColon
 PackConstructorInitializers: Never
@@ -81,3 +77,14 @@ BreakStringLiterals: true
 Cpp11BracedListStyle: true
 InsertNewlineAtEOF: true
 UseCRLF: false
+
+# include 정렬 (가장 일반적인 형태: 프로젝트 → 시스템)
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<postgres\.h>$'
+    Priority: 0        # 맨 위에 postgres.h
+  - Regex: '^<.*>$'
+    Priority: 1        # 그 외 시스템/3rd-party
+  - Regex: '^".*"$'
+    Priority: 2        # 로컬/프로젝트 헤더
