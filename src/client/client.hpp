@@ -1,10 +1,8 @@
 // openfga.hpp
 #pragma once
 
-#include <functional>
-#include <memory>
-#include "fga_type.h"
-#include "response.h"
+struct FgaRequest;
+struct FgaResponse;
 
 namespace postfga::client
 {
@@ -12,13 +10,13 @@ namespace postfga::client
     class Client
     {
     public:
-        using FgaResponseHandler = std::function<void(const FgaResponse &)>;
+        using FgaResponseHandler = void (*)(const FgaResponse &, void *ctx) noexcept;
 
         virtual ~Client() = default;
 
         virtual bool is_healthy() const = 0;
 
-        virtual void process(const FgaRequest &req, FgaResponseHandler handler) = 0;
+        virtual void process(const FgaRequest &req, FgaResponseHandler handler, void *ctx) = 0;
 
         virtual void shutdown() = 0;
     };

@@ -20,14 +20,17 @@ pool_shmem_size(uint32 capacity)
 static Size
 queue_shmem_size(uint32 capacity)
 {
-    return MAXALIGN(offsetof(FgaChannelSlotQueue, values) + sizeof(uint16) * capacity);
+    return MAXALIGN(offsetof(FgaChannelSlotQueue, values) + sizeof(uint16_t) * capacity);
 }
 
 Size postfga_channel_shmem_size(uint32 slot_count)
 {
-    elog(LOG, "PostFGA: init check channel with slot_count=%u", slot_count);
+    elog(LOG, "postfga: init channel with slot_count=%u", slot_count);
 
-    Size size = channel_shmem_size();
+    Size size = 0;
+
+    // channel
+    size = add_size(size, channel_shmem_size());
 
     // pool
     size = add_size(size, pool_shmem_size(slot_count));
@@ -58,6 +61,7 @@ void postfga_channel_shmem_init(FgaChannel *ch, uint32 slot_count)
     ch->pool = pool;
     ch->queue = queue;
 
+    pg_atomic_init_u64(&ch->request_id, 0);
     pool_init(ch->pool, slot_count);
     queue_init(ch->queue, slot_count);
 }

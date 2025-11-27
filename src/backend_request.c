@@ -5,7 +5,7 @@
 #include "miscadmin.h"
 
 #include "shmem.h"
-#include "fga_type.h"
+#include "request.h"
 #include "channel_queue.h"
 
 /*-------------------------------------------------------------------------

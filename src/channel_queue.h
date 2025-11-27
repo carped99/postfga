@@ -5,10 +5,10 @@
 
 typedef struct FgaChannelSlotQueue
 {
-    uint16 mask;                          /* capacity - 1 (2^n - 1) */
-    uint16 head;                          /* enqueue index */
-    uint16 tail;                          /* dequeue index */
-    uint16 values[FLEXIBLE_ARRAY_MEMBER]; /* [capacity = mask + 1] */
+    uint16_t mask;                          /* capacity - 1 (2^n - 1) */
+    uint16_t head;                          /* enqueue index */
+    uint16_t tail;                          /* dequeue index */
+    uint16_t values[FLEXIBLE_ARRAY_MEMBER]; /* [capacity = mask + 1] */
 } FgaChannelSlotQueue;
 
 /*
@@ -19,7 +19,7 @@ typedef struct FgaChannelSlotQueue
  * - 실제로 저장 가능한 요소 최대 개수는 (capacity - 1).
  */
 static inline void
-queue_init(FgaChannelSlotQueue *q, uint16 capacity)
+queue_init(FgaChannelSlotQueue *q, uint16_t capacity)
 {
     Assert(q != NULL);
     Assert(capacity > 0);
@@ -30,7 +30,7 @@ queue_init(FgaChannelSlotQueue *q, uint16 capacity)
     q->tail = 0u;
 }
 
-static inline uint16
+static inline uint16_t
 queue_size(const FgaChannelSlotQueue *q)
 {
     return (q->head - q->tail) & q->mask;
@@ -52,10 +52,10 @@ queue_is_full(const FgaChannelSlotQueue *q)
  * 남은 공간(더 넣을 수 있는 요소 개수) 반환
  * 최대값은 (capacity - 1)
  */
-static inline uint16
+static inline uint16_t
 queue_available(const FgaChannelSlotQueue *q)
 {
-    uint16 capacity = q->mask + 1u;
+    uint16_t capacity = q->mask + 1u;
     return (capacity - 1u) - queue_size(q);
 }
 
@@ -66,7 +66,7 @@ queue_available(const FgaChannelSlotQueue *q)
  * - 동시성 제어(LWLock 등)는 호출자가 담당
  */
 static inline bool
-queue_enqueue_slot(FgaChannelSlotQueue *q, uint16 slot_index)
+queue_enqueue_slot(FgaChannelSlotQueue *q, uint16_t slot_index)
 {
     if (queue_is_full(q))
         return false;
@@ -85,7 +85,7 @@ queue_enqueue_slot(FgaChannelSlotQueue *q, uint16 slot_index)
  * - 동시성 제어는 호출자가 담당
  */
 static inline bool
-queue_dequeue_slot(FgaChannelSlotQueue *q, uint16 *out_slot)
+queue_dequeue_slot(FgaChannelSlotQueue *q, uint16_t *out_slot)
 {
     if (queue_is_empty(q))
         return false;
@@ -102,10 +102,10 @@ queue_dequeue_slot(FgaChannelSlotQueue *q, uint16 *out_slot)
  * - 최대 max_count 개까지 꺼내서 out 배열에 채움
  * - 실제 꺼낸 개수 반환
  */
-static inline uint16
-queue_dequeue_slots(FgaChannelSlotQueue *q, uint16 *out, uint16 max_count)
+static inline uint16_t
+queue_dequeue_slots(FgaChannelSlotQueue *q, uint16_t *out, uint16_t max_count)
 {
-    uint16 n = 0;
+    uint16_t n = 0;
     while (n < max_count && !queue_is_empty(q))
     {
         out[n] = q->values[q->tail & q->mask];
@@ -123,9 +123,9 @@ queue_dequeue_slots(FgaChannelSlotQueue *q, uint16 *out, uint16 max_count)
  * - 범위 밖이면 false 반환
  */
 static inline bool
-queue_peek(const FgaChannelSlotQueue *q, uint16 index, uint16 *out_slot)
+queue_peek(const FgaChannelSlotQueue *q, uint16_t index, uint16_t *out_slot)
 {
-    uint16 size = queue_size(q);
+    uint16_t size = queue_size(q);
     if (index >= size)
         return false;
 

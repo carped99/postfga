@@ -12,7 +12,7 @@ extern "C"
 #include <storage/lwlock.h>
 #include <lib/ilist.h>
 
-#include "fga_type.h"
+#include "request.h"
 #include "channel_slot.h"
 #include "channel_queue.h"
 
@@ -23,6 +23,7 @@ extern "C"
 typedef struct FgaChannel
 {
     LWLock *lock;
+    pg_atomic_uint64 request_id; /* Request identifier */
     FgaChannelSlotPool *pool;
     FgaChannelSlotQueue *queue;
 } FgaChannel;
@@ -34,7 +35,13 @@ extern "C"
                                        uint16_t max_count,
                                        FgaChannelSlot **out_slots);
 
-    bool postfga_channel_execute(const FgaRequest *request);
+    FgaResponse *postfga_channel_execute(const FgaRequest *request);
+
+    bool postfga_channel_check(const char *object_type,
+                               const char *object_id,
+                               const char *subject_type,
+                               const char *subject_id,
+                               const char *relation);
 
 #ifdef __cplusplus
 }

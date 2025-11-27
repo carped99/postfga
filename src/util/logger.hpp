@@ -3,7 +3,7 @@
 
 #include <string_view>
 
-namespace postfga
+namespace postfga::util
 {
 
     enum class LogLevel
@@ -33,7 +33,6 @@ namespace postfga
         log(LogLevel::Warning, msg);
     }
 
-    /// 주의: Error는 PostgreSQL ereport(ERROR)로 연결되면 longjmp 발생함.
     inline void error(std::string_view msg)
     {
         log(LogLevel::Error, msg);

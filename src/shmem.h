@@ -38,7 +38,7 @@ typedef struct PostfgaShmemState
     LWLock *lock;                /* Master lock for all shared data */
     Latch *bgw_latch;            /* Background worker latch */
     uint64_t hash_seed;          /* Hash seed for consistent hashing */
-    pg_atomic_uint64 request_id; /* Request identifier */
+    
 
     FgaChannel *channel; /* Request channel */
     // FgaL2Cache l2_cache;            /* Shared L2 cache */

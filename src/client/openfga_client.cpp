@@ -15,7 +15,7 @@ namespace postfga::client
      * ctor / dtor
      * ====================================================================== */
     OpenFgaGrpcClient::OpenFgaGrpcClient(const Config &config)
-        : config_(config), pool_(config.concurrency.worker_threads), channel_(make_channel(config_)), handler_(std::make_unique<OpenFgaHandler>(config_, channel_)), inflight_(1000) // 기본값, 필요시 설정 가능
+        : config_(config), pool_(config.concurrency.worker_threads), channel_(make_channel(config_)), stub_(openfga::v1::OpenFGAService::NewStub(channel_)), inflight_(1000) // 기본값, 필요시 설정 가능
     {
     }
 
@@ -57,9 +57,8 @@ namespace postfga::client
         // return channel_->WaitForConnected(deadline);
     }
 
-    void OpenFgaGrpcClient::process(const FgaRequest &req, FgaResponseHandler handler)
+    void OpenFgaGrpcClient::process(const FgaRequest &req, FgaResponseHandler handler, void *ctx)
     {
-        postfga::info("OpenFgaGrpcClient: processing request");
         // if (stopping_.load(std::memory_order_relaxed))
         // {
         //     FgaResponse resp{};
@@ -75,15 +74,15 @@ namespace postfga::client
         //     // 너무 많은 요청이 들어왔음
         //     FgaResponse resp{};
         //     // resp.status_code = 429; // Too Many Requests
-        //     handler(std::move(resp));
+        //     handler(std::move(resp), ctx);
         //     return;
         // }
 
         auto variant = make_request_variant(req);
         std::visit(
-            [this, h = std::move(handler)](auto &&arg)
+            [this, handler, ctx](const auto &arg)
             {
-                // this->handle_request(arg, std::move(h));
+                this->handle_request(arg, handler, ctx);
             },
             variant);
     }

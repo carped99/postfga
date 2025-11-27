@@ -30,7 +30,7 @@ extern "C"
 #include "worker.hpp"
 #include "shmem.h"
 
-static MemoryContext PostfgaBgwMemoryContext = NULL;
+// static MemoryContext PostfgaBgwMemoryContext = NULL;
 
 extern "C" void
 postfga_bgw_init(void)

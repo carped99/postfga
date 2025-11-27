@@ -7,6 +7,6 @@
 namespace postfga::client
 {
 
-    std::shared_ptr<grpc::Channel> make_channel(const postfga::Config &cfg);
+    std::shared_ptr<::grpc::Channel> make_channel(const postfga::Config &cfg);
 
 } // namespace postfga::client

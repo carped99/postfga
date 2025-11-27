@@ -4,7 +4,7 @@
 namespace postfga::client
 {
 
-    std::shared_ptr<grpc::Channel> make_channel(const postfga::Config &cfg)
+    std::shared_ptr<::grpc::Channel> make_channel(const postfga::Config &cfg)
     {
         grpc::ChannelArguments args;
 
@@ -24,7 +24,10 @@ namespace postfga::client
         {
             args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, cfg.channel.keepalive_timeout_ms);
         }
-        // idle 채널이 끊어지지 않도록 하고 싶다면 추가 옵션도 가능
+        args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
+
+        // args.SetInt(GRPC_ARG_MAX_RECONNECT_BACKOFF_MS, cfg.channel.max_reconnect_backoff_ms);
+        // args.SetInt(GRPC_ARG_MIN_RECONNECT_BACKOFF_MS, cfg.channel.min_reconnect_backoff_ms);
 
         std::shared_ptr<grpc::ChannelCredentials> creds;
         if (cfg.tls.use_tls)

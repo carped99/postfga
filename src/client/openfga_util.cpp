@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "request.h"
 #include "request_variant.hpp"
 #include "openfga/v1/openfga_service.grpc.pb.h"
 

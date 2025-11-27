@@ -8,7 +8,7 @@
 #include <c.h>
 
 #include "postfga.h"
-#include "fga_type.h"
+#include "request.h"
 
 typedef struct FgaRelationCacheEntry
 {

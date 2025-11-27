@@ -11,7 +11,7 @@ extern "C"
 #include <port/atomics.h>
 #include <lib/ilist.h>
 
-#include "fga_type.h"
+#include "request.h"
 
     typedef uint16_t FgaChannelSlotIndex;
 
@@ -31,8 +31,7 @@ extern "C"
         pid_t backend_pid;      /* 요청한 백엔드 PID */
         uint64 request_id;      /* 요청 식별자 */
         FgaRequest request;     /* 요청 내용 */
-        bool allowed;           /* 체크 결과 */
-        int32 error_code;       /* 에러 코드 (정상 시 0) */
+        FgaResponse response;   /* 응답 내용 */
     } FgaChannelSlot;
 
     typedef struct FgaChannelSlotPool
@@ -58,34 +57,8 @@ extern "C"
             slot->backend_pid = InvalidPid;
             slot->request_id = 0;
             MemSet(&slot->request, 0, sizeof(FgaRequest));
-            slot->allowed = false;
-            slot->error_code = 0;
+            MemSet(&slot->response, 0, sizeof(FgaResponse));
         }
-    }
-
-    static FgaChannelSlot *
-    acquire_slot(FgaChannelSlotPool *pool)
-    {
-        slist_node *node;
-        FgaChannelSlot *slot;
-
-        /* 빈 슬롯 없으면 에러 (또는 나중에 backoff/retry 설계 가능) */
-        if (slist_is_empty(&pool->head))
-            return NULL;
-
-        node = slist_pop_head_node(&pool->head);
-        slot = slist_container(FgaChannelSlot, node, node);
-
-        pg_atomic_write_u32(&slot->state, FGA_CHECK_SLOT_PENDING);
-
-        return slot;
-    }
-
-    static void
-    release_slot(FgaChannelSlotPool *pool, FgaChannelSlot *slot)
-    {
-        pg_atomic_write_u32(&slot->state, FGA_CHECK_SLOT_EMPTY);
-        slist_push_head(&pool->head, &slot->node);
     }
 
 #ifdef __cplusplus

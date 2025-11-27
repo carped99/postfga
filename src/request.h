@@ -7,6 +7,7 @@
 #include "postfga.h"
 
 #define FGA_MAX_BATCH 64
+#define FGA_RESPONSE_ERROR_MESSAGE 256
 
 typedef struct FgaTuple
 {
@@ -27,16 +28,24 @@ typedef enum FgaRequestState
     FGA_REQ_ERROR,
 } FgaRequestState;
 
+typedef enum FgaResponseStatus
+{
+    FGA_RESPONSE_OK = 0,          /* 정상 */
+    FGA_RESPONSE_CLIENT_ERROR,    /* 클라이언트 쪽 (요청 포맷 등) */
+    FGA_RESPONSE_TRANSPORT_ERROR, /* gRPC/네트워크/타임아웃 */
+    FGA_RESPONSE_SERVER_ERROR     /* OpenFGA 서버 에러 */
+} FgaResponseStatus;
+
 /* ---- Request type --------------------------- */
 typedef enum FgaRequestType
 {
-    FGA_REQ_CHECK = 1,
-    FGA_REQ_READ,
-    FGA_REQ_WRITE,
-    FGA_REQ_DELETE,
-    FGA_REQ_LIST,
-    FGA_REQ_GET_STORE,
-    FGA_REQ_CREATE_STORE,
+    FGA_REQUEST_CHECK_TUPLE = 1,
+    FGA_REQUEST_READ,
+    FGA_REQUEST_WRITE_TUPLE,
+    FGA_REQUEST_DELETE_TUPLE,
+    FGA_REQUEST_LIST,
+    FGA_REQUEST_GET_STORE,
+    FGA_REQUEST_CREATE_STORE,
 } FgaRequestType;
 
 typedef struct FgaCheckTupleRequest
@@ -49,7 +58,7 @@ typedef struct FgaCheckTupleResponse
 {
     uint16_t op_count;
     uint16_t _pad;
-    bool allowed[FGA_MAX_BATCH];
+    bool allow;
 } FgaCheckTupleResponse;
 
 typedef struct FgaWriteTupleRequest
@@ -126,9 +135,8 @@ typedef struct FgaRequest
 
 typedef struct FgaResponse
 {
-    uint64_t request_id; /* request_id echo */
-    uint16_t type; /* FgaMessageType (요청 타입과 매칭) */
-    uint16_t reserved;
+    uint16_t status; /* FgaResponseStatus */
+    char error_message[FGA_RESPONSE_ERROR_MESSAGE];
 
     union
     {

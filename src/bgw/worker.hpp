@@ -1,21 +1,21 @@
 #pragma once
 
-extern "C" {
-#include "shmem.h"
-}
+struct PostfgaShmemState;
 
-namespace postfga::bgw {
+namespace postfga::bgw
+{
 
-class Worker {
-public:
-    explicit Worker(PostfgaShmemState *state);
-    void run();
+    class Worker
+    {
+    public:
+        explicit Worker(PostfgaShmemState *state);
+        void run();
 
-private:
-    void initialize();
-    void process();
+    private:
+        void initialize();
+        void process();
 
-    PostfgaShmemState *state_ = nullptr;
-};
+        PostfgaShmemState *state_ = nullptr;
+    };
 
 } // namespace postfga::bgw

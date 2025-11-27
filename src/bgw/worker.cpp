@@ -11,6 +11,7 @@ extern "C"
 #include <pgstat.h>
 }
 
+#include "shmem.h"
 #include "worker.hpp"
 #include "processor.hpp"
 #include "config/load.hpp"
@@ -57,7 +58,6 @@ namespace
 
 namespace postfga::bgw
 {
-
     Worker::Worker(PostfgaShmemState *state)
         : state_(state)
     {
@@ -99,7 +99,7 @@ namespace postfga::bgw
     void Worker::process()
     {
         auto config = postfga::load_config_from_guc();
-        Processor processor(config);
+        Processor processor(state_, config);
 
         while (!shutdown_requested)
         {
