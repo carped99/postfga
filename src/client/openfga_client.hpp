@@ -41,7 +41,6 @@ namespace postfga::client
         void handle_request(const CreateStoreRequest& req, FgaResponse& res, FgaResponseHandler handler, void* ctx);
 
         Config config_;
-        asio::thread_pool pool_;
         std::shared_ptr<::grpc::Channel> channel_;
         std::unique_ptr<openfga::v1::OpenFGAService::Stub> stub_;
         mutable std::mutex mu_;

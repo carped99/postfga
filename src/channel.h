@@ -1,6 +1,6 @@
 /* slot.h */
-#ifndef POSTFGA_CHECK_TUPLE_CHANNEL_H
-#define POSTFGA_CHECK_TUPLE_CHANNEL_H
+#ifndef POSTFGA_CHANNEL_H
+#define POSTFGA_CHANNEL_H
 
 #ifdef __cplusplus
 extern "C"
@@ -13,7 +13,6 @@ extern "C"
 #include <port/atomics.h>
 #include <storage/lwlock.h>
 
-#include "channel_queue.h"
 #include "channel_slot.h"
 #include "request.h"
 
@@ -34,7 +33,9 @@ extern "C"
 #endif
     uint16 postfga_channel_drain_slots(FgaChannel* channel, uint16_t max_count, FgaChannelSlot** out_slots);
 
-    FgaResponse* postfga_channel_execute(const FgaRequest* request);
+    void postfga_channel_release_slot(FgaChannel* channel, FgaChannelSlot* slot);
+
+    void postfga_channel_execute(const FgaRequest* request, FgaResponse* response);
 
     bool postfga_channel_check(const char* object_type,
                                const char* object_id,
@@ -46,4 +47,4 @@ extern "C"
 }
 #endif
 
-#endif /* POSTFGA_CHECK_TUPLE_CHANNEL_H */
+#endif /* POSTFGA_CHANNEL_H */

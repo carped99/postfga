@@ -1,6 +1,6 @@
 /* backend_request.c */
 
-#include "channel_queue.h"
+#include "channel_slot.h"
 #include "fmgr.h"
 #include "miscadmin.h"
 #include "postgres.h"

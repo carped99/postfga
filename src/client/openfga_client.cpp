@@ -1,5 +1,4 @@
 // openfga.cpp
-
 #include "openfga_client.hpp"
 
 #include <algorithm>
@@ -18,7 +17,6 @@ namespace postfga::client
      * ====================================================================== */
     OpenFgaGrpcClient::OpenFgaGrpcClient(const Config& config)
         : config_(config),
-          pool_(config.concurrency.worker_threads),
           channel_(make_channel(config_)),
           stub_(openfga::v1::OpenFGAService::NewStub(channel_)),
           inflight_(1000) // 기본값, 필요시 설정 가능
@@ -102,6 +100,6 @@ namespace postfga::client
         // 남아 있는 작업이 끝나길 기다린 후 thread_pool 종료
         // 필요하다면 inflight_ 0까지 기다리는 로직 추가 가능
         // ex) inflight_.wait_until_zero(timeout) 같은 메서드가 있다면 사용
-        pool_.join();
+        // pool_.join();
     }
 } // namespace postfga::client

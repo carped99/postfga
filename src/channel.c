@@ -18,7 +18,6 @@
  * Static helpers
  *-------------------------------------------------------------------------
  */
-
 static FgaChannelSlot* acquire_slot(FgaChannelSlotPool* pool)
 {
     slist_node* node;
@@ -30,62 +29,52 @@ static FgaChannelSlot* acquire_slot(FgaChannelSlotPool* pool)
 
     node = slist_pop_head_node(&pool->head);
     slot = slist_container(FgaChannelSlot, node, node);
-
-    pg_atomic_write_u32(&slot->state, FGA_CHECK_SLOT_PENDING);
-
+    pg_atomic_write_u32(&slot->state, FGA_CHANNEL_SLOT_PENDING);
     return slot;
 }
 
 static void release_slot(FgaChannelSlotPool* pool, FgaChannelSlot* slot)
 {
-    pg_atomic_write_u32(&slot->state, FGA_CHECK_SLOT_EMPTY);
+    pg_atomic_write_u32(&slot->state, FGA_CHANNEL_SLOT_EMPTY);
     slist_push_head(&pool->head, &slot->node);
 }
 
-static FgaChannelSlot* enqueue_slot(FgaChannel* channel)
+static FgaChannelSlot* write_request(FgaChannel* channel, const FgaRequest* request)
 {
     FgaChannelSlot* slot;
     FgaChannelSlotIndex index;
 
     LWLockAcquire(channel->lock, LW_EXCLUSIVE);
-    slot = acquire_slot(channel->pool);
 
+    /* 1) slot만 freelist에서 가져오기 */
+    slot = acquire_slot(channel->pool);
     if (slot == NULL)
     {
         LWLockRelease(channel->lock);
-        ereport(LOG, errmsg("PostFGA: failed to acquire slot"));
         return NULL;
     }
+
     index = (slot - channel->pool->slots);
     Assert(index < channel->pool->size);
 
-    if (!queue_enqueue_slot(channel->queue, index))
-    {
-        /* 큐가 가득 찼으면 슬롯 반환 후 실패 */
-        release_slot(channel->pool, slot);
-        LWLockRelease(channel->lock);
-        return NULL;
-    }
-    LWLockRelease(channel->lock);
-    return slot;
-}
-
-static FgaChannelSlot* write_request(FgaChannel* channel, const FgaRequest* request)
-{
-    FgaChannelSlot* slot = enqueue_slot(channel);
-    if (slot == NULL)
-    {
-        return NULL;
-    }
-
+    /* 2) slot 내용 먼저 다 쓰기 */
     slot->backend_pid = MyProcPid;
     slot->request_id = pg_atomic_add_fetch_u64(&channel->request_id, 1);
     slot->request = *request;
 
+    if (!queue_enqueue(channel->queue, index))
+    {
+        /* 롤백 처리 */
+        release_slot(channel->pool, slot);
+        LWLockRelease(channel->lock);
+        return NULL;
+    }
+
+    LWLockRelease(channel->lock);
     return slot;
 }
 
-static void read_request(FgaChannel* channel, FgaChannelSlot* slot)
+static FgaChannelSlotState wait_response(FgaChannel* channel, FgaChannelSlot* slot)
 {
     FgaChannelSlotState state;
 
@@ -96,33 +85,54 @@ static void read_request(FgaChannel* channel, FgaChannelSlot* slot)
 
     PG_TRY();
     {
-        do
+        for (;;)
         {
-            int rc = WaitLatch(MyLatch, WL_LATCH_SET | WL_EXIT_ON_PM_DEATH, 0, PG_WAIT_EXTENSION);
+            state = (FgaChannelSlotState)pg_atomic_read_u32(&slot->state);
+            if (state == FGA_CHANNEL_SLOT_DONE || state == FGA_CHANNEL_SLOT_ERROR || state == FGA_CHANNEL_SLOT_CANCELED)
+                break;
+
+            int rc = WaitLatch(MyLatch, WL_LATCH_SET | WL_EXIT_ON_PM_DEATH, -1, PG_WAIT_EXTENSION);
 
             if (rc & WL_LATCH_SET)
                 ResetLatch(MyLatch);
 
             CHECK_FOR_INTERRUPTS();
-
-            state = (FgaChannelSlotState)pg_atomic_read_u32(&slot->state);
-
-        } while (state != FGA_CHECK_SLOT_DONE && state != FGA_CHECK_SLOT_ERROR);
+        }
     }
     PG_CATCH();
     {
-        release_slot(channel->pool, slot);
+        FgaChannelSlotState cur = (FgaChannelSlotState)pg_atomic_read_u32(&slot->state);
+
+        if (cur == FGA_CHANNEL_SLOT_PENDING || cur == FGA_CHANNEL_SLOT_PROCESSING)
+        {
+            /* 아직 BGW가 처리 중일 가능성이 있으니, CANCEL 표시만 한다 */
+            pg_atomic_write_u32(&slot->state, FGA_CHANNEL_SLOT_CANCELED);
+        }
+        else if (cur == FGA_CHANNEL_SLOT_DONE || cur == FGA_CHANNEL_SLOT_ERROR)
+        {
+            /* 이미 처리 완료된 상태였으면 여기서 정리해도 됨 */
+            postfga_channel_release_slot(channel, slot);
+        }
+        slot->backend_pid = InvalidPid;
+        /* freelist로는 아직 돌리지 않는다. BGW에서 처리 */
         PG_RE_THROW();
     }
     PG_END_TRY();
 
-    release_slot(channel->pool, slot);
+    return state;
 }
 
 /*-------------------------------------------------------------------------
  * Public API
  *-------------------------------------------------------------------------
  */
+void postfga_channel_release_slot(FgaChannel* channel, FgaChannelSlot* slot)
+{
+    LWLockAcquire(channel->lock, LW_EXCLUSIVE);
+    release_slot(channel->pool, slot);
+    LWLockRelease(channel->lock);
+}
+
 uint16 postfga_channel_drain_slots(FgaChannel* channel, uint16 max_count, FgaChannelSlot** out_slots)
 {
     uint16 count;
@@ -133,7 +143,7 @@ uint16 postfga_channel_drain_slots(FgaChannel* channel, uint16 max_count, FgaCha
         max_count = MAX_DRAIN;
 
     LWLockAcquire(channel->lock, LW_EXCLUSIVE);
-    count = queue_dequeue_slots(channel->queue, buf, max_count);
+    count = queue_drain(channel->queue, max_count, buf);
     LWLockRelease(channel->lock);
 
     for (uint16 i = 0; i < count; ++i)
@@ -144,20 +154,36 @@ uint16 postfga_channel_drain_slots(FgaChannel* channel, uint16 max_count, FgaCha
     return count;
 }
 
-FgaResponse* postfga_channel_execute(const FgaRequest* request)
+void postfga_channel_execute(const FgaRequest* request, FgaResponse* response)
 {
     PostfgaShmemState* state = postfga_get_shmem_state();
     FgaChannel* channel = state->channel;
     FgaChannelSlot* slot = write_request(channel, request);
+    FgaChannelSlotState state;
 
     if (slot == NULL)
     {
         ereport(ERROR, errmsg("postfga: failed to enqueue check request"));
     }
-    SetLatch(state->bgw_latch);
-    read_request(channel, slot);
 
-    return &slot->response;
+    /* BGW 깨우기 */
+    SetLatch(state->bgw_latch);
+
+    state = wait_response(channel, slot);
+
+    if (state == FGA_CHANNEL_SLOT_CANCELED)
+    {
+        /* 여기까지 왔으면 논리적으로는 이미 위에서 ERROR가 났을 확률이 높지만,
+         * 방어 코드로 이렇게 한 번 더 정리해줄 수 있음.
+         */
+        postfga_channel_release_slot(channel, slot);
+        ereport(ERROR, errmsg("postfga: request was canceled"));
+    }
+
+    pg_read_barrier();
+    memcpy(response, &slot->response, sizeof(FgaResponse));
+
+    postfga_channel_release_slot(channel, slot);
 }
 
 bool postfga_channel_check(const char* object_type,
@@ -167,6 +193,7 @@ bool postfga_channel_check(const char* object_type,
                            const char* relation)
 {
     FgaRequest request;
+    FgaResponse response;
     MemSet(&request, 0, sizeof(request));
     request.type = FGA_REQUEST_CHECK_TUPLE;
     strncpy(request.body.checkTuple.store_id, "default", sizeof(request.body.checkTuple.store_id) - 1);
@@ -179,6 +206,6 @@ bool postfga_channel_check(const char* object_type,
             sizeof(request.body.checkTuple.tuple.subject_type) - 1);
     strncpy(request.body.checkTuple.tuple.subject_id, subject_id, sizeof(request.body.checkTuple.tuple.subject_id) - 1);
 
-    FgaResponse* response = postfga_channel_execute(&request);
-    return response->body.checkTuple.allow;
+    postfga_channel_execute(&request, &response);
+    return response.body.checkTuple.allow;
 }

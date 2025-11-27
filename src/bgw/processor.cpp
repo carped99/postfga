@@ -1,20 +1,21 @@
 extern "C"
 {
-#include "shmem.h"
-
 #include <postgres.h>
+
 #include <storage/lwlock.h>
 #include <storage/proc.h>
 #include <storage/procarray.h>
+
+#include "shmem.h"
 }
+
+#include <cstring>
+#include <utility>
 
 #include "channel.h"
 #include "client/client_factory.hpp"
 #include "processor.hpp"
 #include "util/logger.hpp"
-
-#include <cstring>
-#include <utility>
 
 namespace postfga::bgw
 {
@@ -49,9 +50,22 @@ namespace postfga::bgw
 
         void complete_check(FgaChannelSlot& slot, const FgaResponse& resp)
         {
+            auto state = (FgaChannelSlotState)pg_atomic_read_u32(&slot.state);
+
+            if (state == FGA_CHANNEL_SLOT_CANCELED)
+            {
+                /* 백엔드가 이미 포기한 요청:
+                 * - Latch 깨울 필요 없음
+                 * - BGW가 대신 슬롯을 반환
+                 */
+                postfga_channel_release_slot(state_->channel, &slot);
+                return;
+            }
+
+            // 정상 완료된 요청 작업
             // slot->response = resp;
             pg_write_barrier();
-            pg_atomic_write_u32(&slot.state, FGA_CHECK_SLOT_DONE);
+            pg_atomic_write_u32(&slot.state, FGA_CHANNEL_SLOT_DONE);
             wakeBackend(slot);
         }
 
@@ -116,11 +130,21 @@ namespace postfga::bgw
         for (uint16_t i = 0; i < count; ++i)
         {
             FgaChannelSlot* slot = slots[i];
-            uint32_t expected = FGA_CHECK_SLOT_PENDING;
-            if (!pg_atomic_compare_exchange_u32(&slot->state, &expected, FGA_CHECK_SLOT_PROCESSING))
+            uint32_t expected = FGA_CHANNEL_SLOT_PENDING;
+            if (!pg_atomic_compare_exchange_u32(&slot->state, &expected, FGA_CHANNEL_SLOT_PROCESSING))
             {
-                // 상태가 이미 바뀌었으면 스킵
-                ereport(WARNING, errmsg("PostFGA BGW: slot state changed unexpectedly"));
+                if (expected == FGA_CHANNEL_SLOT_CANCELED)
+                {
+                    /* 백엔드가 이미 이 요청을 포기함.
+                     * → BGW가 여기서 슬롯 정리.
+                     */
+                    postfga_channel_release_slot(state_->channel, slot);
+                }
+                else
+                {
+                    // 상태가 이미 바뀌었으면 스킵
+                    ereport(WARNING, errmsg("PostFGA BGW: slot state changed unexpectedly"));
+                }
                 continue;
             }
 

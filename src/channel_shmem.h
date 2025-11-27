@@ -9,7 +9,8 @@ extern "C"
 
 #include <postgres.h>
 
-#include "channel.h"
+    struct FgaChannel;
+    typedef struct FgaChannel FgaChannel;
 
     Size postfga_channel_shmem_size(uint32 slot_count);
     void postfga_channel_shmem_init(FgaChannel* ch, uint32 slot_count);
