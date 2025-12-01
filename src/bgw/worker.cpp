@@ -105,14 +105,10 @@ namespace postfga::bgw
         while (!shutdown_requested)
         {
             // wait for work or signal
-            int rc = WaitLatch(MyLatch, WL_LATCH_SET | WL_EXIT_ON_PM_DEATH, 0, PG_WAIT_EXTENSION);
+            int rc = WaitLatch(MyLatch, WL_LATCH_SET | WL_EXIT_ON_PM_DEATH, -1, PG_WAIT_EXTENSION);
 
             // latch reset
             ResetLatch(MyLatch);
-
-            // exit if postmaster dies
-            if (rc & WL_POSTMASTER_DEATH)
-                proc_exit(1);
 
             CHECK_FOR_INTERRUPTS();
 
@@ -124,7 +120,7 @@ namespace postfga::bgw
             }
 
             // report activity: processing requests
-            pgstat_report_activity(STATE_RUNNING, "postfga bgw: processing requests");
+            pgstat_report_activity(STATE_RUNNING, "postfga: processing requests");
 
             processor.execute();
 
@@ -133,7 +129,7 @@ namespace postfga::bgw
         }
 
         // report activity: stopped
-        pgstat_report_activity(STATE_IDLE, "postfga bgw: stopped");
+        pgstat_report_activity(STATE_IDLE, "postfga: stopped");
     }
 
 } // namespace postfga::bgw

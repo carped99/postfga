@@ -88,7 +88,7 @@ static FgaChannelSlotState wait_response(FgaChannel* channel, FgaChannelSlot* sl
         for (;;)
         {
             state = (FgaChannelSlotState)pg_atomic_read_u32(&slot->state);
-            if (state == FGA_CHANNEL_SLOT_DONE || state == FGA_CHANNEL_SLOT_ERROR || state == FGA_CHANNEL_SLOT_CANCELED)
+            if (state == FGA_CHANNEL_SLOT_DONE || state == FGA_CHANNEL_SLOT_CANCELED)
                 break;
 
             int rc = WaitLatch(MyLatch, WL_LATCH_SET | WL_EXIT_ON_PM_DEATH, -1, PG_WAIT_EXTENSION);
@@ -108,7 +108,7 @@ static FgaChannelSlotState wait_response(FgaChannel* channel, FgaChannelSlot* sl
             /* 아직 BGW가 처리 중일 가능성이 있으니, CANCEL 표시만 한다 */
             pg_atomic_write_u32(&slot->state, FGA_CHANNEL_SLOT_CANCELED);
         }
-        else if (cur == FGA_CHANNEL_SLOT_DONE || cur == FGA_CHANNEL_SLOT_ERROR)
+        else if (cur == FGA_CHANNEL_SLOT_DONE)
         {
             /* 이미 처리 완료된 상태였으면 여기서 정리해도 됨 */
             postfga_channel_release_slot(channel, slot);
@@ -126,14 +126,14 @@ static FgaChannelSlotState wait_response(FgaChannel* channel, FgaChannelSlot* sl
  * Public API
  *-------------------------------------------------------------------------
  */
-void postfga_channel_release_slot(FgaChannel* channel, FgaChannelSlot* slot)
+void postfga_channel_release_slot(FgaChannel* const channel, FgaChannelSlot* const slot)
 {
     LWLockAcquire(channel->lock, LW_EXCLUSIVE);
     release_slot(channel->pool, slot);
     LWLockRelease(channel->lock);
 }
 
-uint16 postfga_channel_drain_slots(FgaChannel* channel, uint16 max_count, FgaChannelSlot** out_slots)
+uint16 postfga_channel_drain_slots(FgaChannel* const channel, uint16 max_count, FgaChannelSlot** out_slots)
 {
     uint16 count;
     uint16 buf[MAX_DRAIN];
@@ -154,10 +154,10 @@ uint16 postfga_channel_drain_slots(FgaChannel* channel, uint16 max_count, FgaCha
     return count;
 }
 
-void postfga_channel_execute(const FgaRequest* request, FgaResponse* response)
+void postfga_channel_execute(const FgaRequest* const request, FgaResponse* const response)
 {
     PostfgaShmemState* state = postfga_get_shmem_state();
-    FgaChannel* channel = state->channel;
+    FgaChannel* const channel = state->channel;
     FgaChannelSlot* slot = write_request(channel, request);
     FgaChannelSlotState slot_state;
 

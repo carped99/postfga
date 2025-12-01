@@ -6,7 +6,6 @@
 #include <thread>
 
 #include "channel_factory.hpp"
-#include "util/logger.hpp"
 
 namespace postfga::client
 {
@@ -61,7 +60,7 @@ namespace postfga::client
         // return channel_->WaitForConnected(deadline);
     }
 
-    void OpenFgaGrpcClient::process(const FgaRequest& req, FgaResponse& res, FgaResponseHandler handler, void* ctx)
+    void OpenFgaGrpcClient::process(const FgaRequest& req, FgaResponse& res, ProcessCallback callback)
     {
         // if (stopping_.load(std::memory_order_relaxed))
         // {
@@ -83,8 +82,7 @@ namespace postfga::client
         // }
 
         auto variant = make_request_variant(req);
-        std::visit([this, &res, handler, ctx](const auto& arg) { this->handle_request(arg, res, handler, ctx); },
-                   variant);
+        std::visit([this, &res, callback](const auto& arg) { this->handle_request(arg, res, callback); }, variant);
     }
 
     void OpenFgaGrpcClient::shutdown()

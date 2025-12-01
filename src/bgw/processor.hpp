@@ -19,10 +19,11 @@ namespace postfga::bgw
         void execute();
 
       private:
-        void wakeBackend(const FgaChannelSlot& slot);
-        void complete_check(FgaChannelSlot& slot, const FgaResponse& resp);
-        void handleResponse(const FgaResponse& resp, void* ctx) noexcept;
+        bool beginProcessing(FgaChannelSlot& slot) noexcept;
+        void completeProcessing(FgaChannelSlot& slot) noexcept;
+        void handleResponse(FgaChannelSlot& slot);
         void handleException(FgaChannelSlot& slot, const char* msg) noexcept;
+        void wakeBackend(FgaChannelSlot& slot);
 
       private:
         static constexpr uint32_t MAX_BATCH_SIZE = 32;

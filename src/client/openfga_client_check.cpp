@@ -30,10 +30,7 @@ namespace postfga::client
         };
     } // anonymous namespace
 
-    void OpenFgaGrpcClient::handle_request(const CheckTupleRequest& req,
-                                           FgaResponse& res,
-                                           FgaResponseHandler handler,
-                                           void* ctx)
+    void OpenFgaGrpcClient::handle_request(const CheckTupleRequest& req, FgaResponse& res, ProcessCallback cb)
     {
         using Callback = std::function<void(::grpc::Status)>;
 
@@ -45,7 +42,7 @@ namespace postfga::client
 
         auto* ptr = context.get();
 
-        Callback callback = [context, res, handler, ctx](::grpc::Status status) mutable
+        Callback callback = [context, res, cb](::grpc::Status status) mutable
         {
             fprintf(
                 stderr, "OpenFgaGrpcClient: Check response received with status: %s\n", status.error_message().c_str());
@@ -58,7 +55,7 @@ namespace postfga::client
                 res.status = FGA_RESPONSE_CLIENT_ERROR;
             }
 
-            handler(res, ctx);
+            cb();
 
             // 여기서 context를 써도 OK. 콜백 끝날 때까지 살아 있음.
         };
@@ -70,28 +67,8 @@ namespace postfga::client
         postfga::util::info("OpenFgaGrpcClient: Post2");
     }
 
-    void OpenFgaGrpcClient::handle_request(const WriteTupleRequest& req,
-                                           FgaResponse& res,
-                                           FgaResponseHandler handler,
-                                           void* ctx)
-    {
-    }
-    void OpenFgaGrpcClient::handle_request(const DeleteTupleRequest& req,
-                                           FgaResponse& res,
-                                           FgaResponseHandler handler,
-                                           void* ctx)
-    {
-    }
-    void OpenFgaGrpcClient::handle_request(const GetStoreRequest& req,
-                                           FgaResponse& res,
-                                           FgaResponseHandler handler,
-                                           void* ctx)
-    {
-    }
-    void OpenFgaGrpcClient::handle_request(const CreateStoreRequest& req,
-                                           FgaResponse& res,
-                                           FgaResponseHandler handler,
-                                           void* ctx)
-    {
-    }
+    void OpenFgaGrpcClient::handle_request(const WriteTupleRequest& req, FgaResponse& res, ProcessCallback cb) {}
+    void OpenFgaGrpcClient::handle_request(const DeleteTupleRequest& req, FgaResponse& res, ProcessCallback cb) {}
+    void OpenFgaGrpcClient::handle_request(const GetStoreRequest& req, FgaResponse& res, ProcessCallback cb) {}
+    void OpenFgaGrpcClient::handle_request(const CreateStoreRequest& req, FgaResponse& res, ProcessCallback cb) {}
 } // namespace postfga::client

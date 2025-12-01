@@ -22,8 +22,7 @@ extern "C"
         FGA_CHANNEL_SLOT_CANCELED,
         FGA_CHANNEL_SLOT_PENDING,
         FGA_CHANNEL_SLOT_PROCESSING,
-        FGA_CHANNEL_SLOT_DONE,
-        FGA_CHANNEL_SLOT_ERROR
+        FGA_CHANNEL_SLOT_DONE
     } FgaChannelSlotState;
 
     typedef struct FgaChannelSlot
