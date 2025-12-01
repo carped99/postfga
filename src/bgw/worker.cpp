@@ -1,20 +1,21 @@
 extern "C"
 {
 #include <postgres.h>
+
 #include <miscadmin.h>
+#include <pgstat.h>
 #include <postmaster/bgworker.h>
 #include <storage/ipc.h>
 #include <storage/latch.h>
-#include <storage/proc.h>
 #include <storage/lwlock.h>
+#include <storage/proc.h>
 #include <utils/guc.h>
-#include <pgstat.h>
 }
 
+#include "config/load.hpp"
+#include "processor.hpp"
 #include "shmem.h"
 #include "worker.hpp"
-#include "processor.hpp"
-#include "config/load.hpp"
 
 namespace
 {
@@ -58,7 +59,7 @@ namespace
 
 namespace postfga::bgw
 {
-    Worker::Worker(PostfgaShmemState *state)
+    Worker::Worker(PostfgaShmemState* state)
         : state_(state)
     {
         Assert(state_ != nullptr);
@@ -99,15 +100,12 @@ namespace postfga::bgw
     void Worker::process()
     {
         auto config = postfga::load_config_from_guc();
-        Processor processor(state_, config);
+        Processor processor(state_->channel, config);
 
         while (!shutdown_requested)
         {
             // wait for work or signal
-            int rc = WaitLatch(MyLatch,
-                               WL_LATCH_SET | WL_EXIT_ON_PM_DEATH,
-                               0,
-                               PG_WAIT_EXTENSION);
+            int rc = WaitLatch(MyLatch, WL_LATCH_SET | WL_EXIT_ON_PM_DEATH, 0, PG_WAIT_EXTENSION);
 
             // latch reset
             ResetLatch(MyLatch);
