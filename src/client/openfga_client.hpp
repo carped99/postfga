@@ -20,6 +20,11 @@
 
 namespace postfga::client
 {
+    struct BatchCheckItem
+    {
+        CheckTuple params;
+        ProcessCallback callback; 
+    };
 
     class OpenFgaGrpcClient : public Client, public std::enable_shared_from_this<OpenFgaGrpcClient>
     {
@@ -29,16 +34,19 @@ namespace postfga::client
 
         bool is_healthy() const;
 
-        void process(const FgaRequest& req, FgaResponse& res, ProcessCallback cb) override;
+        void process_batch(std::span<ProcessItem> items) override;
 
         void shutdown() override;
 
       private:
-        void handle_request(const CheckTupleRequest& req, FgaResponse& res, ProcessCallback cb);
-        void handle_request(const WriteTupleRequest& req, FgaResponse& res, ProcessCallback cb);
-        void handle_request(const DeleteTupleRequest& req, FgaResponse& res, ProcessCallback cb);
-        void handle_request(const GetStoreRequest& req, FgaResponse& res, ProcessCallback cb);
-        void handle_request(const CreateStoreRequest& req, FgaResponse& res, ProcessCallback cb);
+        void handle_check_batch(std::vector<BatchCheckItem> items);
+        void handle_request(CheckTuple& req, ProcessCallback cb);
+        void handle_request(WriteTuple& req, ProcessCallback cb);
+        void handle_request(DeleteTuple& req, ProcessCallback cb);
+        void handle_request(GetStoreRequest& req, ProcessCallback cb);
+        void handle_request(CreateStoreRequest& req, ProcessCallback cb);
+        void handle_request(InvalidRequest& req, ProcessCallback cb);
+
         Config config_;
         std::shared_ptr<::grpc::Channel> channel_;
         std::unique_ptr<openfga::v1::OpenFGAService::Stub> stub_;

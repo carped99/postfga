@@ -8,34 +8,49 @@
 
 namespace postfga::client
 {
-    std::uint32_t CheckTupleRequest::request_id() const noexcept
+    std::uint32_t CheckTuple::request_id() const noexcept
     {
         return in.request_id;
     }
 
-    const FgaCheckTupleRequest& CheckTupleRequest::payload() const noexcept
+    const FgaCheckTupleRequest& CheckTuple::payload() const noexcept
     {
         return in.body.checkTuple;
     }
 
-    std::uint32_t WriteTupleRequest::request_id() const noexcept
+    FgaResponse& CheckTuple::response() const noexcept
+    {
+        return out;
+    }
+
+    std::uint32_t WriteTuple::request_id() const noexcept
     {
         return in.request_id;
     }
 
-    const FgaWriteTupleRequest& WriteTupleRequest::payload() const noexcept
+    const FgaWriteTupleRequest& WriteTuple::payload() const noexcept
     {
         return in.body.writeTuple;
     }
 
-    std::uint32_t DeleteTupleRequest::request_id() const noexcept
+    FgaResponse& WriteTuple::response() const noexcept
+    {
+        return out;
+    }
+
+    std::uint32_t DeleteTuple::request_id() const noexcept
     {
         return in.request_id;
     }
 
-    const FgaDeleteTupleRequest& DeleteTupleRequest::payload() const noexcept
+    const FgaDeleteTupleRequest& DeleteTuple::payload() const noexcept
     {
         return in.body.deleteTuple;
+    }
+
+    FgaResponse& DeleteTuple::response() const noexcept
+    {
+        return out;
     }
 
     std::uint32_t GetStoreRequest::request_id() const noexcept
@@ -48,6 +63,11 @@ namespace postfga::client
         return in.body.getStore;
     }
 
+    FgaResponse& GetStoreRequest::response() const noexcept
+    {
+        return out;
+    }
+
     std::uint32_t CreateStoreRequest::request_id() const noexcept
     {
         return in.request_id;
@@ -58,25 +78,30 @@ namespace postfga::client
         return in.body.createStore;
     }
 
+    FgaResponse& CreateStoreRequest::response() const noexcept
+    {
+        return out;
+    }
+
     // ----- variant factory 구현 -----
 
-    RequestVariant make_request_variant(const FgaRequest& req)
+    RequestVariant make_request_variant(const FgaRequest& req, FgaResponse& res)
     {
         switch (static_cast<FgaRequestType>(req.type))
         {
         case FGA_REQUEST_CHECK_TUPLE:
-            return CheckTupleRequest{req};
+            return CheckTuple{req, res};
         case FGA_REQUEST_WRITE_TUPLE:
-            return WriteTupleRequest{req};
+            return WriteTuple{req, res};
         case FGA_REQUEST_DELETE_TUPLE:
-            return DeleteTupleRequest{req};
+            return DeleteTuple{req, res};
         case FGA_REQUEST_GET_STORE:
-            return GetStoreRequest{req};
+            return GetStoreRequest{req, res};
         case FGA_REQUEST_CREATE_STORE:
-            return CreateStoreRequest{req};
+            return CreateStoreRequest{req, res};
+        default:
+            return InvalidRequest{req, res};
         }
-
-        throw std::logic_error("unknown FgaRequest type: " + std::to_string(req.type));
     }
 
 } // namespace postfga::client

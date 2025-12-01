@@ -26,14 +26,14 @@
  */
 
 // GUC names
-#define GUC_ENDPOINT "postfga.endpoint"
-#define GUC_STORE_ID "postfga.store_id"
-#define GUC_AUTH_MODEL_ID "postfga.authorization_model_id"
-#define GUC_RELATIONS "postfga.relations"
-#define GUC_CACHE_TTL_MS "postfga.cache_ttl_ms"
-#define GUC_MAX_CACHE_ENTRIES "postfga.max_cache_entries"
-#define GUC_BGW_WORKERS "postfga.bgw_workers"
-#define GUC_FALLBACK_ON_MISS "postfga.fallback_to_grpc_on_miss"
+#define POSTFGA_GUC_ENDPOINT "postfga.endpoint"
+#define POSTFGA_GUC_STORE_ID "postfga.store_id"
+#define POSTFGA_GUC_AUTH_MODEL_ID "postfga.authorization_model_id"
+#define POSTFGA_GUC_RELATIONS "postfga.relations"
+#define POSTFGA_GUC_CACHE_TTL_MS "postfga.cache_ttl_ms"
+#define POSTFGA_GUC_MAX_CACHE_ENTRIES "postfga.max_cache_entries"
+#define POSTFGA_GUC_BGW_WORKERS "postfga.bgw_workers"
+#define POSTFGA_GUC_FALLBACK_ON_MISS "postfga.fallback_to_grpc_on_miss"
 
 // Default values
 #define DEFAULT_ENDPOINT "dns:///localhost:8081"

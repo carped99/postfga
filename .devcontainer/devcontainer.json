@@ -1,16 +1,10 @@
 {
     "name": "openfga_fdw Development",
-    "build": {
-        "dockerfile": "../docker/Dockerfile",
-        "target": "dev-builder",
-        "args": {
-            "PG_MAJOR": "15"
-        }
-    },    
+    "dockerComposeFile": [
+        "../docker/docker-compose.yml"
+    ],
+    "service": "dev",
     "workspaceFolder": "/workspace",
-    "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
     "remoteUser": "root",
-    "remoteEnv": {
-        "WORKSPACE": "/workspace"
-    }
+    "shutdownAction": "stopCompose"
 }

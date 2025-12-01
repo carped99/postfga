@@ -20,7 +20,7 @@ namespace postfga::bgw
 
       private:
         bool beginProcessing(FgaChannelSlot& slot) noexcept;
-        void completeProcessing(FgaChannelSlot& slot) noexcept;
+        void completeProcessing(FgaChannelSlot* slot) noexcept;
         void handleResponse(FgaChannelSlot& slot);
         void handleException(FgaChannelSlot& slot, const char* msg) noexcept;
         void wakeBackend(FgaChannelSlot& slot);
@@ -30,6 +30,9 @@ namespace postfga::bgw
         FgaChannel* channel_ = nullptr;
         std::shared_ptr<postfga::client::Client> client_;
         postfga::util::Counter inflight_;
+
+        std::mutex completed_mu_;
+        std::vector<FgaChannelSlot*> completed_;
     };
 
 } // namespace postfga::bgw

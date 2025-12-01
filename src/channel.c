@@ -196,16 +196,16 @@ bool postfga_channel_check(const char* object_type,
     FgaResponse response;
     MemSet(&request, 0, sizeof(request));
     request.type = FGA_REQUEST_CHECK_TUPLE;
-    strncpy(request.body.checkTuple.store_id, "default", sizeof(request.body.checkTuple.store_id) - 1);
-    strncpy(
-        request.body.checkTuple.tuple.object_type, object_type, sizeof(request.body.checkTuple.tuple.object_type) - 1);
-    strncpy(request.body.checkTuple.tuple.object_id, object_id, sizeof(request.body.checkTuple.tuple.object_id) - 1);
-    strncpy(request.body.checkTuple.tuple.relation, relation, sizeof(request.body.checkTuple.tuple.relation) - 1);
-    strncpy(request.body.checkTuple.tuple.subject_type,
-            subject_type,
-            sizeof(request.body.checkTuple.tuple.subject_type) - 1);
-    strncpy(request.body.checkTuple.tuple.subject_id, subject_id, sizeof(request.body.checkTuple.tuple.subject_id) - 1);
+    strlcpy(request.body.checkTuple.tuple.object_type, object_type, sizeof(request.body.checkTuple.tuple.object_type));
+    strlcpy(request.body.checkTuple.tuple.object_id, object_id, sizeof(request.body.checkTuple.tuple.object_id));
+    strlcpy(request.body.checkTuple.tuple.subject_type,subject_type,sizeof(request.body.checkTuple.tuple.subject_type));
+    strlcpy(request.body.checkTuple.tuple.subject_id, subject_id, sizeof(request.body.checkTuple.tuple.subject_id));
+    strlcpy(request.body.checkTuple.tuple.relation, relation, sizeof(request.body.checkTuple.tuple.relation));
 
     postfga_channel_execute(&request, &response);
-    return response.body.checkTuple.allow;
+    if (response.status == FGA_RESPONSE_OK)
+        return response.body.checkTuple.allow;
+
+    ereport(INFO, errmsg("postfga: check tuple failed: %s", response.error_message));
+    return false;
 }

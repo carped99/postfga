@@ -2,7 +2,7 @@
 # 1단계: 개발용 이미지
 # ------------------------------------------------------------
 ARG PG_MAJOR=18
-FROM postgres:${PG_MAJOR} AS dev-builder
+FROM postgis/postgis:${PG_MAJOR}-3.6 AS dev-builder
 
 # Install build toolchain and headers
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -41,7 +41,13 @@ RUN DESTDIR=/out cmake --install build
 # ------------------------------------------------------------
 # 2단계: 설치용 이미지
 # ------------------------------------------------------------
-FROM postgres:${PG_MAJOR} AS runtime
+FROM postgis/postgis:${PG_MAJOR}-3.6 AS runtime
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      libgrpc++1 \
+      libprotobuf32 \
+      && rm -rf /var/lib/apt/lists/*
 
 # 1단계에서 설치된 파일들을 복사
 # 경로는 PGXS install 결과를 보고 맞춰야 함

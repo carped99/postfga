@@ -12,6 +12,7 @@ extern "C"
 #include <utils/guc.h>
 }
 
+#include <optional>
 #include "config/load.hpp"
 #include "processor.hpp"
 #include "shmem.h"
@@ -42,19 +43,6 @@ namespace
             SetLatch(MyLatch);
         errno = save_errno;
     }
-
-    // /* Local helper: convert GUC → Config */
-    // postfga::client::Config make_client_config_from_guc()
-    // {
-    //     auto guc = postfga_get_config();
-    //     postfga::client::Config cfg;
-    //     cfg.endpoint               = guc->endpoint ? guc->endpoint : "";
-    //     cfg.store_id               = guc->store_id ? guc->store_id : "";
-    //     cfg.authorization_model_id = guc->authorization_model_id ? guc->authorization_model_id : "";
-    //     cfg.timeout_ms             = static_cast<std::uint32_t>(guc->cache_ttl_ms);
-    //     cfg.use_tls                = false;
-    //     return cfg;
-    // }
 } // anonymous namespace
 
 namespace postfga::bgw
@@ -100,7 +88,9 @@ namespace postfga::bgw
     void Worker::process()
     {
         auto config = postfga::load_config_from_guc();
-        Processor processor(state_->channel, config);
+
+        std::optional<Processor> processor;
+        processor.emplace(state_->channel, config);
 
         while (!shutdown_requested)
         {
@@ -117,14 +107,13 @@ namespace postfga::bgw
             {
                 reload_requested = false;
                 ProcessConfigFile(PGC_SIGHUP);
+                auto config = postfga::load_config_from_guc();
+                ereport(LOG, (errmsg("postfga: reloaded configuration, %s, %s", config.endpoint.c_str(), config.store_id.c_str())));
+                processor.emplace(state_->channel, config);
             }
 
-            // report activity: processing requests
             pgstat_report_activity(STATE_RUNNING, "postfga: processing requests");
-
-            processor.execute();
-
-            // report activity: idle
+            processor->execute();
             pgstat_report_activity(STATE_IDLE, NULL);
         }
 

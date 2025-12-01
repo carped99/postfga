@@ -30,30 +30,53 @@ namespace postfga::bgw
 
     void Processor::execute()
     {
+        static constexpr uint16_t MAX_BATCH = 50;
+
         FgaChannel* channel = channel_;
-        FgaChannelSlot* slots[50];
-        uint16_t count = postfga_channel_drain_slots(channel, 50, slots);
-        if (count == 0)
-            return;
+        FgaChannelSlot* slots[MAX_BATCH];
+        uint16_t count = postfga_channel_drain_slots(channel, MAX_BATCH, slots);
+
+        postfga::client::ProcessItem items[MAX_BATCH];
+        // FgaChannelSlot* batch_slots[MAX_BATCH];
+        uint16_t batch_count = 0;
 
         for (uint16_t i = 0; i < count; ++i)
         {
             FgaChannelSlot* slot = slots[i];
+
             if (!beginProcessing(*slot))
                 continue;
 
-            try
+            items[batch_count].request  = &slot->request;
+            items[batch_count].response = &slot->response;
+            items[batch_count].callback = [this, slot]()
             {
-                client_->process(slot->request, slot->response, [this, slot]() { completeProcessing(*slot); });
-            }
-            catch (const std::exception& e)
-            {
-                handleException(*slot, e.what());
-            }
-            catch (...)
-            {
-                handleException(*slot, "unknown error in processing request");
-            }
+                completeProcessing(slot);
+            };                
+
+            // batch_slots[batch_count] = slot;
+            ++batch_count;
+        }
+
+        if (batch_count > 0)
+        {
+            ereport(LOG, errmsg("postfga: 3. processing batch of %u requests", batch_count));
+            std::span<postfga::client::ProcessItem> span(items, batch_count);
+            ereport(LOG, errmsg("postfga: 4. processing batch of %u requests", batch_count));
+            client_->process_batch(span);
+        }
+
+        std::vector<FgaChannelSlot*> local;
+        {
+            std::lock_guard<std::mutex> lock(completed_mu_);
+            if (completed_.empty())
+                return;
+            local.swap(completed_);
+        }
+
+        for (auto* slot : local)
+        {
+            handleResponse(*slot);
         }
     }
 
@@ -79,20 +102,13 @@ namespace postfga::bgw
         return false;
     }
 
-    void Processor::completeProcessing(FgaChannelSlot& slot) noexcept
+    void Processor::completeProcessing(FgaChannelSlot* slot) noexcept
     {
-        try
-        {
-            handleResponse(slot);
-        }
-        catch (const std::exception& e)
-        {
-            handleException(slot, e.what());
-        }
-        catch (...)
-        {
-            handleException(slot, "unknown error in processing request");
-        }
+        ereport(LOG, errmsg("postfga: marking slot as completed"));
+        
+        std::lock_guard<std::mutex> lock(completed_mu_);
+        completed_.push_back(slot);
+        SetLatch(MyLatch);
     }
 
     void Processor::handleResponse(FgaChannelSlot& slot)

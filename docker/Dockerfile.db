@@ -1,0 +1,10 @@
+ARG PG_MAJOR=18
+FROM postgres:${PG_MAJOR}
+
+# 필요시 PG_MAJOR 인자도 받을 수 있음
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      libgrpc++ \
+      && rm -rf /var/lib/apt/lists/*

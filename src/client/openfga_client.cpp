@@ -10,7 +10,6 @@
 namespace postfga::client
 {
 
-
     /* ========================================================================
      * ctor / dtor
      * ====================================================================== */
@@ -60,7 +59,7 @@ namespace postfga::client
         // return channel_->WaitForConnected(deadline);
     }
 
-    void OpenFgaGrpcClient::process(const FgaRequest& req, FgaResponse& res, ProcessCallback callback)
+    void OpenFgaGrpcClient::process_batch(std::span<ProcessItem> items)
     {
         // if (stopping_.load(std::memory_order_relaxed))
         // {
@@ -81,8 +80,42 @@ namespace postfga::client
         //     return;
         // }
 
-        auto variant = make_request_variant(req);
-        std::visit([this, &res, callback](const auto& arg) { this->handle_request(arg, res, callback); }, variant);
+        auto size = items.size();
+        if (size == 0)
+            return;
+
+        if (size == 1)
+        {
+            auto& item = items.front();
+            auto variant = make_request_variant(*item.request, *item.response);
+            std::visit([this, callback = std::move(item.callback)](auto& arg) mutable { this->handle_request(arg, std::move(callback)); }, variant);
+            return;
+        }
+
+        std::vector<BatchCheckItem> batch_check_items;
+        batch_check_items.reserve(items.size());
+
+        for (auto& item : items)
+        {
+            auto variant = make_request_variant(*item.request, *item.response);
+            if (std::holds_alternative<CheckTuple>(variant))
+            {
+                auto& params = std::get<CheckTuple>(variant);
+                batch_check_items.push_back(BatchCheckItem{
+                    .params   = params,
+                    .callback = std::move(item.callback),
+                });
+            }
+            else
+            {
+                std::visit([this, callback = std::move(item.callback)](auto& arg) mutable { this->handle_request(arg, callback); }, variant);
+            }
+        }
+
+        if (!batch_check_items.empty())
+        {
+            handle_check_batch(std::move(batch_check_items));
+        }
     }
 
     void OpenFgaGrpcClient::shutdown()

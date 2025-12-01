@@ -43,7 +43,7 @@ postfga_bgw_init(void)
     worker.bgw_notify_pid = 0;
     worker.bgw_main_arg = (Datum)0;
 
-    strlcpy(worker.bgw_library_name, "postfga", BGW_MAXLEN);
+    strlcpy(worker.bgw_library_name, "postfga", MAXPGPATH);
     strlcpy(worker.bgw_function_name, "postfga_bgw_main", BGW_MAXLEN);
     strlcpy(worker.bgw_name, "postfga_bgw", BGW_MAXLEN);
     strlcpy(worker.bgw_type, "postfga_worker", BGW_MAXLEN);
