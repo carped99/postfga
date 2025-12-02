@@ -23,12 +23,11 @@ namespace postfga::bgw
         void handleResponse(FgaChannelSlot& slot);
         void handleException(FgaChannelSlot& slot, const char* msg) noexcept;
         void wakeBackend(FgaChannelSlot& slot);
-        
+
         void enqueueCompleted(FgaChannelSlot* slot) noexcept;
         void drainCompleted() noexcept;
 
       private:
-        static constexpr uint32_t MAX_BATCH_SIZE = 32;
         FgaChannel* channel_ = nullptr;
         std::shared_ptr<postfga::client::Client> client_;
         postfga::util::Counter inflight_;

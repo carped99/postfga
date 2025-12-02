@@ -5,11 +5,11 @@
  * Constants
  * -------------------------------------------------------------------------
  */
-#define OBJECT_TYPE_MAX_LEN 128
-#define OBJECT_ID_MAX_LEN 128
-#define SUBJECT_TYPE_MAX_LEN 128
-#define SUBJECT_ID_MAX_LEN 128
-#define RELATION_MAX_LEN 128
+#define OBJECT_TYPE_MAX_LEN 64
+#define OBJECT_ID_MAX_LEN 64
+#define SUBJECT_TYPE_MAX_LEN 64
+#define SUBJECT_ID_MAX_LEN 64
+#define RELATION_MAX_LEN 64
 #define MAX_PENDING_REQ 256
 
 #define NAME_MAX_LEN 64

@@ -1,4 +1,4 @@
-#include "client_factory.hpp"
+#include "client.hpp"
 
 // 구체적 클라이언트 구현
 #include "openfga_client.hpp"

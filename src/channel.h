@@ -22,7 +22,8 @@ extern "C"
 
 typedef struct FgaChannel
 {
-    LWLock* lock;
+    LWLock* pool_lock;
+    LWLock* queue_lock;
     pg_atomic_uint64 request_id; /* Request identifier */
     FgaChannelSlotPool* pool;
     FgaChannelSlotQueue* queue;

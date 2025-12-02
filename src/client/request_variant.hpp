@@ -87,7 +87,7 @@ namespace postfga::client
         return payload.response;
     }
 
-    struct GetStoreRequest
+    struct GetStore
     {
         FgaPayload& payload;
         uint64_t request_id() const noexcept;
@@ -95,22 +95,22 @@ namespace postfga::client
         FgaResponse& response() const noexcept;
     };
 
-    inline uint64_t GetStoreRequest::request_id() const noexcept
+    inline uint64_t GetStore::request_id() const noexcept
     {
         return payload.request.request_id;
     }
 
-    inline const FgaGetStoreRequest& GetStoreRequest::request() const noexcept
+    inline const FgaGetStoreRequest& GetStore::request() const noexcept
     {
         return payload.request.body.getStore;
     }
 
-    inline FgaResponse& GetStoreRequest::response() const noexcept
+    inline FgaResponse& GetStore::response() const noexcept
     {
         return payload.response;
     }
 
-    struct CreateStoreRequest
+    struct CreateStore
     {
         FgaPayload& payload;
         uint64_t request_id() const noexcept;
@@ -118,17 +118,40 @@ namespace postfga::client
         FgaResponse& response() const noexcept;
     };
 
-    inline uint64_t CreateStoreRequest::request_id() const noexcept
+    inline uint64_t CreateStore::request_id() const noexcept
     {
         return payload.request.request_id;
     }
 
-    inline const FgaCreateStoreRequest& CreateStoreRequest::request() const noexcept
+    inline const FgaCreateStoreRequest& CreateStore::request() const noexcept
     {
         return payload.request.body.createStore;
     }
 
-    inline FgaResponse& CreateStoreRequest::response() const noexcept
+    inline FgaResponse& CreateStore::response() const noexcept
+    {
+        return payload.response;
+    }
+
+    struct DeleteStore
+    {
+        FgaPayload& payload;
+        uint64_t request_id() const noexcept;
+        const FgaDeleteStoreRequest& request() const noexcept;
+        FgaResponse& response() const noexcept;
+    };
+
+    inline uint64_t DeleteStore::request_id() const noexcept
+    {
+        return payload.request.request_id;
+    }
+
+    inline const FgaDeleteStoreRequest& DeleteStore::request() const noexcept
+    {
+        return payload.request.body.deleteStore;
+    }
+
+    inline FgaResponse& DeleteStore::response() const noexcept
     {
         return payload.response;
     }
@@ -137,8 +160,9 @@ namespace postfga::client
         CheckTuple, 
         WriteTuple, 
         DeleteTuple, 
-        GetStoreRequest, 
-        CreateStoreRequest, 
+        GetStore, 
+        CreateStore,
+        DeleteStore,
         InvalidRequest>;
 
     inline RequestVariant make_request_variant(FgaPayload& payload)
@@ -152,9 +176,11 @@ namespace postfga::client
         case FGA_REQUEST_DELETE_TUPLE:
             return DeleteTuple{payload};
         case FGA_REQUEST_GET_STORE:
-            return GetStoreRequest{payload};
+            return GetStore{payload};
         case FGA_REQUEST_CREATE_STORE:
-            return CreateStoreRequest{payload};
+            return CreateStore{payload};
+        case FGA_REQUEST_DELETE_STORE:
+            return DeleteStore{payload};
         default:
             return InvalidRequest{payload};
         }

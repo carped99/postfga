@@ -154,7 +154,7 @@ void postfga_guc_init(void)
                             "Maximum number of FGA slots in shared memory.",
                             NULL,
                             &cfg->max_slots,
-                            1024 * 3,
+                            1024,
                             16,
                             65535,
                             PGC_POSTMASTER,

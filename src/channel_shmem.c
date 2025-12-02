@@ -41,8 +41,6 @@ Size postfga_channel_shmem_size(uint32 slot_count)
     uint32 queue_capacity = pow2_ceil(slot_count);
     Size size = 0;
 
-    elog(LOG, "postfga: init channel with slot_count=%u, queue=%u", slot_count, queue_capacity);
-
     // channel
     size = add_size(size, channel_shmem_size());
 
@@ -53,6 +51,15 @@ Size postfga_channel_shmem_size(uint32 slot_count)
 
     size = add_size(size, queue_shmem_size(queue_capacity));
 
+
+    ereport(LOG, errmsg("sizeof(FgaTuple) = %zu", sizeof(FgaTuple)));                             
+    ereport(LOG, errmsg("sizeof(FgaRequest) = %zu", sizeof(FgaRequest)));
+    ereport(LOG, errmsg("sizeof(FgaResponse) = %zu", sizeof(FgaResponse)));
+    ereport(LOG, errmsg("sizeof(FgaPayload) = %zu", sizeof(FgaPayload)));
+    ereport(LOG, errmsg("postfga: channel size: slot_count=%u, queue_capacity=%u, total_size=%zu",
+                         slot_count,
+                         queue_capacity,
+                         size));
     return size;
 }
 

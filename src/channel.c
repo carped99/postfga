@@ -39,18 +39,17 @@ static void release_slot(FgaChannelSlotPool* pool, FgaChannelSlot* slot)
     slist_push_head(&pool->head, &slot->node);
 }
 
-static FgaChannelSlot* write_request(FgaChannel* channel, const FgaRequest* request)
+static FgaChannelSlot* write_request(FgaChannel* const channel, const FgaRequest* request)
 {
     FgaChannelSlot* slot;
     FgaChannelSlotIndex index;
 
-    LWLockAcquire(channel->lock, LW_EXCLUSIVE);
-
     /* 1) slot만 freelist에서 가져오기 */
+    LWLockAcquire(channel->pool_lock, LW_EXCLUSIVE);
     slot = acquire_slot(channel->pool);
+    LWLockRelease(channel->pool_lock);
     if (slot == NULL)
     {
-        LWLockRelease(channel->lock);
         return NULL;
     }
 
@@ -62,20 +61,21 @@ static FgaChannelSlot* write_request(FgaChannel* channel, const FgaRequest* requ
     slot->payload.request = *request;
     slot->payload.request.request_id = pg_atomic_add_fetch_u64(&channel->request_id, 1);
 
+    LWLockAcquire(channel->queue_lock, LW_EXCLUSIVE);
     if (!queue_enqueue(channel->queue, index))
     {
         /* 롤백 처리 */
-        release_slot(channel->pool, slot);
-        LWLockRelease(channel->lock);
+        LWLockRelease(channel->queue_lock);
+        postfga_channel_release_slot(channel, slot);
         return NULL;
     }
-
-    LWLockRelease(channel->lock);
+    LWLockRelease(channel->queue_lock);
     return slot;
 }
 
 static FgaChannelSlotState wait_response(FgaChannel* channel, FgaChannelSlot* slot)
 {
+    int rc;
     FgaChannelSlotState state;
 
     Assert(channel != NULL);
@@ -90,7 +90,7 @@ static FgaChannelSlotState wait_response(FgaChannel* channel, FgaChannelSlot* sl
             if (state == FGA_CHANNEL_SLOT_DONE || state == FGA_CHANNEL_SLOT_CANCELED)
                 break;
 
-            int rc = WaitLatch(MyLatch, WL_LATCH_SET | WL_EXIT_ON_PM_DEATH, -1, PG_WAIT_EXTENSION);
+            rc = WaitLatch(MyLatch, WL_LATCH_SET | WL_EXIT_ON_PM_DEATH, -1, PG_WAIT_EXTENSION);
 
             if (rc & WL_LATCH_SET)
                 ResetLatch(MyLatch);
@@ -127,9 +127,9 @@ static FgaChannelSlotState wait_response(FgaChannel* channel, FgaChannelSlot* sl
  */
 void postfga_channel_release_slot(FgaChannel* const channel, FgaChannelSlot* const slot)
 {
-    LWLockAcquire(channel->lock, LW_EXCLUSIVE);
+    LWLockAcquire(channel->pool_lock, LW_EXCLUSIVE);
     release_slot(channel->pool, slot);
-    LWLockRelease(channel->lock);
+    LWLockRelease(channel->pool_lock);
 }
 
 uint16 postfga_channel_drain_slots(FgaChannel* const channel, uint16 max_count, FgaChannelSlot** out_slots)
@@ -141,9 +141,9 @@ uint16 postfga_channel_drain_slots(FgaChannel* const channel, uint16 max_count, 
     if (max_count > MAX_DRAIN)
         max_count = MAX_DRAIN;
 
-    LWLockAcquire(channel->lock, LW_EXCLUSIVE);
+    LWLockAcquire(channel->queue_lock, LW_EXCLUSIVE);
     count = queue_drain(channel->queue, max_count, buf);
-    LWLockRelease(channel->lock);
+    LWLockRelease(channel->queue_lock);
 
     for (uint16 i = 0; i < count; ++i)
     {
@@ -185,28 +185,4 @@ void postfga_channel_execute(const FgaRequest* const request, FgaResponse* const
     *response = slot->payload.response;
 
     postfga_channel_release_slot(channel, slot);
-}
-
-bool postfga_channel_check(const char* object_type,
-                           const char* object_id,
-                           const char* subject_type,
-                           const char* subject_id,
-                           const char* relation)
-{
-    FgaRequest request;
-    FgaResponse response;
-    MemSet(&request, 0, sizeof(request));
-    request.type = FGA_REQUEST_CHECK_TUPLE;
-    strlcpy(request.body.checkTuple.tuple.object_type, object_type, sizeof(request.body.checkTuple.tuple.object_type));
-    strlcpy(request.body.checkTuple.tuple.object_id, object_id, sizeof(request.body.checkTuple.tuple.object_id));
-    strlcpy(request.body.checkTuple.tuple.subject_type,subject_type,sizeof(request.body.checkTuple.tuple.subject_type));
-    strlcpy(request.body.checkTuple.tuple.subject_id, subject_id, sizeof(request.body.checkTuple.tuple.subject_id));
-    strlcpy(request.body.checkTuple.tuple.relation, relation, sizeof(request.body.checkTuple.tuple.relation));
-
-    postfga_channel_execute(&request, &response);
-    if (response.status == FGA_RESPONSE_OK)
-        return response.body.checkTuple.allow;
-
-    ereport(INFO, errmsg("postfga: check tuple failed: %s", response.error_message));
-    return false;
 }

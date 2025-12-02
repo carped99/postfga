@@ -22,7 +22,7 @@ namespace postfga
         std::string store_id;
         std::string authorization_model_id; // optional, can be empty
 
-        std::uint32_t timeout_ms = 5000;
+        std::chrono::milliseconds timeout = std::chrono::milliseconds(10000); // 기본 10초
 
         GrpcTlsOptions tls;
         GrpcChannelOptions channel;

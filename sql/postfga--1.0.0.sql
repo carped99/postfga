@@ -26,7 +26,7 @@
 -- AS 'MODULE_PATHNAME', 'postfga_write_tuple'
 -- LANGUAGE C STRICT;
 
-CREATE OR REPLACE FUNCTION postfga_check(
+CREATE OR REPLACE FUNCTION postfga_check_tuple(
     object_type text,
     object_id text,
     subject_type text,
@@ -35,9 +35,43 @@ CREATE OR REPLACE FUNCTION postfga_check(
 )
 RETURNS boolean
 AS 'MODULE_PATHNAME'
-LANGUAGE C 
-STRICT 
-PARALLEL SAFE;  
+LANGUAGE C STRICT PARALLEL SAFE VOLATILE COST 10000;
+
+CREATE OR REPLACE FUNCTION postfga_write_tuple(
+    object_type text,
+    object_id text,
+    subject_type text,
+    subject_id text,
+    relation text
+)
+RETURNS boolean
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT PARALLEL SAFE VOLATILE COST 10000;
+
+CREATE OR REPLACE FUNCTION postfga_delete_tuple(
+    object_type text,
+    object_id text,
+    subject_type text,
+    subject_id text,
+    relation text
+)
+RETURNS boolean
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT PARALLEL SAFE VOLATILE COST 10000;
+
+CREATE OR REPLACE FUNCTION postfga_create_store(
+    name text
+)
+RETURNS TABLE(id text, name text)
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT PARALLEL SAFE VOLATILE COST 10000;
+
+CREATE OR REPLACE FUNCTION postfga_delete_store(
+    id text
+)
+RETURNS void
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT PARALLEL SAFE VOLATILE COST 10000;
 
 -- Create the FDW
 -- CREATE FOREIGN DATA WRAPPER postfga_fdw

@@ -10,7 +10,6 @@ namespace postfga::client
 {
     namespace
     {
-
         inline std::string make_user(const FgaTuple& r)
         {
             std::string user;

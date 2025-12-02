@@ -37,9 +37,6 @@ static int max_cache_entries = DEFAULT_CACHE_ENTRIES;
 /* Global shared memory state pointer */
 static PostfgaShmemState* postfga_shmem_state = NULL;
 
-/* GUC (guc.c 에서 정의한다고 가정) */
-int postfga_l2_cache_size = 16384;
-
 /*-------------------------------------------------------------------------
  * Static helpers (private)
  *-------------------------------------------------------------------------*/
@@ -130,7 +127,6 @@ static void _initialize_state(bool found)
     }
 
     /* Named LWLock tranche에서 락 배열 가져오기 */
-    ereport(LOG, (errmsg("PostFGA: 4. GetNamedLWLockTranche")));
     locks = GetNamedLWLockTranche(POSTFGA_LWLOCK_TRANCHE_NAME);
 
     /* state 내 락 포인터 설정 */
@@ -146,7 +142,8 @@ static void _initialize_state(bool found)
     ptr += MAXALIGN(sizeof(PostfgaShmemState));
 
     postfga_shmem_state->channel = (FgaChannel*)ptr;
-    postfga_shmem_state->channel->lock = &locks[1].lock;
+    postfga_shmem_state->channel->pool_lock = &locks[1].lock;
+    postfga_shmem_state->channel->queue_lock = &locks[2].lock;
     ptr += postfga_channel_shmem_size(cfg->max_slots);
 
     postfga_channel_shmem_init(postfga_shmem_state->channel, cfg->max_slots);

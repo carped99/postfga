@@ -1,4 +1,3 @@
-
 #include "channel_factory.hpp"
 
 namespace postfga::client

@@ -46,6 +46,7 @@ typedef enum FgaRequestType
     FGA_REQUEST_LIST,
     FGA_REQUEST_GET_STORE,
     FGA_REQUEST_CREATE_STORE,
+    FGA_REQUEST_DELETE_STORE,
 } FgaRequestType;
 
 typedef struct FgaCheckTupleRequest
@@ -56,37 +57,29 @@ typedef struct FgaCheckTupleRequest
 
 typedef struct FgaCheckTupleResponse
 {
-    uint16_t op_count;
-    uint16_t _pad;
     bool allow;
 } FgaCheckTupleResponse;
 
 typedef struct FgaWriteTupleRequest
 {
-    uint16_t op_count; /* slot의 op_count와 동일하게 유지 */
-    uint16_t _pad;
-    FgaTuple tuples[FGA_MAX_BATCH];
+    char store_id[STORE_ID_LEN];
+    FgaTuple tuple;
 } FgaWriteTupleRequest;
 
 typedef struct FgaWriteTupleResponse
 {
-    uint16_t op_count;
-    uint16_t _pad;
-    int32_t error_codes[FGA_MAX_BATCH]; /* 0=OK, others=error */
+    bool success;
 } FgaWriteTupleResponse;
 
 typedef struct FgaDeleteTupleRequest
 {
-    uint16_t op_count; /* slot의 op_count와 동일하게 유지 */
-    uint16_t _pad;
-    FgaTuple tuples[FGA_MAX_BATCH];
+    char store_id[STORE_ID_LEN];
+    FgaTuple tuple;
 } FgaDeleteTupleRequest;
 
 typedef struct FgaDeleteTupleResponse
 {
-    uint16_t op_count;
-    uint16_t _pad;
-    int32_t error_codes[FGA_MAX_BATCH]; /* 0=OK, others=error */
+    bool success;
 } FgaDeleteTupleResponse;
 
 /* store 조회 */
@@ -106,16 +99,23 @@ typedef struct FgaGetStoreResponse
 typedef struct FgaCreateStoreRequest
 {
     char name[STORE_NAME_LEN];
-    char owner_subject_type[32];
-    char owner_subject_id[64];
 } FgaCreateStoreRequest;
 
 typedef struct FgaCreateStoreResponse
 {
-    bool success;
-    char store_id[STORE_ID_LEN];
-    int32_t error_code;
+    char id[STORE_ID_LEN];
+    char name[STORE_NAME_LEN];
 } FgaCreateStoreResponse;
+
+typedef struct FgaDeleteStoreRequest
+{
+    char store_id[STORE_ID_LEN];
+} FgaDeleteStoreRequest;
+
+typedef struct FgaDeleteStoreResponse
+{
+    // Empty
+} FgaDeleteStoreResponse;
 
 typedef struct FgaRequest
 {
@@ -129,6 +129,7 @@ typedef struct FgaRequest
         FgaDeleteTupleRequest deleteTuple;
         FgaGetStoreRequest getStore;
         FgaCreateStoreRequest createStore;
+        FgaDeleteStoreRequest deleteStore;
         /* 나중에 추가 예정인 op 들도 여기에 계속 추가 */
     } body;
 } FgaRequest;
@@ -145,6 +146,7 @@ typedef struct FgaResponse
         FgaDeleteTupleResponse deleteTuple;
         FgaGetStoreResponse getStore;
         FgaCreateStoreResponse createStore;
+        FgaDeleteStoreResponse deleteStore;
     } body;
 } FgaResponse;
 

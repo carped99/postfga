@@ -12,9 +12,10 @@ extern "C"
 #include <cstring>
 #include <utility>
 
+#include "config/config.hpp"
 #include "channel.h"
 #include "payload.h"
-#include "client/client_factory.hpp"
+#include "client/client.hpp"
 #include "processor.hpp"
 #include "util/logger.hpp"
 

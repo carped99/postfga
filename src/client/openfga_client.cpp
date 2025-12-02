@@ -139,4 +139,7 @@ namespace postfga::client
         // ex) inflight_.wait_until_zero(timeout) 같은 메서드가 있다면 사용
         // pool_.join();
     }
+
+    void OpenFgaGrpcClient::handle_request(GetStore& req, ProcessCallback cb) {}
+    void OpenFgaGrpcClient::handle_request(InvalidRequest& req, ProcessCallback cb) {}
 } // namespace postfga::client

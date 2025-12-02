@@ -3,7 +3,9 @@
 
 #include <functional>
 #include <span>
+#include <memory>
 
+struct Config;
 struct FgaPayload;
 
 namespace postfga::client
@@ -20,8 +22,6 @@ namespace postfga::client
     class Client
     {
       public:
-        
-
         virtual ~Client() = default;
 
         virtual bool is_healthy() const = 0;
@@ -31,5 +31,6 @@ namespace postfga::client
 
         virtual void shutdown() = 0;
     };
-
+    
+    std::shared_ptr<Client> make_client(const Config& cfg);
 } // namespace postfga::client

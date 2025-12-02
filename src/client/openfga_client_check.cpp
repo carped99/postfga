@@ -35,29 +35,28 @@ namespace postfga::client
 
         struct CheckContext
         {
-            grpc::ClientContext ctx;
-            ::openfga::v1::CheckRequest req;
-            ::openfga::v1::CheckResponse res;
+            grpc::ClientContext context;
+            ::openfga::v1::CheckRequest request;
+            ::openfga::v1::CheckResponse response;
         };
 
         struct BatchCheckContext
         {
-            grpc::ClientContext ctx;
-            ::openfga::v1::BatchCheckRequest req;
-            ::openfga::v1::BatchCheckResponse res;
+            grpc::ClientContext context;
+            ::openfga::v1::BatchCheckRequest request;
+            ::openfga::v1::BatchCheckResponse response;
         };
     } // anonymous namespace
 
     void OpenFgaGrpcClient::handle_check_batch(std::vector<BatchCheckItem> items)
     {
-        auto context = std::make_shared<BatchCheckContext>();
+        auto ctx = std::make_shared<BatchCheckContext>();
 
-        context->req.set_store_id(config_.store_id);
-        context->req.set_consistency(::openfga::v1::ConsistencyPreference::HIGHER_CONSISTENCY);
-
+        ctx->request.set_store_id(config_.store_id);
+        ctx->request.set_consistency(::openfga::v1::ConsistencyPreference::HIGHER_CONSISTENCY);
         for (const auto& item : items)
         {
-            ::openfga::v1::BatchCheckItem *check = context->req.add_checks();
+            ::openfga::v1::BatchCheckItem *check = ctx->request.add_checks();
             check->set_correlation_id(std::to_string(item.params.request_id()));
 
             const FgaCheckTupleRequest& request = item.params.request();
@@ -66,14 +65,13 @@ namespace postfga::client
         }
         
         // Set deadline
-        context->ctx.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(config_.timeout_ms));
+        ctx->context.set_deadline(std::chrono::system_clock::now() + config_.timeout);
 
-        
-        auto callback = [context, items = std::move(items)](::grpc::Status status) mutable
+        auto callback = [ctx, items = std::move(items)](::grpc::Status status)
         {
             if (status.ok())
             {
-                const auto& result_map = context->res.result();
+                const auto& result_map = ctx->response.result();
                 for (auto& item : items)
                 {
                     const auto& correlation_id = std::to_string( item.params.request_id() );
@@ -89,19 +87,19 @@ namespace postfga::client
                         const auto& res = it->second;
                         if (res.has_allowed())
                         {
-                            out.body.checkTuple.allow = res.allowed();
                             out.status = FGA_RESPONSE_OK;
+                            out.body.checkTuple.allow = res.allowed();
                         }
                         else if (res.has_error())
                         {
-                            out.body.checkTuple.allow = false;
                             out.status = FGA_RESPONSE_SERVER_ERROR;
+                            out.body.checkTuple.allow = false;
                             strlcpy(out.error_message, res.error().message().c_str(), sizeof(out.error_message));
                         }
                         else
                         {
-                            out.body.checkTuple.allow = false;
                             out.status = FGA_RESPONSE_CLIENT_ERROR;
+                            out.body.checkTuple.allow = false;
                             strlcpy(out.error_message, "Invalid response received", sizeof(out.error_message));
                         }
                     }
@@ -121,43 +119,35 @@ namespace postfga::client
             }
         };
 
-        stub_->async()->BatchCheck(&context->ctx, &context->req, &context->res, std::move(callback));
+        stub_->async()->BatchCheck(&ctx->context, &ctx->request, &ctx->response, std::move(callback));
     }
 
 
     void OpenFgaGrpcClient::handle_request(CheckTuple& req, ProcessCallback cb)
     {
-        auto context = std::make_shared<CheckContext>();
-        fill_check_request(config_, req, context->req);
+        auto ctx = std::make_shared<CheckContext>();
+        fill_check_request(config_, req, ctx->request);
         
         // Set deadline
-        context->ctx.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(config_.timeout_ms));
+        ctx->context.set_deadline(std::chrono::system_clock::now() + config_.timeout);
 
-        auto callback = [context, req, cb = std::move(cb)](::grpc::Status status) mutable
+        auto callback = [ctx, req, cb = std::move(cb)](::grpc::Status status)
         {
             FgaResponse& res = req.response();
             if (status.ok())
             {
-                res.body.checkTuple.allow = context->res.allowed();
                 res.status = FGA_RESPONSE_OK;
+                res.body.checkTuple.allow = ctx->response.allowed();
             }
             else
             {
-                res.body.checkTuple.allow = false;
                 res.status = FGA_RESPONSE_CLIENT_ERROR;
+                res.body.checkTuple.allow = false;
                 strlcpy(res.error_message, status.error_message().c_str(), sizeof(res.error_message));
             }
             cb();
         };
 
-        stub_->async()->Check(&context->ctx, &context->req, &context->res, std::move(callback));
-        // res.status = FGA_RESPONSE_OK;
-        // cb();
+        stub_->async()->Check(&ctx->context, &ctx->request, &ctx->response, std::move(callback));
     }
-
-    void OpenFgaGrpcClient::handle_request(WriteTuple& req, ProcessCallback cb) {}
-    void OpenFgaGrpcClient::handle_request(DeleteTuple& req, ProcessCallback cb) {}
-    void OpenFgaGrpcClient::handle_request(GetStoreRequest& req, ProcessCallback cb) {}
-    void OpenFgaGrpcClient::handle_request(CreateStoreRequest& req, ProcessCallback cb) {}
-    void OpenFgaGrpcClient::handle_request(InvalidRequest& req, ProcessCallback cb) {}
 } // namespace postfga::client

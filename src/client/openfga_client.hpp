@@ -44,8 +44,9 @@ namespace postfga::client
         void handle_request(CheckTuple& req, ProcessCallback cb);
         void handle_request(WriteTuple& req, ProcessCallback cb);
         void handle_request(DeleteTuple& req, ProcessCallback cb);
-        void handle_request(GetStoreRequest& req, ProcessCallback cb);
-        void handle_request(CreateStoreRequest& req, ProcessCallback cb);
+        void handle_request(GetStore& req, ProcessCallback cb);
+        void handle_request(CreateStore& req, ProcessCallback cb);
+        void handle_request(DeleteStore& req, ProcessCallback cb);
         void handle_request(InvalidRequest& req, ProcessCallback cb);
 
         Config config_;
