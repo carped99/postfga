@@ -3,29 +3,24 @@
 -- Create schema for the extension
 -- CREATE SCHEMA IF NOT EXISTS postfga_fdw;
 
--- -- FDW handler function
--- CREATE FUNCTION postfga_fdw_handler()
---   RETURNS fdw_handler
---   AS 'MODULE_PATHNAME', 'postfga_fdw_handler'
---   LANGUAGE C STRICT;
+-- FDW handler function
+CREATE FUNCTION postfga_fdw_handler()
+RETURNS fdw_handler
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT;
 
--- -- FDW validator function
--- CREATE FUNCTION postfga_fdw_validator(text[], oid)
---   RETURNS void
---   AS 'MODULE_PATHNAME', 'postfga_fdw_validator'
---   LANGUAGE C STRICT;
+-- FDW validator function
+CREATE FUNCTION postfga_fdw_validator(text[], oid)
+RETURNS void
+AS 'MODULE_PATHNAME'
+LANGUAGE C STRICT;
 
--- CREATE OR REPLACE FUNCTION postfga_write_tuple(
---     object_type text,
---     object_id text,
---     subject_type text,
---     subject_id text,
---     relation text
--- )
--- RETURNS boolean
--- AS 'MODULE_PATHNAME', 'postfga_write_tuple'
--- LANGUAGE C STRICT;
+-- Create the FDW
+CREATE FOREIGN DATA WRAPPER postfga_fdw
+    HANDLER postfga_fdw_handler
+    VALIDATOR postfga_fdw_validator;
 
+-- Core functions for permission checking and tuple management
 CREATE OR REPLACE FUNCTION postfga_check_tuple(
     object_type text,
     object_id text,
@@ -73,10 +68,7 @@ RETURNS void
 AS 'MODULE_PATHNAME'
 LANGUAGE C STRICT PARALLEL SAFE VOLATILE COST 10000;
 
--- Create the FDW
--- CREATE FOREIGN DATA WRAPPER postfga_fdw
---   HANDLER postfga_fdw_handler
---   VALIDATOR postfga_fdw_validator;
+
 
 -- -- Grant usage to public (can be restricted later)
 -- GRANT USAGE ON FOREIGN DATA WRAPPER postfga_fdw TO PUBLIC;

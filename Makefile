@@ -67,7 +67,7 @@ release:
 	$(MAKE) BUILD=release
 
 # Generate compile_commands.json (for VSCode/clangd)
-bear:
+bear: clean
 	bear -- make -j12
 
 up: install

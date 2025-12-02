@@ -39,10 +39,10 @@ void _PG_init(void)
         ereport(ERROR,
                 (errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
                  errmsg("postfga must be loaded via shared_preload_libraries"),
-                 errhidestmt(true)));
+                 errhint("Add 'postfga' to shared_preload_libraries in postgresql.conf and restart the server.")));
     }
 
-    ereport(DEBUG1, (errmsg("PostFGA: initializing extension")));
+    ereport(DEBUG1, (errmsg("postfga: initializing")));
 
     // Initialize GUC parameters first (may affect shmem size/config)
     postfga_guc_init();
@@ -56,12 +56,12 @@ void _PG_init(void)
 
     postfga_bgw_init();
 
-    ereport(DEBUG1, (errmsg("PostFGA: Extension initialized")));
+    ereport(DEBUG1, (errmsg("postfga: Extension initialized")));
 }
 
 void _PG_fini(void)
 {
-    ereport(LOG, (errmsg("PostFGA: Extension unloading")));
+    ereport(LOG, (errmsg("postfga: Extension unloading")));
 
     postfga_bgw_fini();
     postfga_guc_fini();
