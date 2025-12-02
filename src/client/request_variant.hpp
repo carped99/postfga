@@ -3,77 +3,135 @@
 #include <cstdint>
 #include <variant>
 
-// forward declaration
-struct FgaRequest;
-struct FgaResponse;
-struct FgaCheckTupleRequest;
-struct FgaCheckTupleResponse;
-struct FgaWriteTupleRequest;
-struct FgaWriteTupleResponse;
-struct FgaDeleteTupleRequest;
-struct FgaDeleteTupleResponse;
-struct FgaGetStoreRequest;
-struct FgaGetStoreResponse;
-struct FgaCreateStoreRequest;
-struct FgaCreateStoreResponse;
+#include "payload.h"
 
 namespace postfga::client
 {
     struct InvalidRequest
     {
-        const FgaRequest& in;
-        FgaResponse& out;
+        FgaPayload& payload;
+        uint64_t request_id() const noexcept;
     };
+
+    inline uint64_t InvalidRequest::request_id() const noexcept
+    {
+        return payload.request.request_id;
+    }
 
     struct CheckTuple
     {
-        const FgaRequest& in;
-        FgaResponse& out;
-
-        std::uint32_t request_id() const noexcept;
-        const FgaCheckTupleRequest& payload() const noexcept;
+        FgaPayload& payload;
+        uint64_t request_id() const noexcept;
+        const FgaCheckTupleRequest& request() const noexcept;
         FgaResponse& response() const noexcept;
     };
+
+    inline uint64_t CheckTuple::request_id() const noexcept
+    {
+        return payload.request.request_id;
+    }
+
+    inline const FgaCheckTupleRequest& CheckTuple::request() const noexcept
+    {
+        return payload.request.body.checkTuple;
+    }
+
+    inline FgaResponse& CheckTuple::response() const noexcept
+    {
+        return payload.response;
+    }
 
     struct WriteTuple
     {
-        const FgaRequest& in;
-        FgaResponse& out;
-
-        std::uint32_t request_id() const noexcept;
-        const FgaWriteTupleRequest& payload() const noexcept;
+        FgaPayload& payload;
+        uint64_t request_id() const noexcept;
+        const FgaWriteTupleRequest& request() const noexcept;
         FgaResponse& response() const noexcept;
     };
+
+    inline uint64_t WriteTuple::request_id() const noexcept
+    {
+        return payload.request.request_id;
+    }
+
+    inline const FgaWriteTupleRequest& WriteTuple::request() const noexcept
+    {
+        return payload.request.body.writeTuple;
+    }
+
+    inline FgaResponse& WriteTuple::response() const noexcept
+    {
+        return payload.response;
+    }
 
     struct DeleteTuple
     {
-        const FgaRequest& in;
-        FgaResponse& out;
-
-        std::uint32_t request_id() const noexcept;
-        const FgaDeleteTupleRequest& payload() const noexcept;
+        FgaPayload& payload;
+        uint64_t request_id() const noexcept;
+        const FgaDeleteTupleRequest& request() const noexcept;
         FgaResponse& response() const noexcept;
     };
+
+    inline uint64_t DeleteTuple::request_id() const noexcept
+    {
+        return payload.request.request_id;
+    }
+
+    inline const FgaDeleteTupleRequest& DeleteTuple::request() const noexcept
+    {
+        return payload.request.body.deleteTuple;
+    }
+
+    inline FgaResponse& DeleteTuple::response() const noexcept
+    {
+        return payload.response;
+    }
 
     struct GetStoreRequest
     {
-        const FgaRequest& in;
-        FgaResponse& out;
-
-        std::uint32_t request_id() const noexcept;
-        const FgaGetStoreRequest& payload() const noexcept;
+        FgaPayload& payload;
+        uint64_t request_id() const noexcept;
+        const FgaGetStoreRequest& request() const noexcept;
         FgaResponse& response() const noexcept;
     };
+
+    inline uint64_t GetStoreRequest::request_id() const noexcept
+    {
+        return payload.request.request_id;
+    }
+
+    inline const FgaGetStoreRequest& GetStoreRequest::request() const noexcept
+    {
+        return payload.request.body.getStore;
+    }
+
+    inline FgaResponse& GetStoreRequest::response() const noexcept
+    {
+        return payload.response;
+    }
 
     struct CreateStoreRequest
     {
-        const FgaRequest& in;
-        FgaResponse& out;
-
-        std::uint32_t request_id() const noexcept;
-        const FgaCreateStoreRequest& payload() const noexcept;
+        FgaPayload& payload;
+        uint64_t request_id() const noexcept;
+        const FgaCreateStoreRequest& request() const noexcept;
         FgaResponse& response() const noexcept;
     };
+
+    inline uint64_t CreateStoreRequest::request_id() const noexcept
+    {
+        return payload.request.request_id;
+    }
+
+    inline const FgaCreateStoreRequest& CreateStoreRequest::request() const noexcept
+    {
+        return payload.request.body.createStore;
+    }
+
+    inline FgaResponse& CreateStoreRequest::response() const noexcept
+    {
+        return payload.response;
+    }
 
     using RequestVariant = std::variant<
         CheckTuple, 
@@ -83,7 +141,22 @@ namespace postfga::client
         CreateStoreRequest, 
         InvalidRequest>;
 
-    // 구현은 .cpp 에서
-    RequestVariant make_request_variant(const FgaRequest& req, FgaResponse& res);
-
+    inline RequestVariant make_request_variant(FgaPayload& payload)
+    {
+        switch (static_cast<FgaRequestType>(payload.request.type))
+        {
+        case FGA_REQUEST_CHECK_TUPLE:
+            return CheckTuple{payload};
+        case FGA_REQUEST_WRITE_TUPLE:
+            return WriteTuple{payload};
+        case FGA_REQUEST_DELETE_TUPLE:
+            return DeleteTuple{payload};
+        case FGA_REQUEST_GET_STORE:
+            return GetStoreRequest{payload};
+        case FGA_REQUEST_CREATE_STORE:
+            return CreateStoreRequest{payload};
+        default:
+            return InvalidRequest{payload};
+        }
+    }
 } // namespace postfga::client

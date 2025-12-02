@@ -9,7 +9,7 @@
 #include <utils/timestamp.h>
 
 #include "postfga.h"
-#include "request.h"
+#include "payload.h"
 
 typedef struct FgaRelationCacheEntry
 {

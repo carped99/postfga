@@ -1,6 +1,6 @@
 
 #include "openfga_client.hpp"
-#include "request.h"
+#include "payload.h"
 #include "request_variant.hpp"
 #include "util/logger.hpp"
 
@@ -10,7 +10,7 @@ namespace postfga::client
     {
         void fill_check_request(const Config &config, const CheckTuple& in, ::openfga::v1::CheckRequest& out)
         {
-            const FgaCheckTupleRequest& payload = in.payload();
+            const FgaCheckTupleRequest& payload = in.request();
             const FgaTuple& tuple = payload.tuple;
             if (payload.store_id[0] != '\0')
                 out.set_store_id(payload.store_id);
@@ -60,8 +60,9 @@ namespace postfga::client
             ::openfga::v1::BatchCheckItem *check = context->req.add_checks();
             check->set_correlation_id(std::to_string(item.params.request_id()));
 
+            const FgaCheckTupleRequest& request = item.params.request();
             ::openfga::v1::CheckRequestTupleKey* tupleKey = check->mutable_tuple_key();
-            fill_tuple_key(item.params.payload().tuple, tupleKey);
+            fill_tuple_key(request.tuple, tupleKey);
         }
         
         // Set deadline

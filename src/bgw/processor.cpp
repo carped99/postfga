@@ -13,6 +13,7 @@ extern "C"
 #include <utility>
 
 #include "channel.h"
+#include "payload.h"
 #include "client/client_factory.hpp"
 #include "processor.hpp"
 #include "util/logger.hpp"
@@ -39,7 +40,7 @@ namespace postfga::bgw
         if (count == 1) {
             FgaChannelSlot* slot = slots[0];
             if (beginProcessing(*slot)) {
-                client_->process(slot->request, slot->response, [this, slot]()
+                client_->process(slot->payload, [this, slot]()
                 {
                     completeProcessing(slot);
                 });
@@ -60,8 +61,7 @@ namespace postfga::bgw
                 //     completeProcessing(slot);
                 // });
 
-                items[batch_count].request  = &slot->request;
-                items[batch_count].response = &slot->response;
+                items[batch_count].payload  = &slot->payload;
                 items[batch_count].callback = [this, slot]()
                 {
                     completeProcessing(slot);
@@ -145,7 +145,7 @@ namespace postfga::bgw
     {
         ereport(WARNING, errmsg("postfga: exception in processing request: %s", msg ? msg : "unknown"));
 
-        FgaResponse& resp = slot.response;
+        FgaResponse& resp = slot.payload.response;
         MemSet(&resp, 0, sizeof(resp));
         resp.status = FGA_RESPONSE_SERVER_ERROR;
         if (msg && *msg)

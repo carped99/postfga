@@ -59,8 +59,8 @@ static FgaChannelSlot* write_request(FgaChannel* channel, const FgaRequest* requ
 
     /* 2) slot 내용 먼저 다 쓰기 */
     slot->backend_pid = MyProcPid;
-    slot->request = *request;
-    slot->request.request_id = pg_atomic_add_fetch_u64(&channel->request_id, 1);
+    slot->payload.request = *request;
+    slot->payload.request.request_id = pg_atomic_add_fetch_u64(&channel->request_id, 1);
 
     if (!queue_enqueue(channel->queue, index))
     {
@@ -180,7 +180,9 @@ void postfga_channel_execute(const FgaRequest* const request, FgaResponse* const
     }
 
     pg_read_barrier();
-    memcpy(response, &slot->response, sizeof(FgaResponse));
+
+    // copy response
+    *response = slot->payload.response;
 
     postfga_channel_release_slot(channel, slot);
 }

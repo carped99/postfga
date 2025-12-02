@@ -4,8 +4,7 @@
 #include <functional>
 #include <span>
 
-struct FgaRequest;
-struct FgaResponse;
+struct FgaPayload;
 
 namespace postfga::client
 {
@@ -14,8 +13,7 @@ namespace postfga::client
 
     struct ProcessItem
     {
-        const FgaRequest* request;
-        FgaResponse*      response;
+        FgaPayload* payload;
         ProcessCallback   callback;
     };
 
@@ -28,7 +26,7 @@ namespace postfga::client
 
         virtual bool is_healthy() const = 0;
 
-        virtual void process(const FgaRequest& req, FgaResponse& res, ProcessCallback cb) = 0;
+        virtual void process(FgaPayload& payload, ProcessCallback cb) = 0;
         virtual void process_batch(std::span<ProcessItem> items) = 0;
 
         virtual void shutdown() = 0;

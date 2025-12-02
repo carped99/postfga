@@ -3,7 +3,7 @@
 #include <string>
 
 #include "openfga/v1/openfga_service.grpc.pb.h"
-#include "request.h"
+#include "payload.h"
 #include "request_variant.hpp"
 
 namespace postfga::client

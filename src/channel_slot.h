@@ -12,7 +12,7 @@ extern "C"
 #include <miscadmin.h>
 #include <port/atomics.h>
 
-#include "request.h"
+#include "payload.h"
 
     typedef uint16_t FgaChannelSlotIndex;
 
@@ -30,8 +30,7 @@ extern "C"
         slist_node node;        /* 내부 연결 리스트 용도 */
         pg_atomic_uint32 state; /* FgaChannelSlotState */
         pid_t backend_pid;      /* 요청한 백엔드 PID */
-        FgaRequest request;     /* 요청 내용 */
-        FgaResponse response;   /* 응답 내용 */
+        FgaPayload payload;     /* 요청 내용 */
     } FgaChannelSlot;
 
     typedef struct FgaChannelSlotPool
@@ -58,12 +57,11 @@ extern "C"
         {
             FgaChannelSlot* slot = &pool->slots[i];
 
-            slist_push_head(&pool->head, &slot->node);
-
             pg_atomic_init_u32(&slot->state, FGA_CHANNEL_SLOT_EMPTY);
             slot->backend_pid = InvalidPid;
-            MemSet(&slot->request, 0, sizeof(FgaRequest));
-            MemSet(&slot->response, 0, sizeof(FgaResponse));
+            MemSet(&slot->payload, 0, sizeof(slot->payload));
+
+            slist_push_head(&pool->head, &slot->node);
         }
     }
 

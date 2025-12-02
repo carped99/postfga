@@ -1,5 +1,5 @@
-#ifndef POSTFGA_TUPLE_H
-#define POSTFGA_TUPLE_H
+#ifndef POSTFGA_PAYLOAD_H
+#define POSTFGA_PAYLOAD_H
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -148,4 +148,10 @@ typedef struct FgaResponse
     } body;
 } FgaResponse;
 
-#endif // POSTFGA_TUPLE_H
+typedef struct FgaPayload
+{
+    FgaRequest  request;
+    FgaResponse response;
+} FgaPayload;
+
+#endif // POSTFGA_PAYLOAD_H

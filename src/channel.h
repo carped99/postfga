@@ -14,7 +14,7 @@ extern "C"
 #include <storage/lwlock.h>
 
 #include "channel_slot.h"
-#include "request.h"
+#include "payload.h"
 
 #ifdef __cplusplus
 }

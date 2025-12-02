@@ -59,9 +59,9 @@ namespace postfga::client
         // return channel_->WaitForConnected(deadline);
     }
 
-    void OpenFgaGrpcClient::process(const FgaRequest& req, FgaResponse& res, ProcessCallback cb)
+    void OpenFgaGrpcClient::process(FgaPayload& payload, ProcessCallback cb)
     {
-        auto variant = make_request_variant(req, res);
+        auto variant = make_request_variant(payload);
         std::visit([this, callback = std::move(cb)](auto& arg) mutable { this->handle_request(arg, std::move(callback)); }, variant);
     }
 
@@ -93,7 +93,7 @@ namespace postfga::client
         if (size == 1)
         {
             auto& item = items.front();
-            auto variant = make_request_variant(*item.request, *item.response);
+            auto variant = make_request_variant(*item.payload);
             std::visit([this, callback = std::move(item.callback)](auto& arg) mutable { this->handle_request(arg, std::move(callback)); }, variant);
             return;
         }
@@ -103,7 +103,7 @@ namespace postfga::client
 
         for (auto& item : items)
         {
-            auto variant = make_request_variant(*item.request, *item.response);
+            auto variant = make_request_variant(*item.payload);
             if (std::holds_alternative<CheckTuple>(variant))
             {
                 auto& params = std::get<CheckTuple>(variant);
