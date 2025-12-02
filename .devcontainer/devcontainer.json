@@ -1,29 +1,29 @@
 {
-    "name": "openfga_fdw Development",
-    "dockerComposeFile": [
-        "../docker/docker-compose.yml"
-    ],
-    "service": "dev",
-    "workspaceFolder": "/workspace",
-    "remoteUser": "root",
-    "shutdownAction": "stopCompose",
-      "customizations": {
+  "name": "openfga_fdw Development",
+  "dockerComposeFile": [
+    "../docker/docker-compose.yml"
+  ],
+  "service": "dev",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "root",
+  "shutdownAction": "stopCompose",
+  "customizations": {
     "vscode": {
       "extensions": [
         "ms-vscode.cpptools",
         "ms-vscode.cpptools-extension-pack"
       ],
       "settings": {
-        "C_Cpp.default.compileCommands": "${workspaceFolder}/compile_commands.json",
-        "C_Cpp.default.cppStandard": "c++20",
         "C_Cpp.default.cStandard": "c11",
-        "C_Cpp.default.intelliSenseMode": "linux-clang-x64",
+        "C_Cpp.default.cppStandard": "c++20",
+        "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
+        "C_Cpp.default.compileCommands": "${workspaceFolder}/compile_commands.json",
         "C_Cpp.intelliSenseEngine": "default",
         "C_Cpp.formatting": "default",
         "C_Cpp.clang_format_fallbackStyle": "Google",
         "C_Cpp.default.systemIncludePath": [
           "${workspaceFolder}/api",
-          "/usr/include",
+          "/usr/include/linux",
           "/usr/local/include"
         ]
       }

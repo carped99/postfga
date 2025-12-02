@@ -17,7 +17,7 @@ OBJS := $(addsuffix .o,$(basename $(SRCS)))
 # --------------------------------------------------------------
 # Compile flags
 # --------------------------------------------------------------
-PG_CPPFLAGS += -I./src -I./api -Ithird_party/asio/asio/include
+PG_CPPFLAGS += -I./src -I./api
 PG_CXXFLAGS += -std=c++20 -Wall -Wextra \
 				-DASIO_STANDALONE \
 				-DASIO_NO_DEPRECATED
