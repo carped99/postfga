@@ -59,6 +59,12 @@ namespace postfga::client
         // return channel_->WaitForConnected(deadline);
     }
 
+    void OpenFgaGrpcClient::process(const FgaRequest& req, FgaResponse& res, ProcessCallback cb)
+    {
+        auto variant = make_request_variant(req, res);
+        std::visit([this, callback = std::move(cb)](auto& arg) mutable { this->handle_request(arg, std::move(callback)); }, variant);
+    }
+
     void OpenFgaGrpcClient::process_batch(std::span<ProcessItem> items)
     {
         // if (stopping_.load(std::memory_order_relaxed))

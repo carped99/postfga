@@ -52,6 +52,9 @@ namespace postfga::client
     {
         auto context = std::make_shared<BatchCheckContext>();
 
+        context->req.set_store_id(config_.store_id);
+        context->req.set_consistency(::openfga::v1::ConsistencyPreference::HIGHER_CONSISTENCY);
+
         for (const auto& item : items)
         {
             ::openfga::v1::BatchCheckItem *check = context->req.add_checks();
@@ -64,6 +67,7 @@ namespace postfga::client
         // Set deadline
         context->ctx.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(config_.timeout_ms));
 
+        
         auto callback = [context, items = std::move(items)](::grpc::Status status) mutable
         {
             if (status.ok())
@@ -128,7 +132,7 @@ namespace postfga::client
         // Set deadline
         context->ctx.set_deadline(std::chrono::system_clock::now() + std::chrono::milliseconds(config_.timeout_ms));
 
-        auto callback = [context, &req, cb = std::move(cb)](::grpc::Status status) mutable
+        auto callback = [context, req, cb = std::move(cb)](::grpc::Status status) mutable
         {
             FgaResponse& res = req.response();
             if (status.ok())

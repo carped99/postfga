@@ -29,6 +29,10 @@ services:
       - pg_share:/usr/share/postgresql/18/extension
     working_dir: /workspace      
     command: ["bash", "-lc", "sleep infinity"]
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined    
 
   openfga:
     image: openfga/openfga:latest

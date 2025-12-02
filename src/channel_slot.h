@@ -30,7 +30,6 @@ extern "C"
         slist_node node;        /* 내부 연결 리스트 용도 */
         pg_atomic_uint32 state; /* FgaChannelSlotState */
         pid_t backend_pid;      /* 요청한 백엔드 PID */
-        uint64 request_id;      /* 요청 식별자 */
         FgaRequest request;     /* 요청 내용 */
         FgaResponse response;   /* 응답 내용 */
     } FgaChannelSlot;
@@ -63,7 +62,6 @@ extern "C"
 
             pg_atomic_init_u32(&slot->state, FGA_CHANNEL_SLOT_EMPTY);
             slot->backend_pid = InvalidPid;
-            slot->request_id = 0;
             MemSet(&slot->request, 0, sizeof(FgaRequest));
             MemSet(&slot->response, 0, sizeof(FgaResponse));
         }

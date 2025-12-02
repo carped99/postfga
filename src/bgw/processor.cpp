@@ -36,34 +36,44 @@ namespace postfga::bgw
         FgaChannelSlot* slots[MAX_BATCH];
         uint16_t count = postfga_channel_drain_slots(channel, MAX_BATCH, slots);
 
-        postfga::client::ProcessItem items[MAX_BATCH];
-        // FgaChannelSlot* batch_slots[MAX_BATCH];
-        uint16_t batch_count = 0;
+        if (count == 1) {
+            FgaChannelSlot* slot = slots[0];
+            if (beginProcessing(*slot)) {
+                client_->process(slot->request, slot->response, [this, slot]()
+                {
+                    completeProcessing(slot);
+                });
+            }
+        } else if (count > 1) {
+            postfga::client::ProcessItem items[MAX_BATCH];
+            uint16_t batch_count = 0;
 
-        for (uint16_t i = 0; i < count; ++i)
-        {
-            FgaChannelSlot* slot = slots[i];
-
-            if (!beginProcessing(*slot))
-                continue;
-
-            items[batch_count].request  = &slot->request;
-            items[batch_count].response = &slot->response;
-            items[batch_count].callback = [this, slot]()
+            for (uint16_t i = 0; i < count; ++i)
             {
-                completeProcessing(slot);
-            };                
+                FgaChannelSlot* slot = slots[i];
 
-            // batch_slots[batch_count] = slot;
-            ++batch_count;
-        }
+                if (!beginProcessing(*slot))
+                    continue;
 
-        if (batch_count > 0)
-        {
-            ereport(LOG, errmsg("postfga: 3. processing batch of %u requests", batch_count));
-            std::span<postfga::client::ProcessItem> span(items, batch_count);
-            ereport(LOG, errmsg("postfga: 4. processing batch of %u requests", batch_count));
-            client_->process_batch(span);
+                // client_->process(slot->request, slot->response, [this, slot]()
+                // {
+                //     completeProcessing(slot);
+                // });
+
+                items[batch_count].request  = &slot->request;
+                items[batch_count].response = &slot->response;
+                items[batch_count].callback = [this, slot]()
+                {
+                    completeProcessing(slot);
+                };                
+                ++batch_count;
+            }
+
+            if (batch_count > 0)
+            {
+                std::span<postfga::client::ProcessItem> span(items, batch_count);
+                client_->process_batch(span);
+            }
         }
 
         std::vector<FgaChannelSlot*> local;
@@ -102,10 +112,9 @@ namespace postfga::bgw
         return false;
     }
 
+    // 완료된 슬롯을 BGW 메인 루프에 알림 (외부 Thread에서 호출되므로 절대 postgresql 함수 호출 금지)
     void Processor::completeProcessing(FgaChannelSlot* slot) noexcept
     {
-        ereport(LOG, errmsg("postfga: marking slot as completed"));
-        
         std::lock_guard<std::mutex> lock(completed_mu_);
         completed_.push_back(slot);
         SetLatch(MyLatch);

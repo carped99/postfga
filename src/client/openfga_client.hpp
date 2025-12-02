@@ -34,6 +34,7 @@ namespace postfga::client
 
         bool is_healthy() const;
 
+        void process(const FgaRequest& req, FgaResponse& res, ProcessCallback cb) override;
         void process_batch(std::span<ProcessItem> items) override;
 
         void shutdown() override;
