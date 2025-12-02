@@ -20,10 +20,12 @@ namespace postfga::bgw
 
       private:
         bool beginProcessing(FgaChannelSlot& slot) noexcept;
-        void completeProcessing(FgaChannelSlot* slot) noexcept;
         void handleResponse(FgaChannelSlot& slot);
         void handleException(FgaChannelSlot& slot, const char* msg) noexcept;
         void wakeBackend(FgaChannelSlot& slot);
+        
+        void enqueueCompleted(FgaChannelSlot* slot) noexcept;
+        void drainCompleted() noexcept;
 
       private:
         static constexpr uint32_t MAX_BATCH_SIZE = 32;
@@ -32,7 +34,7 @@ namespace postfga::bgw
         postfga::util::Counter inflight_;
 
         std::mutex completed_mu_;
-        std::vector<FgaChannelSlot*> completed_;
+        std::vector<FgaChannelSlot*> completed_queue_;
     };
 
 } // namespace postfga::bgw

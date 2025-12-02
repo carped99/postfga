@@ -42,7 +42,7 @@ namespace postfga::bgw
             if (beginProcessing(*slot)) {
                 client_->process(slot->payload, [this, slot]()
                 {
-                    completeProcessing(slot);
+                    enqueueCompleted(slot);
                 });
             }
         } else if (count > 1) {
@@ -64,7 +64,7 @@ namespace postfga::bgw
                 items[batch_count].payload  = &slot->payload;
                 items[batch_count].callback = [this, slot]()
                 {
-                    completeProcessing(slot);
+                    enqueueCompleted(slot);
                 };                
                 ++batch_count;
             }
@@ -76,18 +76,7 @@ namespace postfga::bgw
             }
         }
 
-        std::vector<FgaChannelSlot*> local;
-        {
-            std::lock_guard<std::mutex> lock(completed_mu_);
-            if (completed_.empty())
-                return;
-            local.swap(completed_);
-        }
-
-        for (auto* slot : local)
-        {
-            handleResponse(*slot);
-        }
+        drainCompleted();
     }
 
     bool Processor::beginProcessing(FgaChannelSlot& slot) noexcept
@@ -113,11 +102,33 @@ namespace postfga::bgw
     }
 
     // 완료된 슬롯을 BGW 메인 루프에 알림 (외부 Thread에서 호출되므로 절대 postgresql 함수 호출 금지)
-    void Processor::completeProcessing(FgaChannelSlot* slot) noexcept
+    void Processor::enqueueCompleted(FgaChannelSlot* slot) noexcept
     {
-        std::lock_guard<std::mutex> lock(completed_mu_);
-        completed_.push_back(slot);
+        {
+            std::lock_guard<std::mutex> lock(completed_mu_);
+            completed_queue_.push_back(slot);
+        }
         SetLatch(MyLatch);
+    }
+
+    void Processor::drainCompleted() noexcept
+    {
+        std::vector<FgaChannelSlot*> local;
+        {
+            std::lock_guard<std::mutex> lock(completed_mu_);
+            if (completed_queue_.empty())
+            {
+                return;
+            }
+
+            local.swap(completed_queue_);
+            completed_queue_.reserve(10);
+        }
+
+        for (auto* slot : local)
+        {
+            handleResponse(*slot);
+        }
     }
 
     void Processor::handleResponse(FgaChannelSlot& slot)
