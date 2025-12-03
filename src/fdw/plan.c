@@ -11,21 +11,20 @@
 
 void postfgaGetForeignRelSize(PlannerInfo* root, RelOptInfo* baserel, Oid foreigntableid)
 {
-    PostfgaTableOptions* opts = postfga_get_table_options(foreigntableid);
-
-    if (baserel->baserestrictinfo == NIL)
-        ereport(ERROR, errmsg("full scan not allowed for postfga_tuple"));
+    PostfgaFdwTableOptions* opts = postfga_get_table_options(foreigntableid);
 
     switch (opts->kind)
     {
     case POSTFGA_FDW_TABLE_KIND_ACL:
         baserel->rows = 10000;
+        if (baserel->baserestrictinfo == NIL)
+            ereport(ERROR, errmsg("full scan not allowed for postfga_tuple"));
         break;
     case POSTFGA_FDW_TABLE_KIND_TUPLE:
-        baserel->rows = 1000; /* TODO: 적당히 추정 */
+        baserel->rows = 10000; /* TODO: 적당히 추정 */
         break;
     case POSTFGA_FDW_TABLE_KIND_STORE:
-        baserel->rows = 500;
+        baserel->rows = 10000;
         break;
     default:
         baserel->rows = 100;

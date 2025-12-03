@@ -11,30 +11,36 @@
 #include <nodes/pathnodes.h>
 #include <utils/rel.h>
 
+#define POSTFGA_FDW_TABLE_KIND_NAME "kind"
+#define POSTFGA_FDW_TABLE_KIND_ACL_NAME "acl"
+#define POSTFGA_FDW_TABLE_KIND_TUPLE_NAME "tuple"
+#define POSTFGA_FDW_TABLE_KIND_STORE_NAME "store"
+
 /* 테이블 종류 */
-typedef enum PostfgaTableKind
+typedef enum PostfgaFdwTableKind
 {
     POSTFGA_FDW_TABLE_KIND_UNKNOWN = 0,
     POSTFGA_FDW_TABLE_KIND_ACL,
     POSTFGA_FDW_TABLE_KIND_TUPLE,
     POSTFGA_FDW_TABLE_KIND_STORE,
-} PostfgaTableKind;
+} PostfgaFdwTableKind;
 
 /* foreign table / server 옵션 */
-typedef struct PostfgaTableOptions
+typedef struct PostfgaFdwTableOptions
 {
-    PostfgaTableKind kind;
-    char* endpoint; /* 필요시 사용 (/tuples, /acl 등) */
-    char* base_url; /* 서버 전체 옵션 예: http://openfga:8080 */
-} PostfgaTableOptions;
+    PostfgaFdwTableKind kind;
+    char* endpoint;
+    char* store_id;
+    char* auth_model_id;
+} PostfgaFdwTableOptions;
 
 /* executor 상태 */
-typedef struct PostfgaExecState
+typedef struct PostfgaFdwExecState
 {
-    PostfgaTableOptions* opts;
+    PostfgaFdwTableOptions* opts;
     int row; /* 데모용 row index */
     /* TODO: 여기에 BGW 채널 핸들, gRPC client 핸들 등 추가 */
-} PostfgaExecState;
+} PostfgaFdwExecState;
 
 /* ---------- options.c ---------- */
 
@@ -42,7 +48,7 @@ typedef struct PostfgaExecState
  * foreigntable OID 기준으로 옵션 파싱
  * (필요하면 FdwRoutine의 fdw_private로도 넘길 수 있음)
  */
-extern PostfgaTableOptions* postfga_get_table_options(Oid foreigntableid);
+extern PostfgaFdwTableOptions* postfga_get_table_options(Oid foreigntableid);
 
 /* ---------- plan.c ---------- */
 

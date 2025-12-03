@@ -2,7 +2,7 @@
 # 1단계: 개발용 이미지
 # ------------------------------------------------------------
 ARG PG_MAJOR=18
-FROM postgis/postgis:${PG_MAJOR}-3.6 AS dev-builder
+FROM postgres:${PG_MAJOR} AS dev-builder
 
 # Install build toolchain and headers
 RUN apt-get update && apt-get install -y --no-install-recommends \

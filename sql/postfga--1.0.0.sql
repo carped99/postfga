@@ -17,8 +17,8 @@ LANGUAGE C STRICT;
 
 -- Create the FDW
 CREATE FOREIGN DATA WRAPPER postfga_fdw
-    HANDLER postfga_fdw_handler
-    VALIDATOR postfga_fdw_validator;
+  HANDLER postfga_fdw_handler
+  VALIDATOR postfga_fdw_validator;
 
 -- Core functions for permission checking and tuple management
 CREATE OR REPLACE FUNCTION postfga_check_tuple(
