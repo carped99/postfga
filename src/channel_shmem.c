@@ -1,11 +1,10 @@
-
-#include "channel_shmem.h"
 #include <postgres.h>
 
 #include <storage/shmem.h>
 #include <utils/guc.h>
 
 #include "channel.h"
+#include "channel_shmem.h"
 #include "channel_slot.h"
 #include "config.h"
 
@@ -85,10 +84,13 @@ Size postfga_channel_shmem_size(void)
     return size;
 }
 
-void postfga_channel_shmem_init(FgaChannel* ch)
+void postfga_channel_shmem_init(FgaChannel* ch, LWLock* pool_lock, LWLock* queue_lock)
 {
     FgaChannelSlotPool* pool;
     FgaChannelSlotQueue* queue;
+
+    ch->pool_lock = pool_lock;
+    ch->queue_lock = queue_lock;
 
     uint32 slot_count = compute_slot_size();
     uint32 queue_capacity = pow2_ceil(slot_count);

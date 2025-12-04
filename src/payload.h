@@ -7,7 +7,7 @@
 #include "postfga.h"
 
 #define FGA_MAX_BATCH 64
-#define FGA_RESPONSE_ERROR_MESSAGE 128
+#define FGA_RESPONSE_ERROR_MESSAGE_LEN 128
 
 typedef struct FgaTuple
 {
@@ -132,7 +132,7 @@ typedef struct FgaRequest
 typedef struct FgaResponse
 {
     uint16_t status; /* FgaResponseStatus */
-    char error_message[FGA_RESPONSE_ERROR_MESSAGE];
+    char error_message[FGA_RESPONSE_ERROR_MESSAGE_LEN];
 
     union
     {

@@ -22,15 +22,4 @@
 #define DEFAULT_CACHE_ENTRIES 10000
 #define DEFAULT_GEN_MAP_SIZE 1024
 
-/* -------------------------------------------------------------------------
- * Types
- * ------------------------------------------------------------------------- */
-typedef struct FgaAclCacheKey
-{
-    uint64_t low;
-    uint64_t high;
-    uint16_t relation_id;
-    uint16_t pad;
-} FgaAclCacheKey;
-
 #endif /* POSTFGA_H */

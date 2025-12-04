@@ -38,6 +38,7 @@ namespace postfga::bgw
         FgaChannel* channel = channel_;
         FgaChannelSlot* slots[MAX_BATCH];
         uint16_t count = postfga_channel_drain_slots(channel, MAX_BATCH, slots);
+        
 
         if (count == 1) {
             FgaChannelSlot* slot = slots[0];

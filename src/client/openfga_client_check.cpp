@@ -14,7 +14,7 @@ namespace postfga::client
 
             const FgaCheckTupleRequest& payload = in.request();
             const FgaTuple& tuple = payload.tuple;
-            out.set_consistency(::openfga::v1::ConsistencyPreference::HIGHER_CONSISTENCY);
+            // out.set_consistency(::openfga::v1::ConsistencyPreference::HIGHER_CONSISTENCY);
 
             auto* tuple_key = out.mutable_tuple_key();
 
@@ -50,7 +50,7 @@ namespace postfga::client
         auto ctx = std::make_shared<BatchCheckContext>();
 
         ctx->request.set_store_id(config_.store_id);
-        ctx->request.set_consistency(::openfga::v1::ConsistencyPreference::HIGHER_CONSISTENCY);
+        // ctx->request.set_consistency(::openfga::v1::ConsistencyPreference::HIGHER_CONSISTENCY);
         for (const auto& item : items)
         {
             ::openfga::v1::BatchCheckItem *check = ctx->request.add_checks();

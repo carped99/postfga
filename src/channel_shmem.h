@@ -8,12 +8,13 @@ extern "C"
 
 
 #include <postgres.h>
+#include <storage/lwlock.h>
 
     struct FgaChannel;
     typedef struct FgaChannel FgaChannel;
 
     Size postfga_channel_shmem_size(void);
-    void postfga_channel_shmem_init(FgaChannel* ch);
+    void postfga_channel_shmem_init(FgaChannel* ch, LWLock* pool_lock, LWLock* queue_lock);
 
 #ifdef __cplusplus
 }

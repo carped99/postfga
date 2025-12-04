@@ -5,6 +5,7 @@
 #include <funcapi.h>
 #include <utils/builtins.h>
 
+#include "cache.h"
 #include "channel.h"
 #include "config.h"
 #include "payload.h"
@@ -33,30 +34,79 @@ static void write_tuple(const char* object_type,
     strlcpy(out->relation, relation, sizeof(out->relation));
 }
 
-Datum postfga_check(PG_FUNCTION_ARGS)
+static bool fetch_check(
+                const char* store_id,
+                const char* auth_model_id,
+                const char* object_type,
+                  const char* object_id,
+                  const char* subject_type,
+                  const char* subject_id,
+                  const char* relation,
+                  bool* allowed_out)
 {
-    PostfgaConfig* config = postfga_get_config();
-    const char* object_type = text_to_cstring(PG_GETARG_TEXT_PP(0));
-    const char* object_id = text_to_cstring(PG_GETARG_TEXT_PP(1));
-    const char* subject_type = text_to_cstring(PG_GETARG_TEXT_PP(2));
-    const char* subject_id = text_to_cstring(PG_GETARG_TEXT_PP(3));
-    const char* relation = text_to_cstring(PG_GETARG_TEXT_PP(4));
-
     FgaRequest request = {0};
     FgaResponse response = {0};
     request.type = FGA_REQUEST_CHECK_TUPLE;
-    strlcpy(request.store_id, config->store_id, sizeof(request.store_id));
+    strlcpy(request.store_id, store_id, sizeof(request.store_id));
     
     FgaCheckTupleRequest* payload = &request.body.checkTuple;
     write_tuple(object_type, object_id, subject_type, subject_id, relation, &payload->tuple);
 
     postfga_channel_execute(&request, &response);
-    if (response.status != FGA_RESPONSE_OK)
+    if (response.status == FGA_RESPONSE_OK)
     {
-        ereport(INFO, (errmsg("postfga: check tuple failed - %s", response.error_message)));
+        *allowed_out = response.body.checkTuple.allow;
+        return true;
+    }
+
+    ereport(INFO, (errmsg("postfga: check tuple failed - %s", response.error_message)));
+
+    *allowed_out = false;
+    return false;    
+}
+
+Datum postfga_check(PG_FUNCTION_ARGS)
+{
+    PostfgaConfig* config = postfga_get_config();
+    uint64_t ttl_ms = config->cache_ttl_ms;
+    const char* store_id = config->store_id;
+    const char* auth_model_id = config->authorization_model_id;
+    const char* object_type = text_to_cstring(PG_GETARG_TEXT_PP(0));
+    const char* object_id = text_to_cstring(PG_GETARG_TEXT_PP(1));
+    const char* subject_type = text_to_cstring(PG_GETARG_TEXT_PP(2));
+    const char* subject_id = text_to_cstring(PG_GETARG_TEXT_PP(3));
+    const char* relation = text_to_cstring(PG_GETARG_TEXT_PP(4));
+    bool       allowed;
+
+    FgaAclCacheKey key = postfga_cache_key(store_id,
+                                           auth_model_id,
+                                           object_type,
+                                           object_id,
+                                           subject_type,
+                                           subject_id,
+                                           relation);
+
+    if (postfga_cache_lookup(&key, ttl_ms, &allowed))
+    {
+        PG_RETURN_BOOL(allowed);
+    }
+
+    if (!fetch_check(store_id,
+                    auth_model_id,
+                    object_type,
+                    object_id,
+                    subject_type,
+                    subject_id,
+                    relation,
+                    &allowed))
+    {
+        // 오류 발생 시 기본적으로 거부
         PG_RETURN_BOOL(false);
     }
-    PG_RETURN_BOOL(response.body.checkTuple.allow);
+
+    postfga_cache_store(&key, ttl_ms, allowed);
+
+    PG_RETURN_BOOL(allowed);
 }
 
 Datum postfga_write_tuple(PG_FUNCTION_ARGS)

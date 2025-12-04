@@ -25,39 +25,38 @@ extern "C"
 
 #include "cache.h"
 #include "stats_type.h"
-#ifdef __cplusplus
-}
-#endif
 
 typedef struct FgaChannel FgaChannel; // forward declaration
 
 /*-------------------------------------------------------------------------
  * PostfgaShmemState
  */
-typedef struct PostfgaShmemState
-{
-    LWLock* lock;       /* Master lock for all shared data */
-    Latch* bgw_latch;   /* Background worker latch */
-    uint64_t hash_seed; /* Hash seed for consistent hashing */
+    typedef struct PostfgaShmemState
+    {
+        LWLock* lock;       /* Master lock for all shared data */
+        Latch* bgw_latch;   /* Background worker latch */
+        uint64_t hash_seed; /* Hash seed for consistent hashing */
 
 
-    FgaChannel* channel; /* Request channel */
-    // FgaL2Cache l2_cache;            /* Shared L2 cache */
-    // FgaStats stats; /* Statistics */
+        FgaChannel* channel; /* Request channel */
+        FgaL2Cache cache;            /* Shared L2 cache */
+        // FgaStats stats; /* Statistics */
 
-} PostfgaShmemState;
+    } PostfgaShmemState;
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+    /* 전역 shmem state 포인터 (실제 정의는 shmem.c 에서) */
+    extern PostfgaShmemState* postfga_shmem_state;
+
     /* Shmem lifecycle API */
     void postfga_shmem_request(void);
     void postfga_shmem_startup(void);
 
     // Accessor for global shmem state
-    PostfgaShmemState* postfga_get_shmem_state(void);
-    FgaL2Cache* postfga_get_cache_state(void);
+    static inline PostfgaShmemState*
+    postfga_get_shmem_state(void)
+    {
+        return postfga_shmem_state;
+    }
 
 #ifdef __cplusplus
 }

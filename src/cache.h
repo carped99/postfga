@@ -17,18 +17,31 @@ typedef struct FgaRelationCacheEntry
     uint16_t id;
 } FgaRelationCacheEntry;
 
+
+typedef struct FgaAclCacheKey
+{
+    uint64_t low;
+    uint64_t high;
+    uint16_t relation_id;
+    uint16_t pad;
+    uint64_t object_key;
+} FgaAclCacheKey;
+
+typedef struct FgaAclCacheValue
+{
+    bool allowed;
+
+    uint16_t global_gen; /* generation mismatch 시 invalid */
+    uint16_t object_gen; /* generation mismatch 시 invalid */
+
+    uint64_t expires_at_ms; /* TTL 기준 만료 시간 (epoch ms) */
+} FgaAclCacheValue;
+
 /* ACL Cache Entry */
 typedef struct FgaAclCacheEntry
 {
     FgaAclCacheKey key;
-
-    bool allowed;
-    uint16_t generation; /* generation mismatch 시 invalid */
-    uint16_t pad;
-
-    uint64_t expires_at_ms; /* TTL 기준 만료 시간 (epoch ms) */
-    // TimestampTz last_updated;
-    // TimestampTz expire_at;
+    FgaAclCacheValue value;
 } FgaAclCacheEntry;
 
 typedef struct FgaL1Cache
@@ -44,7 +57,7 @@ typedef struct FgaL2Cache
     LWLock* lock;        /* shared cache 락 */
     uint16_t generation; /* global generation */
     HTAB* acl;           /* shared hash table (shmem) */
-    HTAB* relation;      /* relation name -> bit index */
+    // HTAB* relation;      /* relation name -> bit index */
 } FgaL2Cache;
 
 /*
@@ -75,36 +88,22 @@ typedef struct FgaL2Cache
 extern "C"
 {
 #endif
-
-    // FgaAclCacheKey postfga_make_check_key(const FgaRequest* req);
-
-    /* L1 Cache API */
-    void postfga_l1_init(FgaL1Cache* cache, MemoryContext parent_ctx, long size_hint);
-    bool postfga_l1_lookup(
-        FgaL1Cache* cache, const FgaAclCacheKey* key, uint16_t cur_generation, uint64_t now_ms, bool* allowed_out);
-    void postfga_l1_store(FgaL1Cache* cache,
-                          const FgaAclCacheKey* key,
-                          uint16_t generation,
-                          uint64_t now_ms,
-                          uint64_t ttl_ms,
-                          bool allowed);
-
-    /* L2 Cache API */
-    void postfga_l2_init(FgaL2Cache* cache, long size_hint, LWLock* lock);
-    bool postfga_l2_lookup(
-        FgaL2Cache* cache, const FgaAclCacheKey* key, uint16_t cur_generation, uint64_t now_ms, bool* allowed_out);
-    void postfga_l2_store(FgaL2Cache* cache,
-                          const FgaAclCacheKey* key,
-                          uint16_t generation,
-                          uint64_t now_ms,
-                          uint64_t ttl_ms,
-                          bool allowed);
-
-    /* L2 shared hash table 에 필요한 shmem 크기 추정 */
-    Size postfga_l2_estimate_shmem_size(long size_hint);
-
     /* generation bump (invalidation) */
     void postfga_l2_bump_generation(FgaL2Cache* cache);
+
+
+    FgaAclCacheKey postfga_cache_key(const char* store_id,
+                                const char* auth_model_id,
+                                const char* object_type,
+                                const char* object_id,
+                                const char* subject_type,
+                                const char* subject_id,
+                                const char* relation);
+
+    bool postfga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allowed_out);
+
+    void postfga_cache_store(const FgaAclCacheKey* key, uint64_t ttl_ms, bool allowed);
+        
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
