@@ -12,8 +12,8 @@ extern "C"
     struct FgaChannel;
     typedef struct FgaChannel FgaChannel;
 
-    Size postfga_channel_shmem_size(uint32 slot_count);
-    void postfga_channel_shmem_init(FgaChannel* ch, uint32 slot_count);
+    Size postfga_channel_shmem_size(void);
+    void postfga_channel_shmem_init(FgaChannel* ch);
 
 #ifdef __cplusplus
 }

@@ -8,15 +8,12 @@ namespace postfga::client
 {
     namespace
     {
-        void fill_check_request(const Config &config, const CheckTuple& in, ::openfga::v1::CheckRequest& out)
+        void fill_check_request(const CheckTuple& in, ::openfga::v1::CheckRequest& out)
         {
+            out.set_store_id(in.store_id());
+
             const FgaCheckTupleRequest& payload = in.request();
             const FgaTuple& tuple = payload.tuple;
-            if (payload.store_id[0] != '\0')
-                out.set_store_id(payload.store_id);
-            else
-                out.set_store_id(config.store_id);
-
             out.set_consistency(::openfga::v1::ConsistencyPreference::HIGHER_CONSISTENCY);
 
             auto* tuple_key = out.mutable_tuple_key();
@@ -126,7 +123,7 @@ namespace postfga::client
     void OpenFgaGrpcClient::handle_request(CheckTuple& req, ProcessCallback cb)
     {
         auto ctx = std::make_shared<CheckContext>();
-        fill_check_request(config_, req, ctx->request);
+        fill_check_request(req, ctx->request);
         
         // Set deadline
         ctx->context.set_deadline(std::chrono::system_clock::now() + config_.timeout);

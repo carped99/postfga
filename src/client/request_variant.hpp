@@ -22,9 +22,15 @@ namespace postfga::client
     {
         FgaPayload& payload;
         uint64_t request_id() const noexcept;
+        const char* store_id() const noexcept;
         const FgaCheckTupleRequest& request() const noexcept;
         FgaResponse& response() const noexcept;
     };
+
+    inline const char* CheckTuple::store_id() const noexcept
+    {
+        return payload.request.store_id;
+    }
 
     inline uint64_t CheckTuple::request_id() const noexcept
     {
@@ -44,10 +50,16 @@ namespace postfga::client
     struct WriteTuple
     {
         FgaPayload& payload;
+        const char* store_id() const noexcept;
         uint64_t request_id() const noexcept;
         const FgaWriteTupleRequest& request() const noexcept;
         FgaResponse& response() const noexcept;
     };
+
+    inline const char* WriteTuple::store_id() const noexcept
+    {
+        return payload.request.store_id;
+    }
 
     inline uint64_t WriteTuple::request_id() const noexcept
     {
@@ -67,10 +79,16 @@ namespace postfga::client
     struct DeleteTuple
     {
         FgaPayload& payload;
+        const char* store_id() const noexcept;
         uint64_t request_id() const noexcept;
         const FgaDeleteTupleRequest& request() const noexcept;
         FgaResponse& response() const noexcept;
     };
+
+    inline const char* DeleteTuple::store_id() const noexcept
+    {
+        return payload.request.store_id;
+    }
 
     inline uint64_t DeleteTuple::request_id() const noexcept
     {
@@ -90,10 +108,16 @@ namespace postfga::client
     struct GetStore
     {
         FgaPayload& payload;
+        const char* store_id() const noexcept;
         uint64_t request_id() const noexcept;
         const FgaGetStoreRequest& request() const noexcept;
         FgaResponse& response() const noexcept;
     };
+
+    inline const char* GetStore::store_id() const noexcept
+    {
+        return payload.request.store_id;
+    }
 
     inline uint64_t GetStore::request_id() const noexcept
     {
@@ -136,11 +160,17 @@ namespace postfga::client
     struct DeleteStore
     {
         FgaPayload& payload;
+        const char* store_id() const noexcept;
         uint64_t request_id() const noexcept;
         const FgaDeleteStoreRequest& request() const noexcept;
         FgaResponse& response() const noexcept;
     };
 
+    inline const char* DeleteStore::store_id() const noexcept
+    {
+        return payload.request.store_id;
+    }
+    
     inline uint64_t DeleteStore::request_id() const noexcept
     {
         return payload.request.request_id;

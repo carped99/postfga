@@ -50,6 +50,7 @@ static uint64_t _generate_hash_seed()
     return seed;
 }
 
+
 static Size postfga_shmem_cache_size()
 {
     PostfgaConfig* cfg = postfga_get_config();
@@ -91,11 +92,11 @@ static Size _calculate_size(void)
     PostfgaConfig* cfg = postfga_get_config();
     Size size = 0;
 
-    /* 1. shmem state struct */
+    /* 1. shared memory state struct */
     size = MAXALIGN(sizeof(PostfgaShmemState));
 
     /* 2. channel */
-    size = add_size(size, MAXALIGN(postfga_channel_shmem_size(cfg->max_slots)));
+    size = add_size(size, MAXALIGN(postfga_channel_shmem_size()));
 
     // size = add_size(size, MAXALIGN(postfga_shmem_cache_size()));
 
@@ -144,9 +145,9 @@ static void _initialize_state(bool found)
     postfga_shmem_state->channel = (FgaChannel*)ptr;
     postfga_shmem_state->channel->pool_lock = &locks[1].lock;
     postfga_shmem_state->channel->queue_lock = &locks[2].lock;
-    ptr += postfga_channel_shmem_size(cfg->max_slots);
+    ptr += postfga_channel_shmem_size();
 
-    postfga_channel_shmem_init(postfga_shmem_state->channel, cfg->max_slots);
+    postfga_channel_shmem_init(postfga_shmem_state->channel);
 
     /* 4. L2 cache */
     // postfga_shmem_state->l2_cache.lock = &locks[2].lock;

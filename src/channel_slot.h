@@ -12,42 +12,11 @@ extern "C"
 #include <miscadmin.h>
 #include <port/atomics.h>
 
-#include "payload.h"
+#include "channel.h"
 
-    typedef uint16_t FgaChannelSlotIndex;
 
-    typedef enum FgaChannelSlotState
-    {
-        FGA_CHANNEL_SLOT_EMPTY = 0,
-        FGA_CHANNEL_SLOT_CANCELED,
-        FGA_CHANNEL_SLOT_PENDING,
-        FGA_CHANNEL_SLOT_PROCESSING,
-        FGA_CHANNEL_SLOT_DONE
-    } FgaChannelSlotState;
 
-    typedef struct FgaChannelSlot
-    {
-        slist_node node;        /* 내부 연결 리스트 용도 */
-        pg_atomic_uint32 state; /* FgaChannelSlotState */
-        pid_t backend_pid;      /* 요청한 백엔드 PID */
-        FgaPayload payload;     /* 요청 내용 */
-    } FgaChannelSlot;
-
-    typedef struct FgaChannelSlotPool
-    {
-        slist_head head;
-        FgaChannelSlot slots[FLEXIBLE_ARRAY_MEMBER];
-    } FgaChannelSlotPool;
-
-    typedef struct FgaChannelSlotQueue
-    {
-        uint16_t mask;                          /* capacity - 1 (2^n - 1) */
-        uint16_t head;                          /* enqueue index */
-        uint16_t tail;                          /* dequeue index */
-        uint16_t values[FLEXIBLE_ARRAY_MEMBER]; /* [capacity = mask + 1] */
-    } FgaChannelSlotQueue;
-
-    static inline void pool_init(FgaChannelSlotPool* pool, uint32 max_slots)
+    static void pool_init(FgaChannelSlotPool* pool, uint32 max_slots)
     {
         uint32 i;
 
@@ -65,7 +34,6 @@ extern "C"
         }
     }
 
-
     /*
      * queue_init
      *
@@ -73,7 +41,7 @@ extern "C"
      * - capacity    : 배열 길이(요소 개수). 반드시 2의 거듭제곱이어야 함.
      * - 실제로 저장 가능한 요소 최대 개수는 (capacity - 1).
      */
-    static inline void queue_init(FgaChannelSlotQueue* q, uint16_t capacity)
+    static void queue_init(FgaChannelSlotQueue* q, uint16_t capacity)
     {
         Assert(q != NULL);
         Assert(capacity > 0);
@@ -178,6 +146,30 @@ extern "C"
         return true;
     }
 
+    /*-------------------------------------------------------------------------
+    * Static helpers
+    *-------------------------------------------------------------------------
+    */
+    static FgaChannelSlot* acquire_slot(FgaChannelSlotPool* pool)
+    {
+        slist_node* node;
+        FgaChannelSlot* slot;
+
+        /* 빈 슬롯 없으면 에러 (또는 나중에 backoff/retry 설계 가능) */
+        if (slist_is_empty(&pool->head))
+            return NULL;
+
+        node = slist_pop_head_node(&pool->head);
+        slot = slist_container(FgaChannelSlot, node, node);
+        pg_atomic_write_u32(&slot->state, FGA_CHANNEL_SLOT_PENDING);
+        return slot;
+    }
+
+    static void release_slot(FgaChannelSlotPool* pool, FgaChannelSlot* slot)
+    {
+        pg_atomic_write_u32(&slot->state, FGA_CHANNEL_SLOT_EMPTY);
+        slist_push_head(&pool->head, &slot->node);
+    }
 
 #ifdef __cplusplus
 }

@@ -20,36 +20,36 @@ static bool postfga_cache_acl_store(
 /*-------------------------------------------------------------------------
  * Public API
  *-------------------------------------------------------------------------*/
-FgaAclCacheKey postfga_make_check_key(const FgaCheckTupleRequest* req)
-{
-    FgaAclCacheKey key;
+// FgaAclCacheKey postfga_make_check_key(const FgaRequest* req)
+// {
+//     FgaAclCacheKey key;
 
-    char buf[2048]; /* 상당히 넉넉하게 */
+//     char buf[2048]; /* 상당히 넉넉하게 */
 
-    // store_id|object_type|object_id|subject_type|subject_id|relation
-    int len = snprintf(buf,
-                       sizeof(buf),
-                       "%s|%s|%s|%s|%s|%s",
-                       req->store_id,
-                       req->tuple.object_type,
-                       req->tuple.object_id,
-                       req->tuple.subject_type,
-                       req->tuple.subject_id,
-                       req->tuple.relation);
+//     // store_id|object_type|object_id|subject_type|subject_id|relation
+//     int len = snprintf(buf,
+//                        sizeof(buf),
+//                        "%s|%s|%s|%s|%s|%s",
+//                        req->store_id,
+//                        req->tuple.object_type,
+//                        req->tuple.object_id,
+//                        req->tuple.subject_type,
+//                        req->tuple.subject_id,
+//                        req->tuple.relation);
 
-    if (len < 0)
-        len = 0;
-    if (len > (int)sizeof(buf))
-        len = sizeof(buf);
+//     if (len < 0)
+//         len = 0;
+//     if (len > (int)sizeof(buf))
+//         len = sizeof(buf);
 
-    {
-        XXH128_hash_t h = XXH3_128bits(buf, (size_t)len);
-        key.low = h.low64;
-        key.high = h.high64;
-    }
+//     {
+//         XXH128_hash_t h = XXH3_128bits(buf, (size_t)len);
+//         key.low = h.low64;
+//         key.high = h.high64;
+//     }
 
-    return key;
-}
+//     return key;
+// }
 
 void postfga_l1_init(FgaL1Cache* cache, MemoryContext parent_ctx, long size_hint)
 {

@@ -7,21 +7,6 @@
 #include "payload.h"
 #include "shmem.h"
 
-/*-------------------------------------------------------------------------
- * Static helpers
- *-------------------------------------------------------------------------*/
-FgaRequest* postfga_init_check_request(FgaRequest* req, const FgaCheckTupleRequest* body)
-{
-    MemSet(req, 0, sizeof(FgaRequest));
-    // req->request_id = request_id;
-    // req->type = (uint16)FGA_REQ_CHECK_TUPLE;
-    req->reserved = 0;
-
-    memcpy(&req->body.checkTuple, body, sizeof(FgaCheckTupleRequest));
-
-    return req;
-}
-
 // /*
 //  * 실제로 백엔드에서 요청 하나 enqueue 하는 함수
 //  *

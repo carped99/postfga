@@ -2,14 +2,16 @@
 
 #include <postgres.h>
 
-#include <lib/ilist.h>
 #include <miscadmin.h>
 #include <pgstat.h>
 #include <storage/latch.h>
+#include <storage/proc.h>
+#include <storage/procarray.h>
 #include <storage/shmem.h>
 #include <utils/elog.h>
 
 #include "channel.h"
+#include "channel_slot.h"
 #include "shmem.h"
 
 #define MAX_DRAIN 64
@@ -18,27 +20,6 @@
  * Static helpers
  *-------------------------------------------------------------------------
  */
-static FgaChannelSlot* acquire_slot(FgaChannelSlotPool* pool)
-{
-    slist_node* node;
-    FgaChannelSlot* slot;
-
-    /* 빈 슬롯 없으면 에러 (또는 나중에 backoff/retry 설계 가능) */
-    if (slist_is_empty(&pool->head))
-        return NULL;
-
-    node = slist_pop_head_node(&pool->head);
-    slot = slist_container(FgaChannelSlot, node, node);
-    pg_atomic_write_u32(&slot->state, FGA_CHANNEL_SLOT_PENDING);
-    return slot;
-}
-
-static void release_slot(FgaChannelSlotPool* pool, FgaChannelSlot* slot)
-{
-    pg_atomic_write_u32(&slot->state, FGA_CHANNEL_SLOT_EMPTY);
-    slist_push_head(&pool->head, &slot->node);
-}
-
 static FgaChannelSlot* write_request(FgaChannel* const channel, const FgaRequest* request)
 {
     FgaChannelSlot* slot;
@@ -185,4 +166,15 @@ void postfga_channel_execute(const FgaRequest* const request, FgaResponse* const
     *response = slot->payload.response;
 
     postfga_channel_release_slot(channel, slot);
+}
+
+bool postfga_channel_wake_backend(const FgaChannelSlot* const slot)
+{
+    PGPROC* proc = BackendPidGetProc(slot->backend_pid);
+    if (proc != NULL && proc->pid == slot->backend_pid)
+    {
+        SetLatch(&proc->procLatch);
+        return true;
+    }
+    return false;
 }

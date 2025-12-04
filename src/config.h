@@ -13,7 +13,6 @@ typedef struct PostfgaConfig
     char* authorization_model_id;  /* Authorization Model ID */
     int cache_ttl_ms;              /* Cache TTL in milliseconds */
     int max_cache_entries;         /* Maximum cache entries */
-    int bgw_workers;               /* Number of background workers */
     bool fallback_to_grpc_on_miss; /* Fall back to gRPC on cache miss */
     bool cache_enabled;            /* Enable or disable the permission cache */
     int cache_size;                /* Number of entries in shared L2 cache */

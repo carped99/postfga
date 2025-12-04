@@ -6,6 +6,10 @@ namespace postfga::client
     std::shared_ptr<::grpc::Channel> make_channel(const postfga::Config& cfg)
     {
         grpc::ChannelArguments args;
+        if (!cfg.channel.load_balancing_policy.empty())
+        {
+            args.SetLoadBalancingPolicyName(cfg.channel.load_balancing_policy);
+        }
 
         // Max message size 설정 (옵션)
         if (cfg.channel.max_message_size > 0)

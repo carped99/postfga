@@ -7,7 +7,7 @@
 #include "postfga.h"
 
 #define FGA_MAX_BATCH 64
-#define FGA_RESPONSE_ERROR_MESSAGE 256
+#define FGA_RESPONSE_ERROR_MESSAGE 128
 
 typedef struct FgaTuple
 {
@@ -51,7 +51,6 @@ typedef enum FgaRequestType
 
 typedef struct FgaCheckTupleRequest
 {
-    char store_id[STORE_ID_LEN];
     FgaTuple tuple;
 } FgaCheckTupleRequest;
 
@@ -62,7 +61,6 @@ typedef struct FgaCheckTupleResponse
 
 typedef struct FgaWriteTupleRequest
 {
-    char store_id[STORE_ID_LEN];
     FgaTuple tuple;
 } FgaWriteTupleRequest;
 
@@ -73,7 +71,6 @@ typedef struct FgaWriteTupleResponse
 
 typedef struct FgaDeleteTupleRequest
 {
-    char store_id[STORE_ID_LEN];
     FgaTuple tuple;
 } FgaDeleteTupleRequest;
 
@@ -85,13 +82,11 @@ typedef struct FgaDeleteTupleResponse
 /* store 조회 */
 typedef struct FgaGetStoreRequest
 {
-    char store_id[STORE_ID_LEN];
 } FgaGetStoreRequest;
 
 typedef struct FgaGetStoreResponse
 {
     bool found;
-    char store_id[STORE_ID_LEN];
     char name[STORE_NAME_LEN];
 } FgaGetStoreResponse;
 
@@ -109,7 +104,6 @@ typedef struct FgaCreateStoreResponse
 
 typedef struct FgaDeleteStoreRequest
 {
-    char store_id[STORE_ID_LEN];
 } FgaDeleteStoreRequest;
 
 typedef struct FgaDeleteStoreResponse
@@ -121,7 +115,8 @@ typedef struct FgaRequest
 {
     uint64_t request_id; /* request identifier */
     uint16_t type;       /* FgaRequestType */
-    uint16_t reserved;   /* alignment / flags 용 */
+    // uint16_t reserved;   /* alignment / flags 용 */
+    char store_id[STORE_ID_LEN];
     union
     {
         FgaCheckTupleRequest checkTuple;

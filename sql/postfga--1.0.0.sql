@@ -21,7 +21,7 @@ CREATE FOREIGN DATA WRAPPER postfga_fdw
   VALIDATOR postfga_fdw_validator;
 
 -- Core functions for permission checking and tuple management
-CREATE OR REPLACE FUNCTION postfga_check_tuple(
+CREATE OR REPLACE FUNCTION postfga_check(
     object_type text,
     object_id text,
     subject_type text,
@@ -67,6 +67,23 @@ CREATE OR REPLACE FUNCTION postfga_delete_store(
 RETURNS void
 AS 'MODULE_PATHNAME'
 LANGUAGE C STRICT PARALLEL SAFE VOLATILE COST 10000;
+
+CREATE OR REPLACE FUNCTION postfga_config()
+RETURNS TABLE (
+    endpoint                 text,
+    store_id                 text,
+    authorization_model_id   text,
+    cache_ttl_ms             integer,
+    max_cache_entries        integer,
+    fallback_to_grpc_on_miss boolean,
+    cache_enabled            boolean,
+    cache_size               integer,
+    max_slots                integer,
+    max_relations            integer
+)
+AS 'MODULE_PATHNAME'
+LANGUAGE C
+STABLE;
 
 
 

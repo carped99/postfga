@@ -55,7 +55,7 @@ namespace postfga::client
     void OpenFgaGrpcClient::handle_request(DeleteStore& req, ProcessCallback cb)
     {
         auto ctx = std::make_shared<DeleteStoreContext>();
-        ctx->request.set_store_id(req.request().store_id);
+        ctx->request.set_store_id(req.store_id());
         
         // Set deadline
         ctx->context.set_deadline(std::chrono::system_clock::now() + config_.timeout);

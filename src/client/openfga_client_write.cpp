@@ -14,14 +14,11 @@ namespace postfga::client
             tuple_key->set_relation(tuple.relation);
         }
 
-        void fill_request(const Config &config, const WriteTuple& in, ::openfga::v1::WriteRequest& out)
+        void fill_request(const WriteTuple& in, ::openfga::v1::WriteRequest& out)
         {
-            const FgaWriteTupleRequest& payload = in.request();
-            if (payload.store_id[0] != '\0')
-                out.set_store_id(payload.store_id);
-            else
-                out.set_store_id(config.store_id);
+            out.set_store_id(in.store_id());
 
+            const FgaWriteTupleRequest& payload = in.request();
             ::openfga::v1::WriteRequestWrites* writes = out.mutable_writes();
             writes->set_on_duplicate("ignore");
 
@@ -30,14 +27,11 @@ namespace postfga::client
             fill_tuple_key(tuple, tuple_key);
         }
 
-        void fill_request(const Config &config, const DeleteTuple& in, ::openfga::v1::WriteRequest& out)
+        void fill_request(const DeleteTuple& in, ::openfga::v1::WriteRequest& out)
         {
-            const FgaDeleteTupleRequest& payload = in.request();
-            if (payload.store_id[0] != '\0')
-                out.set_store_id(payload.store_id);
-            else
-                out.set_store_id(config.store_id);
+            out.set_store_id(in.store_id());
 
+            const FgaDeleteTupleRequest& payload = in.request();
             ::openfga::v1::WriteRequestDeletes* deletes = out.mutable_deletes();
             deletes->set_on_missing("ignore");
 
@@ -59,7 +53,7 @@ namespace postfga::client
     void OpenFgaGrpcClient::handle_request(WriteTuple& req, ProcessCallback cb)
     {
         auto ctx = std::make_shared<WriteContext>();
-        fill_request(config_, req, ctx->request);
+        fill_request(req, ctx->request);
         
         // Set deadline
         ctx->context.set_deadline(std::chrono::system_clock::now() + config_.timeout);
@@ -86,7 +80,7 @@ namespace postfga::client
     void OpenFgaGrpcClient::handle_request(DeleteTuple& req, ProcessCallback cb)
     {
         auto ctx = std::make_shared<WriteContext>();
-        fill_request(config_, req, ctx->request);
+        fill_request(req, ctx->request);
         
         // Set deadline
         ctx->context.set_deadline(std::chrono::system_clock::now() + config_.timeout);

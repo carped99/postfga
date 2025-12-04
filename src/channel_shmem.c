@@ -3,8 +3,11 @@
 #include <postgres.h>
 
 #include <storage/shmem.h>
+#include <utils/guc.h>
 
 #include "channel.h"
+#include "channel_slot.h"
+#include "config.h"
 
 static inline uint32 pow2_ceil(uint32 x)
 {
@@ -36,8 +39,27 @@ static Size queue_shmem_size(uint32 capacity)
     return MAXALIGN(offsetof(FgaChannelSlotQueue, values) + sizeof(uint16_t) * capacity);
 }
 
-Size postfga_channel_shmem_size(uint32 slot_count)
+static int compute_slot_size(void)
 {
+    PostfgaConfig* cfg = postfga_get_config();
+    if (cfg->max_slots > 0)
+        return cfg->max_slots;
+
+    const char *val = GetConfigOption("max_connections", false, false);
+    int max_conn = val ? atoi(val) : 100;  /* fallback */
+    int slots = max_conn * 2;
+
+    if (slots < 1024)
+        slots = 1024;
+    if (slots > 16384)
+        slots = 16384;                     /* 필요시 더 키워도 됨 */
+
+    return slots;
+}
+
+Size postfga_channel_shmem_size(void)
+{
+    uint32 slot_count = compute_slot_size();
     uint32 queue_capacity = pow2_ceil(slot_count);
     Size size = 0;
 
@@ -63,11 +85,12 @@ Size postfga_channel_shmem_size(uint32 slot_count)
     return size;
 }
 
-void postfga_channel_shmem_init(FgaChannel* ch, uint32 slot_count)
+void postfga_channel_shmem_init(FgaChannel* ch)
 {
     FgaChannelSlotPool* pool;
     FgaChannelSlotQueue* queue;
 
+    uint32 slot_count = compute_slot_size();
     uint32 queue_capacity = pow2_ceil(slot_count);
 
     // Channel struct

@@ -76,7 +76,7 @@ extern "C"
 {
 #endif
 
-    FgaAclCacheKey postfga_make_check_key(const FgaCheckTupleRequest* req);
+    // FgaAclCacheKey postfga_make_check_key(const FgaRequest* req);
 
     /* L1 Cache API */
     void postfga_l1_init(FgaL1Cache* cache, MemoryContext parent_ctx, long size_hint);

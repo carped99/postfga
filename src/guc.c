@@ -113,11 +113,11 @@ void postfga_guc_init(void)
     /* postfga.store_id */
     DefineCustomStringVariable("postfga.store_id",
                                "OpenFGA store ID",
-                               "Specifies the store ID to use in OpenFGA",
+                               "Specifies the store ID to use in OpenFGA (can be set at system/db/role/session level).",
                                &cfg->store_id,
                                env_or_default("POSTFGA_STORE_ID", DEFAULT_STORE_ID),
-                               PGC_SUSET,
-                               GUC_SUPERUSER_ONLY,
+                               PGC_USERSET,
+                               0,
                                validate_store_id,
                                NULL,
                                NULL);
@@ -136,26 +136,12 @@ void postfga_guc_init(void)
 
     postfga_guc_cache_init();
 
-    /* openfga.bgw_workers */
-    DefineCustomIntVariable("openfga.bgw_workers",
-                            "Number of background worker processes",
-                            "Specifies how many background workers to start for OpenFGA change stream processing",
-                            &cfg->bgw_workers,
-                            DEFAULT_BGW_WORKERS,
-                            0,              /* min: 0 = disabled */
-                            10,             /* max: 10 workers */
-                            PGC_POSTMASTER, /* requires restart */
-                            0,
-                            NULL,
-                            NULL,
-                            NULL);
-
     DefineCustomIntVariable("postfga.max_slots",
                             "Maximum number of FGA slots in shared memory.",
                             NULL,
                             &cfg->max_slots,
-                            1024,
-                            16,
+                            0,
+                            0,
                             65535,
                             PGC_POSTMASTER,
                             0,
@@ -271,18 +257,6 @@ void validate_guc_values(void)
              cfg->max_cache_entries);
     }
 
-    /* Validate bgw_workers */
-    if (cfg->bgw_workers == 0)
-    {
-        elog(WARNING, "PostFGA: openfga_fdw.bgw_workers is 0, background worker will not start");
-    }
-    else if (cfg->bgw_workers > 1)
-    {
-        elog(WARNING,
-             "PostFGA: openfga_fdw.bgw_workers is %d, but only 1 worker is currently supported",
-             cfg->bgw_workers);
-    }
-
     elog(DEBUG1, "PostFGA: GUC validation complete");
     elog(DEBUG1, "  endpoint: %s", cfg->endpoint ? cfg->endpoint : "(null)");
     elog(DEBUG1, "  store_id: %s", cfg->store_id ? cfg->store_id : "(null)");
@@ -291,6 +265,5 @@ void validate_guc_values(void)
          cfg->authorization_model_id && cfg->authorization_model_id[0] ? cfg->authorization_model_id : "(empty)");
     elog(DEBUG1, "  cache_ttl_ms: %d", cfg->cache_ttl_ms);
     elog(DEBUG1, "  max_cache_entries: %d", cfg->max_cache_entries);
-    elog(DEBUG1, "  bgw_workers: %d", cfg->bgw_workers);
     elog(DEBUG1, "  fallback_to_grpc_on_miss: %s", cfg->fallback_to_grpc_on_miss ? "true" : "false");
 }

@@ -2,6 +2,7 @@ extern "C"
 {
 #include <postgres.h>
 
+#include <miscadmin.h>
 #include <storage/lwlock.h>
 #include <storage/proc.h>
 #include <storage/procarray.h>
@@ -174,21 +175,9 @@ namespace postfga::bgw
 
     void Processor::wakeBackend(FgaChannelSlot& slot)
     {
-        auto pid = slot.backend_pid;
-        if (pid <= 0)
+        if (!postfga_channel_wake_backend(&slot))
         {
             postfga_channel_release_slot(channel_, &slot);
-            return;
         }
-
-
-        auto proc = BackendPidGetProc(pid);
-        if (proc == nullptr)
-        {
-            postfga_channel_release_slot(channel_, &slot);
-            return;
-        }
-
-        SetLatch(&proc->procLatch);
     }
 } // namespace postfga::bgw

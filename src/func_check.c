@@ -1,12 +1,15 @@
 #include <postgres.h>
 
+
 #include <fmgr.h>
 #include <funcapi.h>
 #include <utils/builtins.h>
 
 #include "channel.h"
+#include "config.h"
+#include "payload.h"
 
-PG_FUNCTION_INFO_V1(postfga_check_tuple);
+PG_FUNCTION_INFO_V1(postfga_check);
 PG_FUNCTION_INFO_V1(postfga_write_tuple);
 PG_FUNCTION_INFO_V1(postfga_delete_tuple);
 PG_FUNCTION_INFO_V1(postfga_create_store);
@@ -30,20 +33,22 @@ static void write_tuple(const char* object_type,
     strlcpy(out->relation, relation, sizeof(out->relation));
 }
 
-Datum postfga_check_tuple(PG_FUNCTION_ARGS)
+Datum postfga_check(PG_FUNCTION_ARGS)
 {
+    PostfgaConfig* config = postfga_get_config();
     const char* object_type = text_to_cstring(PG_GETARG_TEXT_PP(0));
     const char* object_id = text_to_cstring(PG_GETARG_TEXT_PP(1));
     const char* subject_type = text_to_cstring(PG_GETARG_TEXT_PP(2));
     const char* subject_id = text_to_cstring(PG_GETARG_TEXT_PP(3));
     const char* relation = text_to_cstring(PG_GETARG_TEXT_PP(4));
 
-    FgaRequest request;
-    FgaResponse response;
-    MemSet(&request, 0, sizeof(request));
-    MemSet(&response, 0, sizeof(response));
+    FgaRequest request = {0};
+    FgaResponse response = {0};
     request.type = FGA_REQUEST_CHECK_TUPLE;
-    write_tuple(object_type, object_id, subject_type, subject_id, relation, &request.body.checkTuple.tuple);
+    strlcpy(request.store_id, config->store_id, sizeof(request.store_id));
+    
+    FgaCheckTupleRequest* payload = &request.body.checkTuple;
+    write_tuple(object_type, object_id, subject_type, subject_id, relation, &payload->tuple);
 
     postfga_channel_execute(&request, &response);
     if (response.status != FGA_RESPONSE_OK)
@@ -160,12 +165,10 @@ Datum postfga_delete_store(PG_FUNCTION_ARGS)
 {
     const char* store_id = text_to_cstring(PG_GETARG_TEXT_PP(0));
 
-    FgaRequest request;
-    FgaResponse response;
-    MemSet(&request, 0, sizeof(request));
-    MemSet(&response, 0, sizeof(response));
+    FgaRequest request = {0};
+    FgaResponse response = {0};
     request.type = FGA_REQUEST_DELETE_STORE;
-    strlcpy(request.body.deleteStore.store_id, store_id, sizeof(request.body.deleteStore.store_id));
+    strlcpy(request.store_id, store_id, sizeof(request.store_id));
 
     postfga_channel_execute(&request, &response);
     if (response.status != FGA_RESPONSE_OK)
