@@ -36,10 +36,9 @@
 #define POSTFGA_GUC_FALLBACK_ON_MISS "postfga.fallback_to_grpc_on_miss"
 
 // Default values
-#define DEFAULT_ENDPOINT "dns:///localhost:8081"
-#define DEFAULT_STORE_ID "changeme"
-#define DEFAULT_AUTH_MODEL_ID ""
-#define DEFAULT_RELATIONS "read,write,edit,delete,owner"
+#define DEFAULT_ENDPOINT ""
+#define DEFAULT_STORE_ID ""
+#define DEFAULT_MODEL_ID ""
 #define DEFAULT_CACHE_TTL_MS 60000
 #define DEFAULT_MAX_CACHE_ENTRIES 10000
 #define DEFAULT_BGW_WORKERS 1
@@ -61,7 +60,9 @@ static const char* env_or_default(const char* env_name, const char* default_valu
 static bool validate_endpoint(char** newval, void** extra, GucSource source)
 {
     (void)extra;
-    (void)source;
+
+    if (source == PGC_S_DEFAULT || source == PGC_S_DYNAMIC_DEFAULT)
+        return true;
 
     if (newval == NULL || *newval == NULL || (*newval)[0] == '\0')
     {
@@ -75,11 +76,14 @@ static bool validate_endpoint(char** newval, void** extra, GucSource source)
 static bool validate_store_id(char** newval, void** extra, GucSource source)
 {
     (void)extra;
-    (void)source;
+
+    if (source == PGC_S_DEFAULT || source == PGC_S_DYNAMIC_DEFAULT)
+        return true;
 
     if (newval == NULL || *newval == NULL || (*newval)[0] == '\0')
     {
         GUC_check_errmsg("postfga.store_id must not be empty");
+        GUC_check_errhint("Specifies the store ID to use in OpenFGA (can be set at system/db/role/session level).");
         GUC_check_errdetail("Set the store ID for OpenFGA.");
         return false;
     }
@@ -122,12 +126,12 @@ void postfga_guc_init(void)
                                NULL,
                                NULL);
 
-    /* postfga.authorization_model_id */
-    DefineCustomStringVariable("postfga.authorization_model_id",
-                               "OpenFGA authorization model ID (optional)",
-                               "Specifies the authorization model ID to use. If empty, uses the latest model.",
-                               &cfg->authorization_model_id,
-                               env_or_default("POSTFGA_AUTH_MODEL_ID", DEFAULT_AUTH_MODEL_ID),
+    /* postfga.model_id */
+    DefineCustomStringVariable("postfga.model_id",
+                               "OpenFGA model ID (optional)",
+                               "Specifies the model ID to use. If empty, uses the latest model.",
+                               &cfg->model_id,
+                               env_or_default("POSTFGA_MODEL_ID", DEFAULT_MODEL_ID),
                                PGC_SUSET,
                                GUC_SUPERUSER_ONLY,
                                NULL,
@@ -260,9 +264,7 @@ void validate_guc_values(void)
     elog(DEBUG1, "PostFGA: GUC validation complete");
     elog(DEBUG1, "  endpoint: %s", cfg->endpoint ? cfg->endpoint : "(null)");
     elog(DEBUG1, "  store_id: %s", cfg->store_id ? cfg->store_id : "(null)");
-    elog(DEBUG1,
-         "  authorization_model_id: %s",
-         cfg->authorization_model_id && cfg->authorization_model_id[0] ? cfg->authorization_model_id : "(empty)");
+    elog(DEBUG1, "  model_id: %s", cfg->model_id && cfg->model_id[0] ? cfg->model_id : "(empty)");
     elog(DEBUG1, "  cache_ttl_ms: %d", cfg->cache_ttl_ms);
     elog(DEBUG1, "  max_cache_entries: %d", cfg->max_cache_entries);
     elog(DEBUG1, "  fallback_to_grpc_on_miss: %s", cfg->fallback_to_grpc_on_miss ? "true" : "false");

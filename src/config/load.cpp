@@ -14,7 +14,7 @@ namespace postfga
         Config cfg;
         cfg.endpoint = guc->endpoint ? guc->endpoint : "";
         cfg.store_id = guc->store_id ? guc->store_id : "";
-        cfg.authorization_model_id = guc->authorization_model_id ? guc->authorization_model_id : "";
+        cfg.model_id = guc->model_id ? guc->model_id : "";
         cfg.timeout = std::chrono::milliseconds(guc->cache_ttl_ms);
 
         // cfg.use_tls = false;

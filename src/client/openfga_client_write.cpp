@@ -17,6 +17,7 @@ namespace postfga::client
         void fill_request(const WriteTuple& in, ::openfga::v1::WriteRequest& out)
         {
             out.set_store_id(in.store_id());
+            out.set_authorization_model_id(in.model_id());
 
             const FgaWriteTupleRequest& payload = in.request();
             ::openfga::v1::WriteRequestWrites* writes = out.mutable_writes();
@@ -54,10 +55,10 @@ namespace postfga::client
     {
         auto ctx = std::make_shared<WriteContext>();
         fill_request(req, ctx->request);
-        
+
         // Set deadline
         ctx->context.set_deadline(std::chrono::system_clock::now() + config_.timeout);
-        
+
         auto callback = [ctx, req, cb = std::move(cb)](::grpc::Status status)
         {
             FgaResponse& res = req.response();
@@ -81,10 +82,10 @@ namespace postfga::client
     {
         auto ctx = std::make_shared<WriteContext>();
         fill_request(req, ctx->request);
-        
+
         // Set deadline
         ctx->context.set_deadline(std::chrono::system_clock::now() + config_.timeout);
-        
+
         auto callback = [ctx, req, cb = std::move(cb)](::grpc::Status status)
         {
             FgaResponse& res = req.response();

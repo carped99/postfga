@@ -1,4 +1,5 @@
 #include <postgres.h>
+
 #include <fmgr.h>
 #include <funcapi.h>
 #include <utils/builtins.h>
@@ -9,17 +10,15 @@ PG_FUNCTION_INFO_V1(postfga_config);
 
 Datum postfga_config(PG_FUNCTION_ARGS)
 {
-    TupleDesc       tupdesc;
-    Datum           values[11];
-    bool            nulls[11];
-    HeapTuple       tuple;
+    TupleDesc tupdesc;
+    Datum values[11];
+    bool nulls[11];
+    HeapTuple tuple;
     PostfgaConfig* cfg = postfga_get_config();
 
     /* 결과 타입이 composite인지 확인 (RETURNS TABLE(...) or RETURNS postfga_config_type) */
     if (get_call_result_type(fcinfo, NULL, &tupdesc) != TYPEFUNC_COMPOSITE)
-        ereport(ERROR,
-                (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                 errmsg("return type must be a row type")));
+        ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED), errmsg("return type must be a row type")));
 
     BlessTupleDesc(tupdesc);
 
@@ -41,8 +40,8 @@ Datum postfga_config(PG_FUNCTION_ARGS)
         nulls[i++] = true;
 
     /* 3) authorization_model_id text */
-    if (cfg->authorization_model_id && cfg->authorization_model_id[0] != '\0')
-        values[i++] = CStringGetTextDatum(cfg->authorization_model_id);
+    if (cfg->model_id && cfg->model_id[0] != '\0')
+        values[i++] = CStringGetTextDatum(cfg->model_id);
     else
         nulls[i++] = true;
 

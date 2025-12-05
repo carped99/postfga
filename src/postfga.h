@@ -14,8 +14,9 @@
 
 #define NAME_MAX_LEN 64
 
-#define STORE_ID_LEN 64
-#define STORE_NAME_LEN 64
+#define OPENFGA_STORE_ID_LEN 64
+#define OPENFGA_STORE_NAME_LEN 64
+#define OPENFGA_MODEL_ID_LEN 64
 
 /* Default hash table sizes */
 #define DEFAULT_RELATION_COUNT 16

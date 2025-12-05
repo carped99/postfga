@@ -23,6 +23,7 @@ namespace postfga::client
         FgaPayload& payload;
         uint64_t request_id() const noexcept;
         const char* store_id() const noexcept;
+        const char* model_id() const noexcept;
         const FgaCheckTupleRequest& request() const noexcept;
         FgaResponse& response() const noexcept;
     };
@@ -30,6 +31,11 @@ namespace postfga::client
     inline const char* CheckTuple::store_id() const noexcept
     {
         return payload.request.store_id;
+    }
+
+    inline const char* CheckTuple::model_id() const noexcept
+    {
+        return payload.request.model_id;
     }
 
     inline uint64_t CheckTuple::request_id() const noexcept
@@ -51,6 +57,7 @@ namespace postfga::client
     {
         FgaPayload& payload;
         const char* store_id() const noexcept;
+        const char* model_id() const noexcept;
         uint64_t request_id() const noexcept;
         const FgaWriteTupleRequest& request() const noexcept;
         FgaResponse& response() const noexcept;
@@ -59,6 +66,11 @@ namespace postfga::client
     inline const char* WriteTuple::store_id() const noexcept
     {
         return payload.request.store_id;
+    }
+
+    inline const char* WriteTuple::model_id() const noexcept
+    {
+        return payload.request.model_id;
     }
 
     inline uint64_t WriteTuple::request_id() const noexcept
@@ -80,6 +92,7 @@ namespace postfga::client
     {
         FgaPayload& payload;
         const char* store_id() const noexcept;
+        const char* model_id() const noexcept;
         uint64_t request_id() const noexcept;
         const FgaDeleteTupleRequest& request() const noexcept;
         FgaResponse& response() const noexcept;
@@ -88,6 +101,11 @@ namespace postfga::client
     inline const char* DeleteTuple::store_id() const noexcept
     {
         return payload.request.store_id;
+    }
+
+    inline const char* DeleteTuple::model_id() const noexcept
+    {
+        return payload.request.model_id;
     }
 
     inline uint64_t DeleteTuple::request_id() const noexcept
@@ -170,7 +188,7 @@ namespace postfga::client
     {
         return payload.request.store_id;
     }
-    
+
     inline uint64_t DeleteStore::request_id() const noexcept
     {
         return payload.request.request_id;
@@ -186,14 +204,8 @@ namespace postfga::client
         return payload.response;
     }
 
-    using RequestVariant = std::variant<
-        CheckTuple, 
-        WriteTuple, 
-        DeleteTuple, 
-        GetStore, 
-        CreateStore,
-        DeleteStore,
-        InvalidRequest>;
+    using RequestVariant =
+        std::variant<CheckTuple, WriteTuple, DeleteTuple, GetStore, CreateStore, DeleteStore, InvalidRequest>;
 
     inline RequestVariant make_request_variant(FgaPayload& payload)
     {

@@ -31,7 +31,7 @@
 #define POSTFGA_LWLOCK_TRANCHE_NUM 4
 
 /* Global shared memory state pointer */
-PostfgaShmemState* postfga_shmem_state = NULL;
+PostfgaShmemState* postfga_shmem_state_instance_ = NULL;
 
 /*-------------------------------------------------------------------------
  * Static helpers (private)
@@ -72,25 +72,25 @@ static void _initialize_state(void)
 {
     /* Named LWLock tranche에서 락 배열 가져오기 */
     LWLockPadded* locks = GetNamedLWLockTranche(POSTFGA_LWLOCK_TRANCHE_NAME);
-    char* ptr = (char*)postfga_shmem_state;
+    char* ptr = (char*)postfga_shmem_state_instance_;
 
     /* state 내 락 포인터 설정 */
-    postfga_shmem_state->lock = &locks[0].lock;
+    postfga_shmem_state_instance_->lock = &locks[0].lock;
 
     /* 전체 영역은 ShmemInitStruct 가 이미 zero 로 초기화해 줌 */
-    postfga_shmem_state->bgw_latch = NULL;
-    postfga_shmem_state->hash_seed = _generate_hash_seed();
+    postfga_shmem_state_instance_->bgw_latch = NULL;
+    postfga_shmem_state_instance_->hash_seed = _generate_hash_seed();
 
     /* 1. shmem state struct */
     ptr += MAXALIGN(sizeof(PostfgaShmemState));
 
-    postfga_shmem_state->channel = (FgaChannel*)ptr;
+    postfga_shmem_state_instance_->channel = (FgaChannel*)ptr;
     ptr += postfga_channel_shmem_size();
 
-    postfga_channel_shmem_init(postfga_shmem_state->channel, &locks[1].lock, &locks[2].lock);
+    postfga_channel_shmem_init(postfga_shmem_state_instance_->channel, &locks[1].lock, &locks[2].lock);
 
     /* 2. L2 cache */
-    postfga_cache_shmem_init(&postfga_shmem_state->cache, &locks[3].lock);
+    postfga_cache_shmem_init(&postfga_shmem_state_instance_->cache, &locks[3].lock);
 }
 
 /*-------------------------------------------------------------------------
@@ -131,13 +131,13 @@ void postfga_shmem_startup(void)
 
     LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
 
-    postfga_shmem_state = ShmemInitStruct("PostFGA Data", size, &found);
+    postfga_shmem_state_instance_ = ShmemInitStruct("PostFGA Data", size, &found);
 
     if (!found)
     {
         /* 실제 필드 초기화 */
         _initialize_state();
     }
-    
+
     LWLockRelease(AddinShmemInitLock);
 }

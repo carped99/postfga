@@ -11,6 +11,7 @@ namespace postfga::client
         void fill_check_request(const CheckTuple& in, ::openfga::v1::CheckRequest& out)
         {
             out.set_store_id(in.store_id());
+            out.set_authorization_model_id(in.model_id());
 
             const FgaCheckTupleRequest& payload = in.request();
             const FgaTuple& tuple = payload.tuple;
@@ -50,17 +51,18 @@ namespace postfga::client
         auto ctx = std::make_shared<BatchCheckContext>();
 
         ctx->request.set_store_id(config_.store_id);
+        // ctx->request.set_authorization_model_id(config_.model_id());
         // ctx->request.set_consistency(::openfga::v1::ConsistencyPreference::HIGHER_CONSISTENCY);
         for (const auto& item : items)
         {
-            ::openfga::v1::BatchCheckItem *check = ctx->request.add_checks();
+            ::openfga::v1::BatchCheckItem* check = ctx->request.add_checks();
             check->set_correlation_id(std::to_string(item.params.request_id()));
 
             const FgaCheckTupleRequest& request = item.params.request();
             ::openfga::v1::CheckRequestTupleKey* tupleKey = check->mutable_tuple_key();
             fill_tuple_key(request.tuple, tupleKey);
         }
-        
+
         // Set deadline
         ctx->context.set_deadline(std::chrono::system_clock::now() + config_.timeout);
 
@@ -71,7 +73,7 @@ namespace postfga::client
                 const auto& result_map = ctx->response.result();
                 for (auto& item : items)
                 {
-                    const auto& correlation_id = std::to_string( item.params.request_id() );
+                    const auto& correlation_id = std::to_string(item.params.request_id());
                     const auto& it = result_map.find(correlation_id);
                     FgaResponse& out = item.params.response();
                     if (it == result_map.end())
@@ -124,7 +126,7 @@ namespace postfga::client
     {
         auto ctx = std::make_shared<CheckContext>();
         fill_check_request(req, ctx->request);
-        
+
         // Set deadline
         ctx->context.set_deadline(std::chrono::system_clock::now() + config_.timeout);
 

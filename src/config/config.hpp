@@ -20,7 +20,7 @@ namespace postfga
     {
         std::string endpoint;
         std::string store_id;
-        std::string authorization_model_id; // optional, can be empty
+        std::string model_id; // optional, can be empty
 
         std::chrono::milliseconds timeout = std::chrono::milliseconds(10000); // 기본 10초
 

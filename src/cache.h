@@ -8,8 +8,8 @@
 #include <utils/hsearch.h>
 #include <utils/timestamp.h>
 
-#include "postfga.h"
 #include "payload.h"
+#include "postfga.h"
 
 typedef struct FgaRelationCacheEntry
 {
@@ -92,18 +92,19 @@ extern "C"
     void postfga_l2_bump_generation(FgaL2Cache* cache);
 
 
-    FgaAclCacheKey postfga_cache_key(const char* store_id,
-                                const char* auth_model_id,
-                                const char* object_type,
-                                const char* object_id,
-                                const char* subject_type,
-                                const char* subject_id,
-                                const char* relation);
+    void postfga_cache_key(FgaAclCacheKey* key,
+                           const char* store_id,
+                           const char* model_id,
+                           text* object_type,
+                           text* object_id,
+                           text* subject_type,
+                           text* subject_id,
+                           text* relation);
 
     bool postfga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allowed_out);
 
     void postfga_cache_store(const FgaAclCacheKey* key, uint64_t ttl_ms, bool allowed);
-        
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

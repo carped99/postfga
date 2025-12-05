@@ -87,19 +87,19 @@ typedef struct FgaGetStoreRequest
 typedef struct FgaGetStoreResponse
 {
     bool found;
-    char name[STORE_NAME_LEN];
+    char name[OPENFGA_STORE_NAME_LEN];
 } FgaGetStoreResponse;
 
 /* store 생성 */
 typedef struct FgaCreateStoreRequest
 {
-    char name[STORE_NAME_LEN];
+    char name[OPENFGA_STORE_NAME_LEN];
 } FgaCreateStoreRequest;
 
 typedef struct FgaCreateStoreResponse
 {
-    char id[STORE_ID_LEN];
-    char name[STORE_NAME_LEN];
+    char id[OPENFGA_STORE_ID_LEN];
+    char name[OPENFGA_STORE_NAME_LEN];
 } FgaCreateStoreResponse;
 
 typedef struct FgaDeleteStoreRequest
@@ -116,7 +116,8 @@ typedef struct FgaRequest
     uint64_t request_id; /* request identifier */
     uint16_t type;       /* FgaRequestType */
     // uint16_t reserved;   /* alignment / flags 용 */
-    char store_id[STORE_ID_LEN];
+    char store_id[OPENFGA_STORE_ID_LEN];
+    char model_id[OPENFGA_MODEL_ID_LEN];
     union
     {
         FgaCheckTupleRequest checkTuple;
@@ -147,7 +148,7 @@ typedef struct FgaResponse
 
 typedef struct FgaPayload
 {
-    FgaRequest  request;
+    FgaRequest request;
     FgaResponse response;
 } FgaPayload;
 

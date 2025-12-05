@@ -1,5 +1,5 @@
 {
-  "name": "openfga_fdw Development",
+  "name": "postfga Development",
   "dockerComposeFile": [
     "../docker/docker-compose.yml"
   ],
@@ -16,6 +16,7 @@
       "settings": {
         "C_Cpp.default.cStandard": "c11",
         "C_Cpp.default.cppStandard": "c++20",
+        "C_Cpp.default.compilerPath": "/usr/bin/g++",
         "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
         "C_Cpp.default.compileCommands": "${workspaceFolder}/compile_commands.json",
         "C_Cpp.intelliSenseEngine": "default",
@@ -23,7 +24,9 @@
         "C_Cpp.clang_format_fallbackStyle": "Google",
         "C_Cpp.default.systemIncludePath": [
           "${workspaceFolder}/api",
-          "/usr/include/linux",
+          "/usr/include",
+          "/usr/include/c++/14",
+          "/usr/lib/gcc/x86_64-linux-gnu/14/include",
           "/usr/local/include"
         ]
       }

@@ -26,11 +26,11 @@ extern "C"
 #include "cache.h"
 #include "stats_type.h"
 
-typedef struct FgaChannel FgaChannel; // forward declaration
+    typedef struct FgaChannel FgaChannel; // forward declaration
 
-/*-------------------------------------------------------------------------
- * PostfgaShmemState
- */
+    /*-------------------------------------------------------------------------
+     * PostfgaShmemState
+     */
     typedef struct PostfgaShmemState
     {
         LWLock* lock;       /* Master lock for all shared data */
@@ -39,23 +39,22 @@ typedef struct FgaChannel FgaChannel; // forward declaration
 
 
         FgaChannel* channel; /* Request channel */
-        FgaL2Cache cache;            /* Shared L2 cache */
+        FgaL2Cache cache;    /* Shared L2 cache */
         // FgaStats stats; /* Statistics */
 
     } PostfgaShmemState;
 
     /* 전역 shmem state 포인터 (실제 정의는 shmem.c 에서) */
-    extern PostfgaShmemState* postfga_shmem_state;
+    extern PostfgaShmemState* postfga_shmem_state_instance_;
 
     /* Shmem lifecycle API */
     void postfga_shmem_request(void);
     void postfga_shmem_startup(void);
 
     // Accessor for global shmem state
-    static inline PostfgaShmemState*
-    postfga_get_shmem_state(void)
+    static inline PostfgaShmemState* postfga_get_shmem_state(void)
     {
-        return postfga_shmem_state;
+        return postfga_shmem_state_instance_;
     }
 
 #ifdef __cplusplus

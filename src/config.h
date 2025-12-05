@@ -10,7 +10,7 @@ typedef struct PostfgaConfig
 {
     char* endpoint;                /* gRPC endpoint */
     char* store_id;                /* Store ID */
-    char* authorization_model_id;  /* Authorization Model ID */
+    char* model_id;                /* Authorization Model ID */
     int cache_ttl_ms;              /* Cache TTL in milliseconds */
     int max_cache_entries;         /* Maximum cache entries */
     bool fallback_to_grpc_on_miss; /* Fall back to gRPC on cache miss */
@@ -20,12 +20,18 @@ typedef struct PostfgaConfig
     int max_relations;             /* Maximum number of relations */
 } PostfgaConfig;
 
+/* Global configuration instance */
+extern PostfgaConfig postfga_config_instance_;
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-    PostfgaConfig* postfga_get_config(void);
+    static inline PostfgaConfig* postfga_get_config(void)
+    {
+        return &postfga_config_instance_;
+    }
 
 #ifdef __cplusplus
 }

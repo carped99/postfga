@@ -26,33 +26,36 @@ CREATE OR REPLACE FUNCTION postfga_check(
     object_id text,
     subject_type text,
     subject_id text,
-    relation text
+    relation text,
+    options jsonb DEFAULT NULL
 )
 RETURNS boolean
 AS 'MODULE_PATHNAME'
-LANGUAGE C STRICT PARALLEL SAFE VOLATILE COST 10000;
+LANGUAGE C PARALLEL SAFE VOLATILE COST 10000;
 
 CREATE OR REPLACE FUNCTION postfga_write_tuple(
     object_type text,
     object_id text,
     subject_type text,
     subject_id text,
-    relation text
+    relation text,
+    options jsonb DEFAULT NULL
 )
 RETURNS boolean
 AS 'MODULE_PATHNAME'
-LANGUAGE C STRICT PARALLEL SAFE VOLATILE COST 10000;
+LANGUAGE C PARALLEL SAFE VOLATILE COST 10000;
 
 CREATE OR REPLACE FUNCTION postfga_delete_tuple(
     object_type text,
     object_id text,
     subject_type text,
     subject_id text,
-    relation text
+    relation text,
+    options jsonb DEFAULT NULL
 )
 RETURNS boolean
 AS 'MODULE_PATHNAME'
-LANGUAGE C STRICT PARALLEL SAFE VOLATILE COST 10000;
+LANGUAGE C PARALLEL SAFE VOLATILE COST 10000;
 
 CREATE OR REPLACE FUNCTION postfga_create_store(
     name text
@@ -72,7 +75,7 @@ CREATE OR REPLACE FUNCTION postfga_config()
 RETURNS TABLE (
     endpoint                 text,
     store_id                 text,
-    authorization_model_id   text,
+    model_id                 text,
     cache_ttl_ms             integer,
     max_cache_entries        integer,
     fallback_to_grpc_on_miss boolean,

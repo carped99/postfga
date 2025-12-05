@@ -1,9 +1,4 @@
 #include "config.h"
 
 /* Global configuration */
-static PostfgaConfig config = {0};
-
-PostfgaConfig* postfga_get_config(void)
-{
-    return &config;
-}
+PostfgaConfig postfga_config_instance_ = {0};
