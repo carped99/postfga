@@ -1,5 +1,5 @@
-#ifndef POSTFGA_CHANNEL_SHMEM_H
-#define POSTFGA_CHANNEL_SHMEM_H
+#ifndef FGA_CHANNEL_SHMEM_H
+#define FGA_CHANNEL_SHMEM_H
 
 #ifdef __cplusplus
 extern "C"
@@ -14,11 +14,11 @@ extern "C"
     struct FgaChannel;
     typedef struct FgaChannel FgaChannel;
 
-    Size postfga_channel_shmem_size(void);
-    void postfga_channel_shmem_init(FgaChannel* ch, LWLock* pool_lock, LWLock* queue_lock);
+    Size fga_channel_shmem_size(void);
+    void fga_channel_shmem_init(FgaChannel* ch, LWLock* pool_lock, LWLock* queue_lock);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* POSTFGA_CHANNEL_SHMEM_H */
+#endif /* FGA_CHANNEL_SHMEM_H */

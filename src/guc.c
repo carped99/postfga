@@ -26,14 +26,14 @@
  */
 
 // GUC names
-#define POSTFGA_GUC_ENDPOINT "postfga.endpoint"
-#define POSTFGA_GUC_STORE_ID "postfga.store_id"
-#define POSTFGA_GUC_AUTH_MODEL_ID "postfga.authorization_model_id"
-#define POSTFGA_GUC_RELATIONS "postfga.relations"
-#define POSTFGA_GUC_CACHE_TTL_MS "postfga.cache_ttl_ms"
-#define POSTFGA_GUC_MAX_CACHE_ENTRIES "postfga.max_cache_entries"
-#define POSTFGA_GUC_BGW_WORKERS "postfga.bgw_workers"
-#define POSTFGA_GUC_FALLBACK_ON_MISS "postfga.fallback_to_grpc_on_miss"
+#define FGA_GUC_ENDPOINT "postfga.endpoint"
+#define FGA_GUC_STORE_ID "postfga.store_id"
+#define FGA_GUC_AUTH_MODEL_ID "postfga.authorization_model_id"
+#define FGA_GUC_RELATIONS "postfga.relations"
+#define FGA_GUC_CACHE_TTL_MS "postfga.cache_ttl_ms"
+#define FGA_GUC_MAX_CACHE_ENTRIES "postfga.max_cache_entries"
+#define FGA_GUC_BGW_WORKERS "postfga.bgw_workers"
+#define FGA_GUC_FALLBACK_ON_MISS "postfga.fallback_to_grpc_on_miss"
 
 // Default values
 #define DEFAULT_ENDPOINT ""
@@ -103,14 +103,14 @@ static bool validate_cache_size(int* newval, void** extra, GucSource source)
 }
 
 /*
- * postfga_guc_init
+ * fga_guc_init
  *
  * Define all GUC variables and bind them to the global config struct.
  * Must be called from _PG_init().
  */
-void postfga_guc_init(void)
+void fga_guc_init(void)
 {
-    PostfgaConfig* cfg = postfga_get_config();
+    FgaConfig* cfg = fga_get_config();
 
     /* postfga.endpoint */
     DefineCustomStringVariable("postfga.endpoint",
@@ -167,14 +167,14 @@ void postfga_guc_init(void)
     elog(LOG, "PostFGA: GUC variables initialized");
 }
 
-void postfga_guc_fini(void)
+void fga_guc_fini(void)
 {
     // noop
 }
 
 static void postfga_guc_cache_init(void)
 {
-    PostfgaConfig* cfg = postfga_get_config();
+    FgaConfig* cfg = fga_get_config();
 
     /* postfga.cache_enabled */
     DefineCustomBoolVariable("postfga.cache_enabled",
@@ -226,7 +226,7 @@ static void postfga_guc_cache_init(void)
  */
 void validate_guc_values(void)
 {
-    PostfgaConfig* cfg = postfga_get_config();
+    FgaConfig* cfg = fga_get_config();
 
     /* Validate endpoint */
     if (!cfg->endpoint || cfg->endpoint[0] == '\0')

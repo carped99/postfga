@@ -6,8 +6,8 @@
  *-------------------------------------------------------------------------
  */
 
-#ifndef POSTFGA_STATS_H
-#define POSTFGA_STATS_H
+#ifndef FGA_STATS_H
+#define FGA_STATS_H
 
 #ifdef __cplusplus
 extern "C"
@@ -15,7 +15,7 @@ extern "C"
 #endif
 
     /* Initialize statistics counters */
-    void postfga_stats_shmem_init();
+    void fga_stats_shmem_init();
 
     /* Increment cache hit counter */
     void stats_inc_cache_hit();
@@ -43,4 +43,4 @@ extern "C"
 }
 #endif
 
-#endif /* POSTFGA_STATS_H */
+#endif /* FGA_STATS_H */

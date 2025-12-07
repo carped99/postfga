@@ -13,13 +13,13 @@
  */
 
 #include <postgres.h>
-#include <fmgr.h>
-#include <utils/guc.h>
-#include <miscadmin.h>
 
+#include <assert.h>
+#include <fmgr.h>
+#include <miscadmin.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
+#include <utils/guc.h>
 
 #include "../src/guc.h"
 
@@ -33,56 +33,75 @@ static int tests_failed = 0;
  * -------------------------------------------------------------------------
  */
 
-#define TEST_START(name) \
-    do { \
-        tests_run++; \
-        printf("\n[TEST %d] %s\n", tests_run, name); \
-    } while(0)
+#define TEST_START(name)                                                                                               \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        tests_run++;                                                                                                   \
+        printf("\n[TEST %d] %s\n", tests_run, name);                                                                   \
+    } while (0)
 
-#define TEST_ASSERT(condition, message) \
-    do { \
-        if (condition) { \
-            printf("  ✓ PASS: %s\n", message); \
-            tests_passed++; \
-        } else { \
-            printf("  ✗ FAIL: %s\n", message); \
-            tests_failed++; \
-        } \
-    } while(0)
+#define TEST_ASSERT(condition, message)                                                                                \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if (condition)                                                                                                 \
+        {                                                                                                              \
+            printf("  ✓ PASS: %s\n", message);                                                                         \
+            tests_passed++;                                                                                            \
+        }                                                                                                              \
+        else                                                                                                           \
+        {                                                                                                              \
+            printf("  ✗ FAIL: %s\n", message);                                                                         \
+            tests_failed++;                                                                                            \
+        }                                                                                                              \
+    } while (0)
 
-#define TEST_ASSERT_STR_EQ(str1, str2, message) \
-    do { \
-        if (strcmp((str1), (str2)) == 0) { \
-            printf("  ✓ PASS: %s (got: '%s')\n", message, str1); \
-            tests_passed++; \
-        } else { \
-            printf("  ✗ FAIL: %s (expected: '%s', got: '%s')\n", message, str2, str1); \
-            tests_failed++; \
-        } \
-    } while(0)
+#define TEST_ASSERT_STR_EQ(str1, str2, message)                                                                        \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if (strcmp((str1), (str2)) == 0)                                                                               \
+        {                                                                                                              \
+            printf("  ✓ PASS: %s (got: '%s')\n", message, str1);                                                       \
+            tests_passed++;                                                                                            \
+        }                                                                                                              \
+        else                                                                                                           \
+        {                                                                                                              \
+            printf("  ✗ FAIL: %s (expected: '%s', got: '%s')\n", message, str2, str1);                                 \
+            tests_failed++;                                                                                            \
+        }                                                                                                              \
+    } while (0)
 
-#define TEST_ASSERT_INT_EQ(val1, val2, message) \
-    do { \
-        if ((val1) == (val2)) { \
-            printf("  ✓ PASS: %s (got: %d)\n", message, val1); \
-            tests_passed++; \
-        } else { \
-            printf("  ✗ FAIL: %s (expected: %d, got: %d)\n", message, val2, val1); \
-            tests_failed++; \
-        } \
-    } while(0)
+#define TEST_ASSERT_INT_EQ(val1, val2, message)                                                                        \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if ((val1) == (val2))                                                                                          \
+        {                                                                                                              \
+            printf("  ✓ PASS: %s (got: %d)\n", message, val1);                                                         \
+            tests_passed++;                                                                                            \
+        }                                                                                                              \
+        else                                                                                                           \
+        {                                                                                                              \
+            printf("  ✗ FAIL: %s (expected: %d, got: %d)\n", message, val2, val1);                                     \
+            tests_failed++;                                                                                            \
+        }                                                                                                              \
+    } while (0)
 
-#define TEST_ASSERT_BOOL_EQ(val1, val2, message) \
-    do { \
-        if ((val1) == (val2)) { \
-            printf("  ✓ PASS: %s (got: %s)\n", message, (val1) ? "true" : "false"); \
-            tests_passed++; \
-        } else { \
-            printf("  ✗ FAIL: %s (expected: %s, got: %s)\n", message, \
-                   (val2) ? "true" : "false", (val1) ? "true" : "false"); \
-            tests_failed++; \
-        } \
-    } while(0)
+#define TEST_ASSERT_BOOL_EQ(val1, val2, message)                                                                       \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        if ((val1) == (val2))                                                                                          \
+        {                                                                                                              \
+            printf("  ✓ PASS: %s (got: %s)\n", message, (val1) ? "true" : "false");                                    \
+            tests_passed++;                                                                                            \
+        }                                                                                                              \
+        else                                                                                                           \
+        {                                                                                                              \
+            printf("  ✗ FAIL: %s (expected: %s, got: %s)\n",                                                           \
+                   message,                                                                                            \
+                   (val2) ? "true" : "false",                                                                          \
+                   (val1) ? "true" : "false");                                                                         \
+            tests_failed++;                                                                                            \
+        }                                                                                                              \
+    } while (0)
 
 /* -------------------------------------------------------------------------
  * Test Cases
@@ -94,21 +113,22 @@ static int tests_failed = 0;
  *
  * Test that get_config returns valid pointer and has reasonable defaults
  */
-static void
-test_config_initialization(void)
+static void test_config_initialization(void)
 {
     TEST_START("Config Initialization");
 
-    PostfgaConfig *config = get_config();
+    FgaConfig* config = get_config();
 
     TEST_ASSERT(config != NULL, "Config pointer should not be NULL");
 
     /* After init_guc_variables, defaults should be set */
-    if (config->endpoint != NULL) {
+    if (config->endpoint != NULL)
+    {
         TEST_ASSERT(strlen(config->endpoint) > 0, "Default endpoint should be set");
     }
 
-    if (config->relations != NULL) {
+    if (config->relations != NULL)
+    {
         TEST_ASSERT(strlen(config->relations) > 0, "Default relations should be set");
     }
 
@@ -121,12 +141,11 @@ test_config_initialization(void)
  *
  * Test that configuration values are within expected ranges
  */
-static void
-test_config_values(void)
+static void test_config_values(void)
 {
     TEST_START("Config Value Ranges");
 
-    PostfgaConfig *config = get_config();
+    FgaConfig* config = get_config();
 
     TEST_ASSERT(config->cache_ttl_ms >= 1000, "Cache TTL should be >= 1000ms");
     TEST_ASSERT(config->cache_ttl_ms <= 3600000, "Cache TTL should be <= 3600000ms");
@@ -143,44 +162,52 @@ test_config_values(void)
  *
  * Test string configuration values
  */
-static void
-test_config_strings(void)
+static void test_config_strings(void)
 {
     TEST_START("Config String Values");
 
-    PostfgaConfig *config = get_config();
+    FgaConfig* config = get_config();
 
-    if (config->endpoint != NULL && strlen(config->endpoint) > 0) {
+    if (config->endpoint != NULL && strlen(config->endpoint) > 0)
+    {
         printf("  • Endpoint: %s\n", config->endpoint);
         TEST_ASSERT(1, "Endpoint is set");
-    } else {
+    }
+    else
+    {
         TEST_ASSERT(0, "Endpoint should be set");
     }
 
-    if (config->store_id != NULL) {
-        printf("  • Store ID: %s\n",
-               strlen(config->store_id) > 0 ? config->store_id : "(empty)");
+    if (config->store_id != NULL)
+    {
+        printf("  • Store ID: %s\n", strlen(config->store_id) > 0 ? config->store_id : "(empty)");
     }
 
-    if (config->authorization_model_id != NULL) {
+    if (config->authorization_model_id != NULL)
+    {
         printf("  • Auth Model ID: %s\n",
                strlen(config->authorization_model_id) > 0 ? config->authorization_model_id : "(empty)");
     }
 
-    if (config->relations != NULL && strlen(config->relations) > 0) {
+    if (config->relations != NULL && strlen(config->relations) > 0)
+    {
         printf("  • Relations: %s\n", config->relations);
         TEST_ASSERT(1, "Relations are defined");
 
         /* Count commas to estimate relation count */
         int comma_count = 0;
-        for (const char *p = config->relations; *p; p++) {
-            if (*p == ',') comma_count++;
+        for (const char* p = config->relations; *p; p++)
+        {
+            if (*p == ',')
+                comma_count++;
         }
         int relation_count = comma_count + 1;
 
         printf("  • Estimated relation count: %d\n", relation_count);
         TEST_ASSERT(relation_count <= 64, "Relation count should not exceed 64");
-    } else {
+    }
+    else
+    {
         TEST_ASSERT(0, "Relations should be defined");
     }
 }
@@ -190,19 +217,16 @@ test_config_strings(void)
  *
  * Test boolean configuration values
  */
-static void
-test_boolean_config(void)
+static void test_boolean_config(void)
 {
     TEST_START("Boolean Config Values");
 
-    PostfgaConfig *config = get_config();
+    FgaConfig* config = get_config();
 
-    printf("  • fallback_to_grpc_on_miss: %s\n",
-           config->fallback_to_grpc_on_miss ? "true" : "false");
+    printf("  • fallback_to_grpc_on_miss: %s\n", config->fallback_to_grpc_on_miss ? "true" : "false");
 
     /* Boolean should be either true or false (0 or 1) */
-    TEST_ASSERT(config->fallback_to_grpc_on_miss == 0 ||
-                config->fallback_to_grpc_on_miss == 1,
+    TEST_ASSERT(config->fallback_to_grpc_on_miss == 0 || config->fallback_to_grpc_on_miss == 1,
                 "Boolean should be 0 or 1");
 }
 
@@ -211,12 +235,11 @@ test_boolean_config(void)
  *
  * Test numeric configuration values
  */
-static void
-test_numeric_config(void)
+static void test_numeric_config(void)
 {
     TEST_START("Numeric Config Values");
 
-    PostfgaConfig *config = get_config();
+    FgaConfig* config = get_config();
 
     printf("  • cache_ttl_ms: %d\n", config->cache_ttl_ms);
     printf("  • max_cache_entries: %d\n", config->max_cache_entries);
@@ -237,8 +260,7 @@ test_numeric_config(void)
  *
  * Execute all test cases
  */
-static void
-run_all_tests(void)
+static void run_all_tests(void)
 {
     printf("=================================================\n");
     printf("PostFGA GUC Unit Tests\n");
@@ -258,9 +280,12 @@ run_all_tests(void)
     printf("Failed:       %d\n", tests_failed);
     printf("=================================================\n");
 
-    if (tests_failed == 0) {
+    if (tests_failed == 0)
+    {
         printf("✓ All tests passed!\n");
-    } else {
+    }
+    else
+    {
         printf("✗ Some tests failed!\n");
     }
 }
@@ -274,20 +299,19 @@ run_all_tests(void)
  * you would need to initialize the PostgreSQL environment properly.
  */
 #ifdef TEST_MAIN
-int
-main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     /* In a real test, you'd need to:
      * 1. Initialize PostgreSQL memory contexts
      * 2. Set up error handling (PG_TRY/PG_CATCH)
      * 3. Initialize GUC system
-     * 4. Call postfga_guc_init()
+     * 4. Call fga_guc_init()
      */
 
     printf("Note: This is a stub. Real tests require PostgreSQL initialization.\n\n");
 
     /* Mock initialization */
-    // postfga_guc_init();
+    // fga_guc_init();
 
     /* Run tests */
     run_all_tests();
@@ -306,8 +330,7 @@ PG_MODULE_MAGIC;
 
 PG_FUNCTION_INFO_V1(test_guc_run);
 
-Datum
-test_guc_run(PG_FUNCTION_ARGS)
+Datum test_guc_run(PG_FUNCTION_ARGS)
 {
     /* Run all tests */
     run_all_tests();

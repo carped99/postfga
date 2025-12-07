@@ -18,7 +18,7 @@
 #include <utils/hsearch.h>
 
 #include "relation.h"
-#include "shmem.h"
+#include "state.h"
 
 /* -------------------------------------------------------------------------
  * Relation Bitmap Operations
@@ -46,7 +46,7 @@ uint8 get_relation_bit_index(const char* relation_name)
     RelationBitMapEntry* entry;
     uint8 bit_index = 0;
 
-    FgaL2AclCache* state = postfga_get_shmem_state()->cache;
+    FgaL2AclCache* state = fga_get_state()->cache;
 
     if (!relation_name || relation_name[0] == '\0')
     {
@@ -102,7 +102,7 @@ void register_relation(const char* relation_name, uint8 bit_index)
         return;
     }
 
-    cache = postfga_get_shmem_state()->cache;
+    cache = fga_get_state()->cache;
 
     // LWLockAcquire(cache->lock, LW_EXCLUSIVE);
 

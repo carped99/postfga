@@ -13,7 +13,7 @@
 
 #include "bgw/main.h"
 #include "guc.h"
-#include "shmem.h"
+#include "state.h"
 
 /* Module magic */
 PG_MODULE_MAGIC;
@@ -26,8 +26,8 @@ static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
 void _PG_init(void);
 void _PG_fini(void);
 
-static void postfga_shmem_request_hook(void);
-static void postfga_shmem_startup_hook(void);
+static void fga_shmem_request_hook(void);
+static void fga_shmem_startup_hook(void);
 
 /* ------------------------------------------------------------------------- */
 /* Module load / unload                                                      */
@@ -45,16 +45,16 @@ void _PG_init(void)
     ereport(DEBUG1, (errmsg("postfga: initializing")));
 
     // Initialize GUC parameters first (may affect shmem size/config)
-    postfga_guc_init();
+    fga_guc_init();
 
     // Register shared memory hooks, preserving existing hook chain
     prev_shmem_request_hook = shmem_request_hook;
-    shmem_request_hook = postfga_shmem_request_hook;
+    shmem_request_hook = fga_shmem_request_hook;
 
     prev_shmem_startup_hook = shmem_startup_hook;
-    shmem_startup_hook = postfga_shmem_startup_hook;
+    shmem_startup_hook = fga_shmem_startup_hook;
 
-    postfga_bgw_init();
+    fga_bgw_init();
 
     ereport(DEBUG1, (errmsg("postfga: Extension initialized")));
 }
@@ -63,26 +63,26 @@ void _PG_fini(void)
 {
     ereport(LOG, (errmsg("postfga: Extension unloading")));
 
-    postfga_bgw_fini();
-    postfga_guc_fini();
+    fga_bgw_fini();
+    fga_guc_fini();
 
     // Restore previous hooks so other extensions in the chain keep working
     shmem_request_hook = prev_shmem_request_hook;
     shmem_startup_hook = prev_shmem_startup_hook;
 }
 
-static void postfga_shmem_request_hook(void)
+static void fga_shmem_request_hook(void)
 {
     if (prev_shmem_request_hook)
         prev_shmem_request_hook();
 
-    postfga_shmem_request();
+    fga_shmem_request();
 }
 
-static void postfga_shmem_startup_hook(void)
+static void fga_shmem_startup_hook(void)
 {
     if (prev_shmem_startup_hook)
         prev_shmem_startup_hook();
 
-    postfga_shmem_startup();
+    fga_shmem_startup();
 }

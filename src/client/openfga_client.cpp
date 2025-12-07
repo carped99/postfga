@@ -13,7 +13,7 @@ namespace postfga::client
     /* ========================================================================
      * ctor / dtor
      * ====================================================================== */
-    OpenFgaGrpcClient::OpenFgaGrpcClient(const Config& config)
+    OpenFgaGrpcClient::OpenFgaGrpcClient(const postfga::Config& config)
         : config_(config),
           channel_(make_channel(config_)),
           stub_(openfga::v1::OpenFGAService::NewStub(channel_)),
@@ -62,7 +62,9 @@ namespace postfga::client
     void OpenFgaGrpcClient::process(FgaPayload& payload, ProcessCallback cb)
     {
         auto variant = make_request_variant(payload);
-        std::visit([this, callback = std::move(cb)](auto& arg) mutable { this->handle_request(arg, std::move(callback)); }, variant);
+        std::visit([this, callback = std::move(cb)](auto& arg) mutable
+                   { this->handle_request(arg, std::move(callback)); },
+                   variant);
     }
 
     void OpenFgaGrpcClient::process_batch(std::span<ProcessItem> items)
@@ -94,7 +96,9 @@ namespace postfga::client
         {
             auto& item = items.front();
             auto variant = make_request_variant(*item.payload);
-            std::visit([this, callback = std::move(item.callback)](auto& arg) mutable { this->handle_request(arg, std::move(callback)); }, variant);
+            std::visit([this, callback = std::move(item.callback)](auto& arg) mutable
+                       { this->handle_request(arg, std::move(callback)); },
+                       variant);
             return;
         }
 
@@ -108,13 +112,15 @@ namespace postfga::client
             {
                 auto& params = std::get<CheckTuple>(variant);
                 batch_check_items.push_back(BatchCheckItem{
-                    .params   = params,
+                    .params = params,
                     .callback = std::move(item.callback),
                 });
             }
             else
             {
-                std::visit([this, callback = std::move(item.callback)](auto& arg) mutable { this->handle_request(arg, callback); }, variant);
+                std::visit([this, callback = std::move(item.callback)](auto& arg) mutable
+                           { this->handle_request(arg, callback); },
+                           variant);
             }
         }
 

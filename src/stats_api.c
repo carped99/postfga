@@ -7,7 +7,7 @@
  */
 #include <postgres.h>
 
-#include "shmem.h"
+#include "state.h"
 #include "stats_api.h"
 #include "stats_type.h"
 
@@ -16,15 +16,15 @@
  *-------------------------------------------------------------------------*/
 static inline FgaStats* get_stats()
 {
-    return &postfga_get_shmem_state()->stats;
+    return &fga_get_state()->stats;
 }
 
 /*
- * postfga_stats_shmem_init
+ * fga_stats_shmem_init
  *
  * Initialize all statistics counters to zero.
  */
-void postfga_stats_shmem_init(FgaStats* stats)
+void fga_stats_shmem_init(FgaStats* stats)
 {
     pg_atomic_init_u64(&stats->l1_cache.hits, 0);
     pg_atomic_init_u64(&stats->l1_cache.misses, 0);

@@ -1,5 +1,5 @@
-#ifndef POSTFGA_CHANNEL_SLOT_H
-#define POSTFGA_CHANNEL_SLOT_H
+#ifndef FGA_CHANNEL_SLOT_H
+#define FGA_CHANNEL_SLOT_H
 
 #ifdef __cplusplus
 extern "C"
@@ -13,7 +13,6 @@ extern "C"
 #include <port/atomics.h>
 
 #include "channel.h"
-
 
 
     static void pool_init(FgaChannelSlotPool* pool, uint32 max_slots)
@@ -147,9 +146,9 @@ extern "C"
     }
 
     /*-------------------------------------------------------------------------
-    * Static helpers
-    *-------------------------------------------------------------------------
-    */
+     * Static helpers
+     *-------------------------------------------------------------------------
+     */
     static FgaChannelSlot* acquire_slot(FgaChannelSlotPool* pool)
     {
         slist_node* node;
@@ -175,4 +174,4 @@ extern "C"
 }
 #endif
 
-#endif /* POSTFGA_CHANNEL_SLOT_H */
+#endif /* FGA_CHANNEL_SLOT_H */

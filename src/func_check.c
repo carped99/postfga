@@ -62,7 +62,7 @@ static inline void fill_tuple_args(TupleArgsView v, FgaTuple* tuple)
 
 static inline void fill_request(FgaRequest* request)
 {
-    PostfgaConfig* config = postfga_get_config();
+    FgaConfig* config = fga_get_config();
     if (config->store_id == NULL || config->store_id[0] == '\0')
     {
         ereport(ERROR, errmsg("postfga: store_id is not configured"));
@@ -111,21 +111,21 @@ static inline TupleArgsView read_tuple_args(FunctionCallInfo fcinfo)
 Datum postfga_check(PG_FUNCTION_ARGS)
 {
     TupleArgsView args = read_tuple_args(fcinfo);
-    PostfgaConfig* config = postfga_get_config();
+    FgaConfig* config = fga_get_config();
     uint64_t ttl_ms = config->cache_ttl_ms;
     bool allowed;
 
     FgaAclCacheKey key;
-    postfga_cache_key(&key,
-                      config->store_id,
-                      config->model_id,
-                      args.object_type,
-                      args.object_id,
-                      args.subject_type,
-                      args.subject_id,
-                      args.relation);
+    fga_cache_key(&key,
+                  config->store_id,
+                  config->model_id,
+                  args.object_type,
+                  args.object_id,
+                  args.subject_type,
+                  args.subject_id,
+                  args.relation);
 
-    if (postfga_cache_lookup(&key, ttl_ms, &allowed))
+    if (fga_cache_lookup(&key, ttl_ms, &allowed))
     {
         PG_RETURN_BOOL(allowed);
     }
@@ -137,10 +137,10 @@ Datum postfga_check(PG_FUNCTION_ARGS)
         fill_request(&request);
         fill_tuple_args(args, &request.body.checkTuple.tuple);
 
-        postfga_channel_execute(&request, &response);
+        fga_channel_execute(&request, &response);
         if (response.status == FGA_RESPONSE_OK)
         {
-            postfga_cache_store(&key, ttl_ms, response.body.checkTuple.allow);
+            fga_cache_store(&key, ttl_ms, response.body.checkTuple.allow);
             PG_RETURN_BOOL(response.body.checkTuple.allow);
         }
 
@@ -161,7 +161,7 @@ Datum postfga_write_tuple(PG_FUNCTION_ARGS)
     fill_tuple_args(args, &request.body.writeTuple.tuple);
     fill_request(&request);
 
-    postfga_channel_execute(&request, &response);
+    fga_channel_execute(&request, &response);
     if (response.status != FGA_RESPONSE_OK)
     {
         ereport(ERROR, errmsg("postfga: write tuple failed - %s", response.error_message));
@@ -180,7 +180,7 @@ Datum postfga_delete_tuple(PG_FUNCTION_ARGS)
     fill_request(&request);
     fill_tuple_args(args, &request.body.deleteTuple.tuple);
 
-    postfga_channel_execute(&request, &response);
+    fga_channel_execute(&request, &response);
     if (response.status == FGA_RESPONSE_OK)
     {
         PG_RETURN_BOOL(true);
@@ -212,7 +212,7 @@ Datum postfga_create_store(PG_FUNCTION_ARGS)
     strlcpy(request.body.createStore.name, store_name, sizeof(request.body.createStore.name));
 
     // execute
-    postfga_channel_execute(&request, &response);
+    fga_channel_execute(&request, &response);
 
     // check response
     if (response.status != FGA_RESPONSE_OK)
@@ -253,7 +253,7 @@ Datum postfga_delete_store(PG_FUNCTION_ARGS)
     request.type = FGA_REQUEST_DELETE_STORE;
     strlcpy(request.store_id, store_id, sizeof(request.store_id));
 
-    postfga_channel_execute(&request, &response);
+    fga_channel_execute(&request, &response);
     if (response.status != FGA_RESPONSE_OK)
     {
         ereport(ERROR,

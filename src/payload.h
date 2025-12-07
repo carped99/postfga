@@ -1,5 +1,5 @@
-#ifndef POSTFGA_PAYLOAD_H
-#define POSTFGA_PAYLOAD_H
+#ifndef FGA_PAYLOAD_H
+#define FGA_PAYLOAD_H
 
 #include <stdbool.h>
 #include <stdint.h>

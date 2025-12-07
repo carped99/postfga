@@ -1,12 +1,12 @@
-#ifndef POSTFGA_CONFIG_H
-#define POSTFGA_CONFIG_H
+#ifndef FGA_CONFIG_H
+#define FGA_CONFIG_H
 
 #include <stdbool.h>
 #include <stdint.h>
 /*
  * Configuration structure for PostFGA extension
  */
-typedef struct PostfgaConfig
+typedef struct FgaConfig
 {
     char* endpoint;                /* gRPC endpoint */
     char* store_id;                /* Store ID */
@@ -17,23 +17,23 @@ typedef struct PostfgaConfig
     int cache_ttl_ms;              /* Cache TTL in milliseconds */
     int max_slots;                 /* Maximum number of request slots */
     int max_relations;             /* Maximum number of relations */
-} PostfgaConfig;
+} FgaConfig;
 
 /* Global configuration instance */
-extern PostfgaConfig postfga_config_instance_;
+extern FgaConfig fga_config_instance_;
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-    static inline PostfgaConfig* postfga_get_config(void)
+    static inline FgaConfig* fga_get_config(void)
     {
-        return &postfga_config_instance_;
+        return &fga_config_instance_;
     }
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* POSTFGA_CONFIG_H */
+#endif /* FGA_CONFIG_H */

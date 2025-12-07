@@ -10,7 +10,7 @@ namespace postfga
 {
     Config load_config_from_guc()
     {
-        auto guc = postfga_get_config();
+        auto guc = fga_get_config();
         Config cfg;
         cfg.endpoint = guc->endpoint ? guc->endpoint : "";
         cfg.store_id = guc->store_id ? guc->store_id : "";

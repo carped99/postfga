@@ -3,9 +3,9 @@
 #include "channel_slot.h"
 #include "fmgr.h"
 #include "miscadmin.h"
-#include "postgres.h"
 #include "payload.h"
-#include "shmem.h"
+#include "postgres.h"
+#include "state.h"
 
 // /*
 //  * 실제로 백엔드에서 요청 하나 enqueue 하는 함수
@@ -20,7 +20,7 @@
 //                                    uint64 *out_request_id,
 //                                    char **err_msg)
 // {
-//     PostfgaShmemState *state = postfga_get_shmem_state();
+//     FgaState *state = fga_get_state();
 //     uint64 request_id;
 
 //     FgaSlotPool *slot_pool = &state->slot_pool;

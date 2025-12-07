@@ -4,7 +4,7 @@
 #include <funcapi.h>
 #include <utils/builtins.h>
 
-#include "shmem.h"
+#include "state.h"
 
 PG_FUNCTION_INFO_V1(postfga_stats);
 
@@ -45,7 +45,7 @@ Datum postfga_stats(PG_FUNCTION_ARGS)
     uint64 lookups;
     HeapTuple tuple;
 
-    FgaStats* stats = &postfga_get_shmem_state()->stats;
+    FgaStats* stats = &fga_get_state()->stats;
 
     /* 한번에 snapshot */
     fga_cache_compute_stats(&stats->l1_cache, &l1);

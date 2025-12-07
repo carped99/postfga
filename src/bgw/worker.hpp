@@ -1,21 +1,21 @@
 #pragma once
 
-struct PostfgaShmemState;
+struct FgaState;
 
 namespace postfga::bgw
 {
 
     class Worker
     {
-    public:
-        explicit Worker(PostfgaShmemState *state);
+      public:
+        explicit Worker(FgaState* state);
         void run();
 
-    private:
+      private:
         void initialize();
         void process();
 
-        PostfgaShmemState *state_ = nullptr;
+        FgaState* state_ = nullptr;
     };
 
 } // namespace postfga::bgw

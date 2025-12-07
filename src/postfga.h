@@ -1,5 +1,5 @@
-#ifndef POSTFGA_H
-#define POSTFGA_H
+#ifndef FGA_H
+#define FGA_H
 
 /* -------------------------------------------------------------------------
  * Constants
@@ -23,4 +23,4 @@
 #define DEFAULT_CACHE_ENTRIES 10000
 #define DEFAULT_GEN_MAP_SIZE 1024
 
-#endif /* POSTFGA_H */
+#endif /* FGA_H */

@@ -1,5 +1,5 @@
-#ifndef POSTFGA_CACHE_KEY_H
-#define POSTFGA_CACHE_KEY_H
+#ifndef FGA_CACHE_KEY_H
+#define FGA_CACHE_KEY_H
 
 #include <postgres.h>
 
@@ -43,14 +43,14 @@ static inline char* append_cache_key_field(char* buffer, const char* str)
     return buffer;
 }
 
-void postfga_cache_key(FgaAclCacheKey* key,
-                       const char* store_id,
-                       const char* model_id,
-                       const text* object_type,
-                       const text* object_id,
-                       const text* subject_type,
-                       const text* subject_id,
-                       const text* relation)
+void fga_cache_key(FgaAclCacheKey* key,
+                   const char* store_id,
+                   const char* model_id,
+                   const text* object_type,
+                   const text* object_id,
+                   const text* subject_type,
+                   const text* subject_id,
+                   const text* relation)
 {
     XXH128_hash_t h;
     char buf[1024]; // 각 필드 길이 128 바이트 이하 가정으로 충분
@@ -73,4 +73,4 @@ void postfga_cache_key(FgaAclCacheKey* key,
     key->high = h.high64;
 }
 
-#endif /* POSTFGA_CACHE_KEY_H */
+#endif /* FGA_CACHE_KEY_H */

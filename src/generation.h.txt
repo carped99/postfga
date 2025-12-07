@@ -6,8 +6,8 @@
  *-------------------------------------------------------------------------
  */
 
-#ifndef POSTFGA_GENERATION_H
-#define POSTFGA_GENERATION_H
+#ifndef FGA_GENERATION_H
+#define FGA_GENERATION_H
 
 /* -------------------------------------------------------------------------
  * Generation tracking
@@ -34,4 +34,4 @@ void increment_generation(const char *scope_key);
 void build_scope_key(char *dest, size_t dest_size,
                      const char *type, const char *id);
 
-#endif /* POSTFGA_GENERATION_H */
+#endif /* FGA_GENERATION_H */

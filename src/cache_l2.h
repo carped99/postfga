@@ -1,11 +1,11 @@
-#ifndef POSTFGA_CACHE_L2_ACL_H
-#define POSTFGA_CACHE_L2_ACL_H
+#ifndef FGA_CACHE_L2_ACL_H
+#define FGA_CACHE_L2_ACL_H
 
 #include <postgres.h>
 
 #include "cache.h"
 #include "config.h"
-#include "shmem.h"
+#include "state.h"
 
 #define FGA_L2_USAGE_MAX 5
 #define FGA_L2_HASH_NAME "postfga L2 index"
@@ -49,12 +49,12 @@ static HTAB* l2_slot_table = NULL;
 
 static inline FgaL2AclCache* l2_cache(void)
 {
-    return postfga_get_shmem_state()->cache;
+    return fga_get_state()->cache;
 }
 
 static Size l2_capacity_from_config()
 {
-    PostfgaConfig* config = postfga_get_config();
+    FgaConfig* config = fga_get_config();
 
     /* MB → bytes */
     Size bytes = (Size)config->cache_size * 1024 * 1024;
@@ -138,7 +138,7 @@ static void l2_startup(void)
     if (l2_slot_table != NULL)
         return;
 
-    cache = postfga_get_shmem_state()->cache;
+    cache = fga_get_state()->cache;
     hash_elems = l2_hash_size(cache->capacity);
 
     MemSet(&ctl, 0, sizeof(ctl));
@@ -241,4 +241,4 @@ l2_store(FgaL2AclCache* cache, const FgaAclCacheKey* key, TimestampTz now_ms, Ti
     LWLockRelease(cache->lock);
 }
 
-#endif /* POSTFGA_CACHE_L2_ACL_H */
+#endif /* FGA_CACHE_L2_ACL_H */

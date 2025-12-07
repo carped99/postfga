@@ -23,13 +23,13 @@ namespace postfga::client
     struct BatchCheckItem
     {
         CheckTuple params;
-        ProcessCallback callback; 
+        ProcessCallback callback;
     };
 
     class OpenFgaGrpcClient : public Client, public std::enable_shared_from_this<OpenFgaGrpcClient>
     {
       public:
-        explicit OpenFgaGrpcClient(const Config& config);
+        explicit OpenFgaGrpcClient(const postfga::Config& config);
         ~OpenFgaGrpcClient();
 
         bool is_healthy() const;
@@ -49,7 +49,7 @@ namespace postfga::client
         void handle_request(DeleteStore& req, ProcessCallback cb);
         void handle_request(InvalidRequest& req, ProcessCallback cb);
 
-        Config config_;
+        postfga::Config config_;
         std::shared_ptr<::grpc::Channel> channel_;
         std::unique_ptr<openfga::v1::OpenFGAService::Stub> stub_;
         mutable std::mutex mu_;

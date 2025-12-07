@@ -1,5 +1,5 @@
-#ifndef POSTFGA_STATS_TYPE_H
-#define POSTFGA_STATS_TYPE_H
+#ifndef FGA_STATS_TYPE_H
+#define FGA_STATS_TYPE_H
 
 #ifdef __cplusplus
 extern "C"
@@ -31,4 +31,4 @@ typedef struct FgaStats
     pg_atomic_uint64 requests_processed; /* Requests processed count */
 } FgaStats;
 
-#endif /* POSTFGA_STATS_TYPE_H */
+#endif /* FGA_STATS_TYPE_H */

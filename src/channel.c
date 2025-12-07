@@ -12,7 +12,7 @@
 
 #include "channel.h"
 #include "channel_slot.h"
-#include "shmem.h"
+#include "state.h"
 
 #define MAX_DRAIN 64
 
@@ -47,7 +47,7 @@ static FgaChannelSlot* write_request(FgaChannel* const channel, const FgaRequest
     {
         /* 롤백 처리 */
         LWLockRelease(channel->queue_lock);
-        postfga_channel_release_slot(channel, slot);
+        fga_channel_release_slot(channel, slot);
         return NULL;
     }
     LWLockRelease(channel->queue_lock);
@@ -91,7 +91,7 @@ static FgaChannelSlotState wait_response(FgaChannel* channel, FgaChannelSlot* sl
         else if (cur == FGA_CHANNEL_SLOT_DONE)
         {
             /* 이미 처리 완료된 상태였으면 여기서 정리해도 됨 */
-            postfga_channel_release_slot(channel, slot);
+            fga_channel_release_slot(channel, slot);
         }
         slot->backend_pid = InvalidPid;
         /* freelist로는 아직 돌리지 않는다. BGW에서 처리 */
@@ -106,14 +106,14 @@ static FgaChannelSlotState wait_response(FgaChannel* channel, FgaChannelSlot* sl
  * Public API
  *-------------------------------------------------------------------------
  */
-void postfga_channel_release_slot(FgaChannel* const channel, FgaChannelSlot* const slot)
+void fga_channel_release_slot(FgaChannel* const channel, FgaChannelSlot* const slot)
 {
     LWLockAcquire(channel->pool_lock, LW_EXCLUSIVE);
     release_slot(channel->pool, slot);
     LWLockRelease(channel->pool_lock);
 }
 
-uint16 postfga_channel_drain_slots(FgaChannel* const channel, uint16 max_count, FgaChannelSlot** out_slots)
+uint16 fga_channel_drain_slots(FgaChannel* const channel, uint16 max_count, FgaChannelSlot** out_slots)
 {
     uint16 count;
     uint16 buf[MAX_DRAIN];
@@ -134,9 +134,9 @@ uint16 postfga_channel_drain_slots(FgaChannel* const channel, uint16 max_count, 
     return count;
 }
 
-void postfga_channel_execute(const FgaRequest* const request, FgaResponse* const response)
+void fga_channel_execute(const FgaRequest* const request, FgaResponse* const response)
 {
-    PostfgaShmemState* state = postfga_get_shmem_state();
+    FgaState* state = fga_get_state();
     FgaChannel* const channel = state->channel;
     FgaChannelSlot* slot = write_request(channel, request);
     FgaChannelSlotState slot_state;
@@ -156,7 +156,7 @@ void postfga_channel_execute(const FgaRequest* const request, FgaResponse* const
         /* 여기까지 왔으면 논리적으로는 이미 위에서 ERROR가 났을 확률이 높지만,
          * 방어 코드로 이렇게 한 번 더 정리해줄 수 있음.
          */
-        postfga_channel_release_slot(channel, slot);
+        fga_channel_release_slot(channel, slot);
         ereport(ERROR, errmsg("postfga: request was canceled"));
     }
 
@@ -165,10 +165,10 @@ void postfga_channel_execute(const FgaRequest* const request, FgaResponse* const
     // copy response
     *response = slot->payload.response;
 
-    postfga_channel_release_slot(channel, slot);
+    fga_channel_release_slot(channel, slot);
 }
 
-bool postfga_channel_wake_backend(const FgaChannelSlot* const slot)
+bool fga_channel_wake_backend(const FgaChannelSlot* const slot)
 {
     PGPROC* proc = BackendPidGetProc(slot->backend_pid);
     if (proc != NULL && proc->pid == slot->backend_pid)

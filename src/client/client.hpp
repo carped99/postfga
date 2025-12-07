@@ -2,10 +2,11 @@
 #pragma once
 
 #include <functional>
-#include <span>
 #include <memory>
+#include <span>
 
-struct Config;
+#include "config/config.hpp"
+
 struct FgaPayload;
 
 namespace postfga::client
@@ -16,7 +17,7 @@ namespace postfga::client
     struct ProcessItem
     {
         FgaPayload* payload;
-        ProcessCallback   callback;
+        ProcessCallback callback;
     };
 
     class Client
@@ -31,6 +32,6 @@ namespace postfga::client
 
         virtual void shutdown() = 0;
     };
-    
-    std::shared_ptr<Client> make_client(const Config& cfg);
+
+    std::shared_ptr<Client> make_client(const postfga::Config& cfg);
 } // namespace postfga::client

@@ -13,6 +13,7 @@ extern "C"
 }
 
 #include <optional>
+
 #include "config/load.hpp"
 #include "processor.hpp"
 #include "shmem.h"
@@ -47,7 +48,7 @@ namespace
 
 namespace postfga::bgw
 {
-    Worker::Worker(PostfgaShmemState* state)
+    Worker::Worker(FgaState* state)
         : state_(state)
     {
         Assert(state_ != nullptr);
@@ -108,7 +109,10 @@ namespace postfga::bgw
                 reload_requested = false;
                 ProcessConfigFile(PGC_SIGHUP);
                 auto config = postfga::load_config_from_guc();
-                ereport(LOG, (errmsg("postfga: reloaded configuration, %s, %s", config.endpoint.c_str(), config.store_id.c_str())));
+                ereport(LOG,
+                        (errmsg("postfga: reloaded configuration, %s, %s",
+                                config.endpoint.c_str(),
+                                config.store_id.c_str())));
                 processor.emplace(state_->channel, config);
             }
 

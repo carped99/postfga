@@ -5,8 +5,8 @@
  *
  * This module provides:
  *   - C-visible initialization hook to register the background worker
- *     (postfga_bgw_init)
- *   - Optional shutdown hook (postfga_bgw_fini)
+ *     (fga_bgw_init)
+ *   - Optional shutdown hook (fga_bgw_fini)
  *   - Background worker main function (postfga_bgw_main), which:
  *       - Attaches to the PostFGA shared memory state
  *       - Wraps the C++ worker (postfga::bgw::Worker) in a PG_TRY/PG_CATCH
@@ -20,20 +20,21 @@
 extern "C"
 {
 #include <postgres.h>
-#include <storage/ipc.h>
+
 #include <postmaster/bgworker.h>
+#include <storage/ipc.h>
 #include <utils/memutils.h>
 }
 
-#include <string.h>
 #include <exception>
+#include <string.h>
+
+#include "state.h"
 #include "worker.hpp"
-#include "shmem.h"
 
 // static MemoryContext PostfgaBgwMemoryContext = NULL;
 
-extern "C" void
-postfga_bgw_init(void)
+extern "C" void fga_bgw_init(void)
 {
     BackgroundWorker worker{};
 
@@ -51,20 +52,18 @@ postfga_bgw_init(void)
     RegisterBackgroundWorker(&worker);
 }
 
-extern "C" void
-postfga_bgw_fini(void)
+extern "C" void fga_bgw_fini(void)
 {
     // noop
 }
 
-extern "C" PGDLLEXPORT void
-postfga_bgw_main(Datum arg)
+extern "C" PGDLLEXPORT void postfga_bgw_main(Datum arg)
 {
     (void)arg;
 
     PG_TRY();
     {
-        PostfgaShmemState *state = postfga_get_shmem_state();
+        FgaState* state = fga_get_state();
         if (state == nullptr)
             ereport(FATAL, (errmsg("postfga bgw: shared memory state is not initialized")));
 
@@ -76,7 +75,7 @@ postfga_bgw_main(Datum arg)
             ereport(DEBUG1, (errmsg("postfga bgw: finished")));
             proc_exit(0);
         }
-        catch (const std::exception &ex)
+        catch (const std::exception& ex)
         {
             ereport(ERROR, (errmsg("postfga bgw: exception: %s", ex.what())));
         }

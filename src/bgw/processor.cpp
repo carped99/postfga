@@ -7,16 +7,14 @@ extern "C"
 #include <storage/proc.h>
 #include <storage/procarray.h>
 
-#include "shmem.h"
+#include "state.h"
 }
 
 #include <cstring>
 #include <utility>
 
-#include "config/config.hpp"
 #include "channel.h"
 #include "payload.h"
-#include "client/client.hpp"
 #include "processor.hpp"
 #include "util/logger.hpp"
 
@@ -37,18 +35,19 @@ namespace postfga::bgw
 
         FgaChannel* channel = channel_;
         FgaChannelSlot* slots[MAX_BATCH];
-        uint16_t count = postfga_channel_drain_slots(channel, MAX_BATCH, slots);
-        
+        uint16_t count = fga_channel_drain_slots(channel, MAX_BATCH, slots);
 
-        if (count == 1) {
+
+        if (count == 1)
+        {
             FgaChannelSlot* slot = slots[0];
-            if (beginProcessing(*slot)) {
-                client_->process(slot->payload, [this, slot]()
-                {
-                    enqueueCompleted(slot);
-                });
+            if (beginProcessing(*slot))
+            {
+                client_->process(slot->payload, [this, slot]() { enqueueCompleted(slot); });
             }
-        } else if (count > 1) {
+        }
+        else if (count > 1)
+        {
             postfga::client::ProcessItem items[MAX_BATCH];
             uint16_t batch_count = 0;
 
@@ -64,11 +63,8 @@ namespace postfga::bgw
                 //     completeProcessing(slot);
                 // });
 
-                items[batch_count].payload  = &slot->payload;
-                items[batch_count].callback = [this, slot]()
-                {
-                    enqueueCompleted(slot);
-                };                
+                items[batch_count].payload = &slot->payload;
+                items[batch_count].callback = [this, slot]() { enqueueCompleted(slot); };
                 ++batch_count;
             }
 
@@ -95,7 +91,7 @@ namespace postfga::bgw
              * 백엔드가 이미 이 요청을 포기함.
              * → BGW가 여기서 슬롯 정리.
              */
-            postfga_channel_release_slot(channel_, &slot);
+            fga_channel_release_slot(channel_, &slot);
         }
         else
         {
@@ -144,7 +140,7 @@ namespace postfga::bgw
              * - Latch 깨울 필요 없음
              * - BGW가 대신 슬롯을 반환
              */
-            postfga_channel_release_slot(channel_, &slot);
+            fga_channel_release_slot(channel_, &slot);
             return;
         }
 
@@ -176,9 +172,9 @@ namespace postfga::bgw
 
     void Processor::wakeBackend(FgaChannelSlot& slot)
     {
-        if (!postfga_channel_wake_backend(&slot))
+        if (!fga_channel_wake_backend(&slot))
         {
-            postfga_channel_release_slot(channel_, &slot);
+            fga_channel_release_slot(channel_, &slot);
         }
     }
 } // namespace postfga::bgw

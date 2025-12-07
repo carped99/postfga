@@ -36,7 +36,7 @@ static inline void cache_miss(FgaCacheStats* stats)
 }
 
 
-Size postfga_cache_shmem_base_size(void)
+Size fga_cache_shmem_base_size(void)
 {
     Size capacity = l2_capacity_from_config();
 
@@ -49,7 +49,7 @@ Size postfga_cache_shmem_base_size(void)
     return size;
 }
 
-Size postfga_cache_shmem_hash_size(void)
+Size fga_cache_shmem_hash_size(void)
 {
     Size capacity = l2_capacity_from_config();
     Size hash_size = l2_hash_size(capacity);
@@ -57,7 +57,7 @@ Size postfga_cache_shmem_hash_size(void)
     return hash_estimate_size(hash_size, sizeof(FgaL2AclSlot));
 }
 
-void postfga_cache_shmem_init(FgaL2AclCache* cache, LWLock* lock)
+void fga_cache_shmem_init(FgaL2AclCache* cache, LWLock* lock)
 {
     Size capacity = l2_capacity_from_config();
     /* initialize cache struct */
@@ -72,24 +72,24 @@ void postfga_cache_shmem_init(FgaL2AclCache* cache, LWLock* lock)
         cache->entries[i].valid = false;
 }
 
-void postfga_cache_shmem_each_startup(void)
+void fga_cache_shmem_each_startup(void)
 {
     l1_startup();
     l2_startup();
 }
 
-bool postfga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allowed_out)
+bool fga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allowed_out)
 {
-    PostfgaShmemState* state;
+    FgaState* state;
     FgaL2AclCache* l2;
     TimestampTz now_ms;
     TimestampTz expires_at;
 
-    PostfgaConfig* config = postfga_get_config();
+    FgaConfig* config = fga_get_config();
     if (!config->cache_enabled)
         return false;
 
-    state = postfga_get_shmem_state();
+    state = fga_get_state();
     l2 = l2_cache();
 
     now_ms = get_now_ms();
@@ -112,13 +112,13 @@ bool postfga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allo
     return false;
 }
 
-void postfga_cache_store(const FgaAclCacheKey* key, uint64_t ttl_ms, bool allowed)
+void fga_cache_store(const FgaAclCacheKey* key, uint64_t ttl_ms, bool allowed)
 {
     FgaL2AclCache* l2;
     TimestampTz now_ms;
     TimestampTz expires_at;
 
-    PostfgaConfig* config = postfga_get_config();
+    FgaConfig* config = fga_get_config();
     if (!config->cache_enabled)
         return;
 

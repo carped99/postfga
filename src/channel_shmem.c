@@ -40,7 +40,7 @@ static Size queue_shmem_size(uint32 capacity)
 static int compute_slot_size(void)
 {
     const char* max_conn_str;
-    PostfgaConfig* cfg = postfga_get_config();
+    FgaConfig* cfg = fga_get_config();
     if (cfg->max_slots > 0)
         return cfg->max_slots;
 
@@ -56,7 +56,7 @@ static int compute_slot_size(void)
     return slots;
 }
 
-Size postfga_channel_shmem_size(void)
+Size fga_channel_shmem_size(void)
 {
     uint32 slot_count = compute_slot_size();
     uint32 queue_capacity = pow2_ceil(slot_count);
@@ -74,7 +74,7 @@ Size postfga_channel_shmem_size(void)
     return size;
 }
 
-void postfga_channel_shmem_init(FgaChannel* ch, LWLock* pool_lock, LWLock* queue_lock)
+void fga_channel_shmem_init(FgaChannel* ch, LWLock* pool_lock, LWLock* queue_lock)
 {
     FgaChannelSlotPool* pool;
     FgaChannelSlotQueue* queue;
@@ -103,13 +103,13 @@ void postfga_channel_shmem_init(FgaChannel* ch, LWLock* pool_lock, LWLock* queue
     pool_init(ch->pool, slot_count);
     queue_init(ch->queue, queue_capacity);
 
-    if (unlikely(ptr != (char*)ch + MAXALIGN(postfga_channel_shmem_size())))
+    if (unlikely(ptr != (char*)ch + MAXALIGN(fga_channel_shmem_size())))
     {
         ereport(FATAL, (errcode(ERRCODE_INTERNAL_ERROR), errmsg("postfga: channel shmem size miscalculation")));
     }
 
     {
-        const Size size = postfga_channel_shmem_size();
+        const Size size = fga_channel_shmem_size();
         ereport(LOG,
                 errcode(ERRCODE_SUCCESSFUL_COMPLETION),
                 errmsg("postfga: channel initialized"),

@@ -1,5 +1,5 @@
-#ifndef POSTFGA_CACHE_H
-#define POSTFGA_CACHE_H
+#ifndef FGA_CACHE_H
+#define FGA_CACHE_H
 
 #ifdef __cplusplus
 extern "C"
@@ -54,30 +54,30 @@ extern "C"
 {
 #endif
 
-    Size postfga_cache_shmem_base_size(void);
-    Size postfga_cache_shmem_hash_size(void);
-    void postfga_cache_shmem_init(FgaL2AclCache* cache, LWLock* lock);
-    void postfga_cache_shmem_each_startup(void);
+    Size fga_cache_shmem_base_size(void);
+    Size fga_cache_shmem_hash_size(void);
+    void fga_cache_shmem_init(FgaL2AclCache* cache, LWLock* lock);
+    void fga_cache_shmem_each_startup(void);
 
     /* generation bump (invalidation) */
     // void postfga_l2_bump_generation(FgaL2AclCache* cache);
 
-    void postfga_cache_key(FgaAclCacheKey* key,
-                           const char* store_id,
-                           const char* model_id,
-                           const text* object_type,
-                           const text* object_id,
-                           const text* subject_type,
-                           const text* subject_id,
-                           const text* relation);
+    void fga_cache_key(FgaAclCacheKey* key,
+                       const char* store_id,
+                       const char* model_id,
+                       const text* object_type,
+                       const text* object_id,
+                       const text* subject_type,
+                       const text* subject_id,
+                       const text* relation);
 
-    bool postfga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allowed_out);
+    bool fga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allowed_out);
 
-    void postfga_cache_store(const FgaAclCacheKey* key, uint64_t ttl_ms, bool allowed);
+    void fga_cache_store(const FgaAclCacheKey* key, uint64_t ttl_ms, bool allowed);
 
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /* POSTFGA_CACHE_H */
+#endif /* FGA_CACHE_H */

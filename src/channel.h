@@ -1,6 +1,6 @@
 /* slot.h */
-#ifndef POSTFGA_CHANNEL_H
-#define POSTFGA_CHANNEL_H
+#ifndef FGA_CHANNEL_H
+#define FGA_CHANNEL_H
 
 #ifdef __cplusplus
 extern "C"
@@ -66,15 +66,15 @@ typedef struct FgaChannel
 extern "C"
 {
 #endif
-    uint16 postfga_channel_drain_slots(FgaChannel* const channel, uint16_t max_count, FgaChannelSlot** out_slots);
+    uint16 fga_channel_drain_slots(FgaChannel* const channel, uint16_t max_count, FgaChannelSlot** out_slots);
 
-    void postfga_channel_release_slot(FgaChannel* const channel, FgaChannelSlot* const slot);
+    void fga_channel_release_slot(FgaChannel* const channel, FgaChannelSlot* const slot);
 
-    void postfga_channel_execute(const FgaRequest* const request, FgaResponse* const response);
+    void fga_channel_execute(const FgaRequest* const request, FgaResponse* const response);
 
-    bool postfga_channel_wake_backend(const FgaChannelSlot* const slot);
+    bool fga_channel_wake_backend(const FgaChannelSlot* const slot);
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* POSTFGA_CHANNEL_H */
+#endif /* FGA_CHANNEL_H */

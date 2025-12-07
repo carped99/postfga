@@ -1,5 +1,5 @@
-#ifndef POSTFGA_CACHE_L1_H
-#define POSTFGA_CACHE_L1_H
+#ifndef FGA_CACHE_L1_H
+#define FGA_CACHE_L1_H
 
 /*
  * L1 Cache (per-backend)
@@ -269,4 +269,4 @@ static void l1_invalidate_by_generation(uint16_t old_generation)
     elog(DEBUG1, "L1 cache invalidated by generation=%u", old_generation);
 }
 
-#endif /* POSTFGA_CACHE_L1_H */
+#endif /* FGA_CACHE_L1_H */
