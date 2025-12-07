@@ -91,7 +91,7 @@ static void _initialize_state(void)
     ptr += MAXALIGN(postfga_channel_shmem_size());
 
     /* 3. L2 cache */
-    postfga_shmem_state_instance_->cache = (FgaL2Cache*)ptr;
+    postfga_shmem_state_instance_->cache = (FgaL2AclCache*)ptr;
     postfga_cache_shmem_init(postfga_shmem_state_instance_->cache, &locks[3].lock);
     ptr += MAXALIGN(postfga_cache_shmem_base_size());
 

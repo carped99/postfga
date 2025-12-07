@@ -192,7 +192,7 @@ static void postfga_guc_cache_init(void)
                             "Size of PostFGA cache.",
                             NULL,
                             &cfg->cache_size,
-                            1,
+                            32,
                             1,
                             1024,
                             PGC_POSTMASTER,

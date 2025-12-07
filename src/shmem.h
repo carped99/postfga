@@ -29,20 +29,20 @@ extern "C"
     struct FgaChannel;
     typedef struct FgaChannel FgaChannel;
 
-    struct FgaL2Cache;
-    typedef struct FgaL2Cache FgaL2Cache;
+    struct FgaL2AclCache;
+    typedef struct FgaL2AclCache FgaL2AclCache;
 
     /*-------------------------------------------------------------------------
      * PostfgaShmemState
      */
     typedef struct PostfgaShmemState
     {
-        LWLock* lock;        /* Master lock for all shared data */
-        Latch* bgw_latch;    /* Background worker latch */
-        uint64_t hash_seed;  /* Hash seed for consistent hashing */
-        FgaChannel* channel; /* Request channel */
-        FgaL2Cache* cache;   /* L2 cache */
-        FgaStats stats;      /* Statistics */
+        LWLock* lock;         /* Master lock for all shared data */
+        Latch* bgw_latch;     /* Background worker latch */
+        uint64_t hash_seed;   /* Hash seed for consistent hashing */
+        FgaChannel* channel;  /* Request channel */
+        FgaL2AclCache* cache; /* L2 cache */
+        FgaStats stats;       /* Statistics */
 
     } PostfgaShmemState;
 

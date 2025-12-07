@@ -46,7 +46,7 @@ uint8 get_relation_bit_index(const char* relation_name)
     RelationBitMapEntry* entry;
     uint8 bit_index = 0;
 
-    FgaL2Cache* state = postfga_get_shmem_state()->cache;
+    FgaL2AclCache* state = postfga_get_shmem_state()->cache;
 
     if (!relation_name || relation_name[0] == '\0')
     {
@@ -86,7 +86,7 @@ uint8 get_relation_bit_index(const char* relation_name)
  */
 void register_relation(const char* relation_name, uint8 bit_index)
 {
-    FgaL2Cache* cache;
+    FgaL2AclCache* cache;
     RelationBitMapEntry* entry;
     bool found;
 

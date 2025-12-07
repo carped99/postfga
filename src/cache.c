@@ -41,10 +41,10 @@ Size postfga_cache_shmem_base_size(void)
     Size capacity = l2_capacity_from_config();
 
     /* cache structure */
-    Size size = offsetof(FgaL2Cache, entries);
+    Size size = offsetof(FgaL2AclCache, entries);
 
     /* entries 배열 */
-    size = add_size(size, mul_size(sizeof(FgaAclCacheEntry), capacity));
+    size = add_size(size, mul_size(sizeof(FgaL2AclEntry), capacity));
 
     return size;
 }
@@ -54,14 +54,14 @@ Size postfga_cache_shmem_hash_size(void)
     Size capacity = l2_capacity_from_config();
     Size hash_size = l2_hash_size(capacity);
 
-    return hash_estimate_size(hash_size, sizeof(FgaL2SlotEntry));
+    return hash_estimate_size(hash_size, sizeof(FgaL2AclSlot));
 }
 
-void postfga_cache_shmem_init(FgaL2Cache* cache, LWLock* lock)
+void postfga_cache_shmem_init(FgaL2AclCache* cache, LWLock* lock)
 {
     Size capacity = l2_capacity_from_config();
     /* initialize cache struct */
-    MemSet(cache, 0, offsetof(FgaL2Cache, entries));
+    MemSet(cache, 0, offsetof(FgaL2AclCache, entries));
     cache->lock = lock;
     cache->capacity = capacity;
     cache->generation = 0;
@@ -81,7 +81,7 @@ void postfga_cache_shmem_each_startup(void)
 bool postfga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allowed_out)
 {
     PostfgaShmemState* state;
-    FgaL2Cache* l2;
+    FgaL2AclCache* l2;
     TimestampTz now_ms;
     TimestampTz expires_at;
 
@@ -114,7 +114,7 @@ bool postfga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allo
 
 void postfga_cache_store(const FgaAclCacheKey* key, uint64_t ttl_ms, bool allowed)
 {
-    FgaL2Cache* l2;
+    FgaL2AclCache* l2;
     TimestampTz now_ms;
     TimestampTz expires_at;
 
@@ -127,5 +127,5 @@ void postfga_cache_store(const FgaAclCacheKey* key, uint64_t ttl_ms, bool allowe
     expires_at = now_ms + ttl_ms;
 
     l1_store(key, l2->generation, expires_at, allowed);
-    // l2_store(l2, key, now_ms, expires_at, allowed);
+    l2_store(l2, key, now_ms, expires_at, allowed);
 }

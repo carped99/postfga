@@ -43,8 +43,8 @@ typedef struct FgaCacheStats
     pg_atomic_uint64 evictions; /* 제거된 항목 수 (옵션) */
 } FgaCacheStats;
 
-struct FgaL2Cache;
-typedef struct FgaL2Cache FgaL2Cache;
+struct FgaL2AclCache;
+typedef struct FgaL2AclCache FgaL2AclCache;
 
 /* -------------------------------------------------------------------------
  * Cache API
@@ -56,11 +56,11 @@ extern "C"
 
     Size postfga_cache_shmem_base_size(void);
     Size postfga_cache_shmem_hash_size(void);
-    void postfga_cache_shmem_init(FgaL2Cache* cache, LWLock* lock);
+    void postfga_cache_shmem_init(FgaL2AclCache* cache, LWLock* lock);
     void postfga_cache_shmem_each_startup(void);
 
     /* generation bump (invalidation) */
-    // void postfga_l2_bump_generation(FgaL2Cache* cache);
+    // void postfga_l2_bump_generation(FgaL2AclCache* cache);
 
     void postfga_cache_key(FgaAclCacheKey* key,
                            const char* store_id,
