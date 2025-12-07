@@ -39,11 +39,6 @@
 #define DEFAULT_ENDPOINT ""
 #define DEFAULT_STORE_ID ""
 #define DEFAULT_MODEL_ID ""
-#define DEFAULT_CACHE_TTL_MS 60000
-#define DEFAULT_MAX_CACHE_ENTRIES 10000
-#define DEFAULT_BGW_WORKERS 1
-#define DEFAULT_FALLBACK_TO_GRPC true
-#define DEFAULT_CACHE_ENABLED true
 
 /* -------------------------------------------------------------------------
  * Static private helpers
@@ -87,6 +82,22 @@ static bool validate_store_id(char** newval, void** extra, GucSource source)
         GUC_check_errdetail("Set the store ID for OpenFGA.");
         return false;
     }
+
+    return true;
+}
+
+static bool validate_cache_size(int* newval, void** extra, GucSource source)
+{
+    (void)extra;
+    int v = *newval;
+
+    if (source == PGC_S_DEFAULT || source == PGC_S_DYNAMIC_DEFAULT)
+        return true;
+
+    if (v < 1)
+        v = 1;
+
+    *newval = v;
 
     return true;
 }
@@ -170,23 +181,23 @@ static void postfga_guc_cache_init(void)
                              "Enable or disable the PostFGA permission cache",
                              "Specifies whether to enable or disable the permission cache",
                              &cfg->cache_enabled,
-                             DEFAULT_CACHE_ENABLED,
-                             PGC_POSTMASTER,
+                             false,
+                             PGC_SIGHUP,
                              0,
                              NULL,
                              NULL,
                              NULL);
 
     DefineCustomIntVariable("postfga.cache_size",
-                            "Number of entries in PostFGA shared L2 cache.",
+                            "Size of PostFGA cache.",
                             NULL,
                             &cfg->cache_size,
-                            16384,
+                            16,
+                            1,
                             1024,
-                            10000000,
                             PGC_POSTMASTER,
-                            0,
-                            NULL,
+                            GUC_UNIT_MB,
+                            validate_cache_size,
                             NULL,
                             NULL);
 
@@ -195,24 +206,10 @@ static void postfga_guc_cache_init(void)
                             "Cache entry time-to-live in milliseconds",
                             "Specifies how long cache entries remain valid (in milliseconds)",
                             &cfg->cache_ttl_ms,
-                            DEFAULT_CACHE_TTL_MS,
+                            60000,
                             1000,    /* min: 1 second */
                             3600000, /* max: 1 hour */
                             PGC_SUSET,
-                            0,
-                            NULL,
-                            NULL,
-                            NULL);
-
-    /* openfga.max_cache_entries */
-    DefineCustomIntVariable("openfga.max_cache_entries",
-                            "Maximum number of cache entries",
-                            "Specifies the maximum number of ACL permission entries to cache in shared memory",
-                            &cfg->max_cache_entries,
-                            DEFAULT_MAX_CACHE_ENTRIES,
-                            100,            /* min */
-                            1000000,        /* max: 1 million */
-                            PGC_POSTMASTER, /* requires restart */
                             0,
                             NULL,
                             NULL,
@@ -252,20 +249,10 @@ void validate_guc_values(void)
              cfg->cache_ttl_ms);
     }
 
-    /* Validate max_cache_entries */
-    if (cfg->max_cache_entries < 100)
-    {
-        elog(WARNING,
-             "PostFGA: openfga_fdw.max_cache_entries is very low (%d), "
-             "this may cause frequent cache evictions",
-             cfg->max_cache_entries);
-    }
-
     elog(DEBUG1, "PostFGA: GUC validation complete");
     elog(DEBUG1, "  endpoint: %s", cfg->endpoint ? cfg->endpoint : "(null)");
     elog(DEBUG1, "  store_id: %s", cfg->store_id ? cfg->store_id : "(null)");
     elog(DEBUG1, "  model_id: %s", cfg->model_id && cfg->model_id[0] ? cfg->model_id : "(empty)");
     elog(DEBUG1, "  cache_ttl_ms: %d", cfg->cache_ttl_ms);
-    elog(DEBUG1, "  max_cache_entries: %d", cfg->max_cache_entries);
     elog(DEBUG1, "  fallback_to_grpc_on_miss: %s", cfg->fallback_to_grpc_on_miss ? "true" : "false");
 }

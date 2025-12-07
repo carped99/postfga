@@ -11,11 +11,10 @@ typedef struct PostfgaConfig
     char* endpoint;                /* gRPC endpoint */
     char* store_id;                /* Store ID */
     char* model_id;                /* Authorization Model ID */
-    int cache_ttl_ms;              /* Cache TTL in milliseconds */
-    int max_cache_entries;         /* Maximum cache entries */
     bool fallback_to_grpc_on_miss; /* Fall back to gRPC on cache miss */
     bool cache_enabled;            /* Enable or disable the permission cache */
-    int cache_size;                /* Number of entries in shared L2 cache */
+    int cache_size;                /* Size in MB */
+    int cache_ttl_ms;              /* Cache TTL in milliseconds */
     int max_slots;                 /* Maximum number of request slots */
     int max_relations;             /* Maximum number of relations */
 } PostfgaConfig;

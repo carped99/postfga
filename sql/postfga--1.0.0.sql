@@ -71,23 +71,18 @@ RETURNS void
 AS 'MODULE_PATHNAME'
 LANGUAGE C STRICT PARALLEL SAFE VOLATILE COST 10000;
 
-CREATE OR REPLACE FUNCTION postfga_config()
+CREATE FUNCTION postfga_stats()
 RETURNS TABLE (
-    endpoint                 text,
-    store_id                 text,
-    model_id                 text,
-    cache_ttl_ms             integer,
-    max_cache_entries        integer,
-    fallback_to_grpc_on_miss boolean,
-    cache_enabled            boolean,
-    cache_size               integer,
-    max_slots                integer,
-    max_relations            integer
+    l1_hits           bigint,
+    l1_misses         bigint,
+    l1_hit_rate       float8,
+    l2_misses         bigint,
+    l2_hits           bigint,
+    l2_hit_rate       float8,
+    total_hit_rate    float8
 )
 AS 'MODULE_PATHNAME'
-LANGUAGE C
-STABLE;
-
+LANGUAGE C STABLE;
 
 
 -- -- Grant usage to public (can be restricted later)

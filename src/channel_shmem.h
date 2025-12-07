@@ -8,6 +8,7 @@ extern "C"
 
 
 #include <postgres.h>
+
 #include <storage/lwlock.h>
 
     struct FgaChannel;

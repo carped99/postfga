@@ -8,6 +8,8 @@ extern "C"
 #include <postgres.h>
 
 #include <port/atomics.h>
+
+#include "cache.h"
 #ifdef __cplusplus
 }
 #endif
@@ -17,6 +19,9 @@ extern "C"
  */
 typedef struct FgaStats
 {
+    FgaCacheStats l1_cache;
+    FgaCacheStats l2_cache;
+
     pg_atomic_uint64 cache_entries;      /* Current cache entry count */
     pg_atomic_uint64 cache_hits;         /* Cache hit count */
     pg_atomic_uint64 cache_misses;       /* Cache miss count */

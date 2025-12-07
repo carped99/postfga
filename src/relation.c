@@ -46,7 +46,7 @@ uint8 get_relation_bit_index(const char* relation_name)
     RelationBitMapEntry* entry;
     uint8 bit_index = 0;
 
-    FgaL2Cache* state = &postfga_get_shmem_state()->cache;
+    FgaL2Cache* state = postfga_get_shmem_state()->cache;
 
     if (!relation_name || relation_name[0] == '\0')
     {
@@ -54,7 +54,7 @@ uint8 get_relation_bit_index(const char* relation_name)
         return 0;
     }
 
-    LWLockAcquire(state->lock, LW_SHARED);
+    // LWLockAcquire(state->lock, LW_SHARED);
 
     // entry = (RelationBitMapEntry *)hash_search(state->relation_bitmap_map,
     //                                            relation_name,
@@ -66,7 +66,7 @@ uint8 get_relation_bit_index(const char* relation_name)
     else
         elog(DEBUG1, "PostFGA: Relation '%s' not found in bitmap", relation_name);
 
-    LWLockRelease(state->lock);
+    // LWLockRelease(state->lock);
 
     return bit_index;
 }
@@ -102,9 +102,9 @@ void register_relation(const char* relation_name, uint8 bit_index)
         return;
     }
 
-    cache = &postfga_get_shmem_state()->cache;
+    cache = postfga_get_shmem_state()->cache;
 
-    LWLockAcquire(cache->lock, LW_EXCLUSIVE);
+    // LWLockAcquire(cache->lock, LW_EXCLUSIVE);
 
     // entry = (RelationBitMapEntry *)hash_search(cache->relation_bitmap_map,
     //                                            relation_name,
@@ -124,7 +124,7 @@ void register_relation(const char* relation_name, uint8 bit_index)
         elog(WARNING, "PostFGA: Failed to register relation '%s'", relation_name);
     }
 
-    LWLockRelease(cache->lock);
+    // LWLockRelease(cache->lock);
 }
 
 /*

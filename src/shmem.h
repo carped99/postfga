@@ -23,24 +23,26 @@ extern "C"
 #include <storage/latch.h>
 #include <storage/lwlock.h>
 
-#include "cache.h"
 #include "stats_type.h"
 
-    typedef struct FgaChannel FgaChannel; // forward declaration
+    // forward declaration
+    struct FgaChannel;
+    typedef struct FgaChannel FgaChannel;
+
+    struct FgaL2Cache;
+    typedef struct FgaL2Cache FgaL2Cache;
 
     /*-------------------------------------------------------------------------
      * PostfgaShmemState
      */
     typedef struct PostfgaShmemState
     {
-        LWLock* lock;       /* Master lock for all shared data */
-        Latch* bgw_latch;   /* Background worker latch */
-        uint64_t hash_seed; /* Hash seed for consistent hashing */
-
-
+        LWLock* lock;        /* Master lock for all shared data */
+        Latch* bgw_latch;    /* Background worker latch */
+        uint64_t hash_seed;  /* Hash seed for consistent hashing */
         FgaChannel* channel; /* Request channel */
-        FgaL2Cache cache;    /* Shared L2 cache */
-        // FgaStats stats; /* Statistics */
+        FgaL2Cache* cache;   /* L2 cache */
+        FgaStats stats;      /* Statistics */
 
     } PostfgaShmemState;
 

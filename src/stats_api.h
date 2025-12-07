@@ -15,7 +15,7 @@ extern "C"
 #endif
 
     /* Initialize statistics counters */
-    void postfga_init_stats();
+    void postfga_stats_shmem_init();
 
     /* Increment cache hit counter */
     void stats_inc_cache_hit();

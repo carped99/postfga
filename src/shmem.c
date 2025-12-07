@@ -22,9 +22,10 @@
 #include <storage/shmem.h>
 #include <utils/hsearch.h>
 
-#include "cache_shmem.h"
+#include "cache.h"
 #include "channel_shmem.h"
 #include "shmem.h"
+#include "stats_api.h"
 
 /* Named LWLock tranche 이름과 필요한 락 개수 */
 #define POSTFGA_LWLOCK_TRANCHE_NAME "postfga"
@@ -36,17 +37,7 @@ PostfgaShmemState* postfga_shmem_state_instance_ = NULL;
 /*-------------------------------------------------------------------------
  * Static helpers (private)
  *-------------------------------------------------------------------------*/
-static uint64_t _generate_hash_seed()
-{
-    uint64_t seed;
-    if (!pg_strong_random(&seed, sizeof(seed)))
-    {
-        ereport(ERROR, errmsg("failed to generate hash seed"));
-    }
-    return seed;
-}
-
-static Size _calculate_size(void)
+static Size struct_size(void)
 {
     Size size = 0;
 
@@ -56,10 +47,20 @@ static Size _calculate_size(void)
     /* 2. channel */
     size = add_size(size, MAXALIGN(postfga_channel_shmem_size()));
 
-    // 3. L2 cache
-    size = add_size(size, MAXALIGN(postfga_cache_shmem_size()));
+    // 3. L2 cache - struct
+    size = add_size(size, MAXALIGN(postfga_cache_shmem_base_size()));
 
     return size;
+}
+
+static uint64_t _generate_hash_seed()
+{
+    uint64_t seed;
+    if (!pg_strong_random(&seed, sizeof(seed)))
+    {
+        ereport(ERROR, errmsg("failed to generate hash seed"));
+    }
+    return seed;
 }
 
 /*
@@ -84,13 +85,18 @@ static void _initialize_state(void)
     /* 1. shmem state struct */
     ptr += MAXALIGN(sizeof(PostfgaShmemState));
 
+    /* 2. Channel */
     postfga_shmem_state_instance_->channel = (FgaChannel*)ptr;
-    ptr += postfga_channel_shmem_size();
-
     postfga_channel_shmem_init(postfga_shmem_state_instance_->channel, &locks[1].lock, &locks[2].lock);
+    ptr += MAXALIGN(postfga_channel_shmem_size());
 
-    /* 2. L2 cache */
-    postfga_cache_shmem_init(&postfga_shmem_state_instance_->cache, &locks[3].lock);
+    /* 3. L2 cache */
+    postfga_shmem_state_instance_->cache = (FgaL2Cache*)ptr;
+    postfga_cache_shmem_init(postfga_shmem_state_instance_->cache, &locks[3].lock);
+    ptr += MAXALIGN(postfga_cache_shmem_base_size());
+
+    /* 4. statistics */
+    postfga_stats_shmem_init(&postfga_shmem_state_instance_->stats);
 }
 
 /*-------------------------------------------------------------------------
@@ -107,9 +113,10 @@ static void _initialize_state(void)
  */
 void postfga_shmem_request(void)
 {
-    Size size = _calculate_size();
+    Size size = struct_size();
 
-    ereport(LOG, errmsg("2. PostFGA: request shared memory (size=%zu bytes)", size));
+    // L2 cache - hash table
+    size = add_size(size, MAXALIGN(postfga_cache_shmem_hash_size()));
 
     RequestAddinShmemSpace(size);
     RequestNamedLWLockTranche(POSTFGA_LWLOCK_TRANCHE_NAME, POSTFGA_LWLOCK_TRANCHE_NUM);
@@ -127,7 +134,7 @@ void postfga_shmem_request(void)
 void postfga_shmem_startup(void)
 {
     bool found = false;
-    Size size = _calculate_size();
+    Size size = struct_size();
 
     LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
 
@@ -135,9 +142,9 @@ void postfga_shmem_startup(void)
 
     if (!found)
     {
-        /* 실제 필드 초기화 */
         _initialize_state();
     }
-
     LWLockRelease(AddinShmemInitLock);
+
+    postfga_cache_shmem_hash_startup();
 }

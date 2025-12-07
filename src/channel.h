@@ -46,10 +46,10 @@ typedef struct FgaChannelSlotPool
 
 typedef struct FgaChannelSlotQueue
 {
-    uint16_t mask;                          /* capacity - 1 (2^n - 1) */
-    uint16_t head;                          /* enqueue index */
-    uint16_t tail;                          /* dequeue index */
-    uint16_t values[FLEXIBLE_ARRAY_MEMBER]; /* [capacity = mask + 1] */
+    uint16_t mask;                                     /* capacity - 1 (2^n - 1) */
+    uint16_t head;                                     /* enqueue index */
+    uint16_t tail;                                     /* dequeue index */
+    FgaChannelSlotIndex values[FLEXIBLE_ARRAY_MEMBER]; /* [capacity = mask + 1] */
 } FgaChannelSlotQueue;
 
 
