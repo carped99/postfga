@@ -16,7 +16,7 @@ extern "C"
 
 #include "config/load.hpp"
 #include "processor.hpp"
-#include "shmem.h"
+#include "state.h"
 #include "worker.hpp"
 
 namespace

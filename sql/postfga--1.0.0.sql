@@ -71,18 +71,14 @@ RETURNS void
 AS 'MODULE_PATHNAME'
 LANGUAGE C STRICT PARALLEL SAFE VOLATILE COST 10000;
 
-CREATE FUNCTION postfga_stats()
+CREATE OR REPLACE FUNCTION postfga_stats()
 RETURNS TABLE (
-    l1_hits           bigint,
-    l1_misses         bigint,
-    l1_hit_rate       float8,
-    l2_misses         bigint,
-    l2_hits           bigint,
-    l2_hit_rate       float8,
-    total_hit_rate    float8
+    section text,
+    metric text,
+    value bigint
 )
 AS 'MODULE_PATHNAME'
-LANGUAGE C STABLE;
+LANGUAGE C VOLATILE;
 
 
 -- -- Grant usage to public (can be restricted later)

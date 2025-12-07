@@ -13,6 +13,7 @@
 #include "cache_l1.h"
 #include "cache_l2.h"
 #include "postfga.h"
+#include "stats.h"
 
 static inline TimestampTz get_now_ms(void)
 {
@@ -24,17 +25,6 @@ static inline TimestampTz get_now_ms(void)
     TimestampTz now = GetCurrentTimestamp();
     return now / 1000; // convert microseconds → ms
 }
-
-static inline void cache_hit(FgaCacheStats* stats)
-{
-    pg_atomic_fetch_add_u64(&stats->hits, 1);
-}
-
-static inline void cache_miss(FgaCacheStats* stats)
-{
-    pg_atomic_fetch_add_u64(&stats->misses, 1);
-}
-
 
 Size fga_cache_shmem_base_size(void)
 {
@@ -96,19 +86,19 @@ bool fga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allowed_
 
     if (l1_lookup(key, l2->generation, now_ms, allowed_out))
     {
-        cache_hit(&state->stats.l1_cache);
+        fga_stats_l1_hit();
         return true;
     }
-    cache_miss(&state->stats.l1_cache);
+    fga_stats_l1_miss();
 
     if (l2_lookup(l2, key, now_ms, allowed_out, &expires_at))
     {
         // L1 캐시에 복사
         l1_store(key, l2->generation, expires_at, *allowed_out);
-        cache_hit(&state->stats.l2_cache);
+        fga_stats_l2_hit();
         return true;
     }
-    cache_miss(&state->stats.l2_cache);
+    fga_stats_l2_miss();
     return false;
 }
 

@@ -136,8 +136,7 @@ uint16 fga_channel_drain_slots(FgaChannel* const channel, uint16 max_count, FgaC
 
 void fga_channel_execute(const FgaRequest* const request, FgaResponse* const response)
 {
-    FgaState* state = fga_get_state();
-    FgaChannel* const channel = state->channel;
+    FgaChannel* const channel = fga_get_channel();
     FgaChannelSlot* slot = write_request(channel, request);
     FgaChannelSlotState slot_state;
 
@@ -147,7 +146,7 @@ void fga_channel_execute(const FgaRequest* const request, FgaResponse* const res
     }
 
     /* BGW 깨우기 */
-    SetLatch(state->bgw_latch);
+    fga_wake_bgw();
 
     slot_state = wait_response(channel, slot);
 

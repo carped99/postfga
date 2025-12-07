@@ -23,14 +23,15 @@ extern "C"
 #include <storage/latch.h>
 #include <storage/lwlock.h>
 
-#include "stats_type.h"
-
     // forward declaration
     struct FgaChannel;
     typedef struct FgaChannel FgaChannel;
 
     struct FgaL2AclCache;
     typedef struct FgaL2AclCache FgaL2AclCache;
+
+    struct FgaStats;
+    typedef struct FgaStats FgaStats;
 
     /*-------------------------------------------------------------------------
      * FgaState
@@ -42,8 +43,7 @@ extern "C"
         uint64_t hash_seed;   /* Hash seed for consistent hashing */
         FgaChannel* channel;  /* Request channel */
         FgaL2AclCache* cache; /* L2 cache */
-        FgaStats stats;       /* Statistics */
-
+        FgaStats* stats;      /* Statistics */
     } FgaState;
 
     /* 전역 shmem state 포인터 (실제 정의는 shmem.c 에서) */
@@ -57,6 +57,21 @@ extern "C"
     static inline FgaState* fga_get_state(void)
     {
         return fga_state_instance_;
+    }
+
+    static inline FgaChannel* fga_get_channel()
+    {
+        return fga_state_instance_->channel;
+    }
+
+    static inline FgaStats* fga_get_stats()
+    {
+        return fga_state_instance_->stats;
+    }
+
+    static inline void fga_wake_bgw()
+    {
+        SetLatch(fga_state_instance_->bgw_latch);
     }
 
 #ifdef __cplusplus

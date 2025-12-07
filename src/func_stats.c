@@ -1,86 +1,91 @@
+/*-------------------------------------------------------------------------
+ * func_stats.c
+ *    Statistics reporting for PostFGA
+ *-------------------------------------------------------------------------
+ */
+
 #include <postgres.h>
 
-#include <fmgr.h>
 #include <funcapi.h>
+#include <miscadmin.h>
 #include <utils/builtins.h>
 
 #include "state.h"
+#include "stats.h"
+
+static void add_row(Tuplestorestate* tupstore, TupleDesc tupdesc, const char* section, const char* metric, int64 value)
+{
+    Datum values[3];
+    bool nulls[3] = {false, false, false};
+
+    values[0] = CStringGetTextDatum(section);
+    values[1] = CStringGetTextDatum(metric);
+    values[2] = Int64GetDatum(value);
+
+    tuplestore_putvalues(tupstore, tupdesc, values, nulls);
+}
+
+static void backend_stats(Tuplestorestate* tupstore, TupleDesc tupdesc)
+{
+    FgaStats* stats = fga_get_stats();
+
+    uint64 check_calls = 0, check_allowed = 0, check_denied = 0;
+    uint64 rpc_calls = 0, rpc_errors = 0, rpc_latency_sum = 0;
+
+    for (int i = 0; i < MaxBackends; i++)
+    {
+        FgaBackendStats* b = &stats->backends[i];
+
+        check_calls += b->check_calls;
+        check_allowed += b->check_allowed;
+        check_denied += b->check_denied;
+        rpc_calls += b->rpc_check_calls;
+        rpc_errors += b->rpc_check_error;
+        rpc_latency_sum += b->rpc_check_latency_sum_us;
+    }
+
+    add_row(tupstore, tupdesc, "check", "calls", check_calls);
+    add_row(tupstore, tupdesc, "check", "allowed", check_allowed);
+    add_row(tupstore, tupdesc, "check", "denied", check_denied);
+    add_row(tupstore, tupdesc, "rpc", "calls", rpc_calls);
+    add_row(tupstore, tupdesc, "rpc", "errors", rpc_errors);
+    add_row(tupstore, tupdesc, "rpc", "latency_sum_us", rpc_latency_sum);
+}
 
 PG_FUNCTION_INFO_V1(postfga_stats);
 
-typedef struct FgaCacheComputedStats
-{
-    uint64 hits;
-    uint64 misses;
-    uint64 inserts;
-    uint64 evictions;
-    double hit_rate; /* 0.0 ~ 100.0 (%) */
-} FgaCacheComputedStats;
-
-static inline void fga_cache_compute_stats(FgaCacheStats* src, FgaCacheComputedStats* dst)
-{
-    uint64 lookups;
-    dst->hits = pg_atomic_read_u64(&src->hits);
-    dst->misses = pg_atomic_read_u64(&src->misses);
-
-    dst->inserts = pg_atomic_read_u64(&src->inserts);
-    dst->evictions = pg_atomic_read_u64(&src->evictions);
-
-    lookups = dst->hits + dst->misses;
-    if (lookups == 0)
-        dst->hit_rate = 0.0;
-    else
-        dst->hit_rate = (double)dst->hits * 100.0 / (double)lookups;
-}
-
-
 Datum postfga_stats(PG_FUNCTION_ARGS)
 {
+    ReturnSetInfo* rsinfo = (ReturnSetInfo*)fcinfo->resultinfo;
     TupleDesc tupdesc;
-    Datum values[7];
-    bool nulls[7] = {false};
-    FgaCacheComputedStats l1;
-    FgaCacheComputedStats l2;
-    FgaCacheComputedStats total;
-    uint64 lookups;
-    HeapTuple tuple;
+    Tuplestorestate* tupstore;
+    MemoryContext oldcontext;
+    FgaStats* stats;
 
-    FgaStats* stats = &fga_get_state()->stats;
+    /* 1) 이 함수가 SETOF를 받아들일 수 있는 컨텍스트인지 확인 */
+    if (rsinfo == NULL || !IsA(rsinfo, ReturnSetInfo))
+        ereport(ERROR,
+                (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                 errmsg("set-valued function called in context that cannot accept a set")));
 
-    /* 한번에 snapshot */
-    fga_cache_compute_stats(&stats->l1_cache, &l1);
-    fga_cache_compute_stats(&stats->l2_cache, &l2);
+    if ((rsinfo->allowedModes & SFRM_Materialize) == 0)
+        ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED), errmsg("materialize mode required")));
 
-    total.misses = l1.misses + l2.misses;
-    total.hits = l1.hits + l2.hits;
-    total.inserts = l1.inserts + l2.inserts;
-    total.evictions = l1.evictions + l2.evictions;
-
-    lookups = total.hits + total.misses;
-    if (lookups == 0)
-        total.hit_rate = 0.0;
-    else
-        total.hit_rate = (double)total.hits * 100.0 / (double)lookups;
-
+    /* 2) 반환 타입이 row type인지 확인 */
     if (get_call_result_type(fcinfo, NULL, &tupdesc) != TYPEFUNC_COMPOSITE)
         ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED), errmsg("return type must be a row type")));
 
-    BlessTupleDesc(tupdesc);
-    MemSet(values, 0, sizeof(values));
-    MemSet(nulls, 0, sizeof(nulls));
+    /* 3) tuplestore 초기화 (per-query memory) */
+    oldcontext = MemoryContextSwitchTo(rsinfo->econtext->ecxt_per_query_memory);
+    tupstore = tuplestore_begin_heap(true, false, work_mem);
+    MemoryContextSwitchTo(oldcontext);
 
-    /* 컬럼 순서는 SQL에 맞춰서 */
-    values[0] = UInt64GetDatum(l1.hits);
-    values[1] = UInt64GetDatum(l1.misses);
-    values[2] = Float8GetDatum(l1.hit_rate);
+    rsinfo->returnMode = SFRM_Materialize;
+    rsinfo->setResult = tupstore;
+    rsinfo->setDesc = BlessTupleDesc(tupdesc);
 
-    values[4] = UInt64GetDatum(l2.hits);
-    values[3] = UInt64GetDatum(l2.misses);
-    values[5] = Float8GetDatum(l2.hit_rate);
+    /* 4) backend별 통계 합산 */
+    backend_stats(tupstore, tupdesc);
 
-    values[6] = Float8GetDatum(total.hit_rate); /* 전체 hit율 */
-
-    tuple = heap_form_tuple(tupdesc, values, nulls);
-
-    PG_RETURN_DATUM(HeapTupleGetDatum(tuple));
+    return (Datum)0;
 }

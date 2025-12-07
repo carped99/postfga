@@ -35,14 +35,6 @@ typedef struct FgaRelationCacheEntry
     uint16_t id;
 } FgaRelationCacheEntry;
 
-typedef struct FgaCacheStats
-{
-    pg_atomic_uint64 hits;      /* cache hit 수 */
-    pg_atomic_uint64 misses;    /* cache miss 수 */
-    pg_atomic_uint64 inserts;   /* 새로 넣은 항목 수 (옵션) */
-    pg_atomic_uint64 evictions; /* 제거된 항목 수 (옵션) */
-} FgaCacheStats;
-
 struct FgaL2AclCache;
 typedef struct FgaL2AclCache FgaL2AclCache;
 

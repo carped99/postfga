@@ -25,7 +25,7 @@
 #include "cache.h"
 #include "channel_shmem.h"
 #include "state.h"
-#include "stats_api.h"
+#include "stats.h"
 
 /* Named LWLock tranche 이름과 필요한 락 개수 */
 #define FGA_LWLOCK_TRANCHE_NAME "postfga"
@@ -49,6 +49,9 @@ static Size struct_size(void)
 
     // 3. L2 cache - struct
     size = add_size(size, MAXALIGN(fga_cache_shmem_base_size()));
+
+    // 4. statistics
+    size = add_size(size, MAXALIGN(fga_stats_shmem_size()));
 
     return size;
 }
@@ -96,7 +99,9 @@ static void _initialize_state(void)
     ptr += MAXALIGN(fga_cache_shmem_base_size());
 
     /* 4. statistics */
-    fga_stats_shmem_init(&fga_state_instance_->stats);
+    fga_state_instance_->stats = (FgaStats*)ptr;
+    fga_stats_shmem_init(fga_state_instance_->stats);
+    ptr += MAXALIGN(fga_stats_shmem_size());
 }
 
 /*-------------------------------------------------------------------------
