@@ -57,7 +57,7 @@ extern "C"
     Size postfga_cache_shmem_base_size(void);
     Size postfga_cache_shmem_hash_size(void);
     void postfga_cache_shmem_init(FgaL2Cache* cache, LWLock* lock);
-    void postfga_cache_shmem_hash_startup(void);
+    void postfga_cache_shmem_each_startup(void);
 
     /* generation bump (invalidation) */
     // void postfga_l2_bump_generation(FgaL2Cache* cache);
@@ -65,11 +65,11 @@ extern "C"
     void postfga_cache_key(FgaAclCacheKey* key,
                            const char* store_id,
                            const char* model_id,
-                           text* object_type,
-                           text* object_id,
-                           text* subject_type,
-                           text* subject_id,
-                           text* relation);
+                           const text* object_type,
+                           const text* object_id,
+                           const text* subject_type,
+                           const text* subject_id,
+                           const text* relation);
 
     bool postfga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allowed_out);
 

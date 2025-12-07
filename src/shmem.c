@@ -146,5 +146,5 @@ void postfga_shmem_startup(void)
     }
     LWLockRelease(AddinShmemInitLock);
 
-    postfga_cache_shmem_hash_startup();
+    postfga_cache_shmem_each_startup();
 }
