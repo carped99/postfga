@@ -70,7 +70,6 @@ void fga_cache_shmem_each_startup(void)
 
 bool fga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allowed_out)
 {
-    FgaState* state;
     FgaL2AclCache* l2;
     TimestampTz now_ms;
     TimestampTz expires_at;
@@ -79,7 +78,6 @@ bool fga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allowed_
     if (!config->cache_enabled)
         return false;
 
-    state = fga_get_state();
     l2 = l2_cache();
 
     now_ms = get_now_ms();

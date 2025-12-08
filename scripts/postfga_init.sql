@@ -51,7 +51,7 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO postfga_bench.subjects (subject_type, subject_id)
 SELECT 'user', gen_random_uuid()
-FROM generate_series(1, 10000) AS g
+FROM generate_series(1, 100000) AS g
 ON CONFLICT DO NOTHING;
 
 INSERT INTO postfga_bench.subjects (subject_type, subject_id)
@@ -61,12 +61,12 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO postfga_bench.objects (object_type, object_id)
 SELECT 'doc', gen_random_uuid()
-FROM generate_series(1, 20000) AS g
+FROM generate_series(1, 200000) AS g
 ON CONFLICT DO NOTHING;
 
 INSERT INTO postfga_bench.objects (object_type, object_id)
 SELECT 'folder', gen_random_uuid()
-FROM generate_series(1, 5000) AS g
+FROM generate_series(1, 2000) AS g
 ON CONFLICT DO NOTHING;
 
 
@@ -93,17 +93,3 @@ CROSS JOIN LATERAL (
     LIMIT 10
 ) s
 CROSS JOIN rels;
-
-
--- 벤치마크 클라이언트별로 나누어 삽입 테스트
--- postfga_write.sql
--- Usage:
-pgbench -U postgres -d postgres -c 12 -j 12 -t 1 -n -f postfga_write.sql
-
-pgbench -U postgres -d postgres -c 30 -j 16 -T 30 -P 1 -n -f postfga_check.sql
-
-pgbench -U postgres -d postgres -c 60 -j 16 -T 30 -P 1 -n -f postfga_check.sql
-
-pgbench -U postgres -d postgres -c 200 -j 16 -T 30 -P 1 -n -f postfga_check.sql
-
-pgbench -U postgres -d postgres -c 900 -j 16 -T 300 -P 1 -n -f postfga_check.sql
