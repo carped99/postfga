@@ -46,14 +46,6 @@ void fga_stats_shmem_init(FgaStats* stats)
         MemSet(&stats->backends[i], 0, sizeof(FgaBackendStats));
 }
 
-FgaBackendStats* fga_stats_get_backend(void)
-{
-    if (MyProcNumber == INVALID_PROC_NUMBER)
-        return NULL;
-
-    return &fga_get_stats()->backends[MyProcNumber];
-}
-
 static inline FgaBackendStats* backend_stats()
 {
     if (MyProcNumber == INVALID_PROC_NUMBER)
@@ -66,26 +58,40 @@ void fga_stats_l1_hit(void)
 {
     FgaBackendStats* stats = backend_stats();
     if (stats)
-        stats->l1_hits++;
+        stats->cache_l1_hits++;
 }
 
 void fga_stats_l1_miss(void)
 {
     FgaBackendStats* stats = backend_stats();
     if (stats)
-        stats->l1_misses++;
+        stats->cache_l1_misses++;
+}
+
+void fga_stats_l1_eviction(void)
+{
+    FgaBackendStats* stats = backend_stats();
+    if (stats)
+        stats->cache_l1_evictions++;
 }
 
 void fga_stats_l2_hit(void)
 {
     FgaBackendStats* stats = backend_stats();
     if (stats)
-        stats->l2_hits++;
+        stats->cache_l2_hits++;
 }
 
 void fga_stats_l2_miss(void)
 {
     FgaBackendStats* stats = backend_stats();
     if (stats)
-        stats->l2_misses++;
+        stats->cache_l2_misses++;
+}
+
+void fga_stats_l2_eviction(void)
+{
+    FgaBackendStats* stats = backend_stats();
+    if (stats)
+        stats->cache_l2_evictions++;
 }

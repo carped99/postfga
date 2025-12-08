@@ -29,12 +29,21 @@ static void backend_stats(Tuplestorestate* tupstore, TupleDesc tupdesc)
 {
     FgaStats* stats = fga_get_stats();
 
+    uint64 cache_l1_hits = 0, cache_l1_misses = 0, cache_l1_evictions = 0;
+    uint64 cache_l2_hits = 0, cache_l2_misses = 0, cache_l2_evictions = 0;
     uint64 check_calls = 0, check_allowed = 0, check_denied = 0;
     uint64 rpc_calls = 0, rpc_errors = 0, rpc_latency_sum = 0;
 
     for (int i = 0; i < MaxBackends; i++)
     {
         FgaBackendStats* b = &stats->backends[i];
+        cache_l1_hits += b->cache_l1_hits;
+        cache_l1_misses += b->cache_l1_misses;
+        cache_l1_evictions += b->cache_l1_evictions;
+        
+        cache_l2_hits += b->cache_l2_hits;
+        cache_l2_misses += b->cache_l2_misses;
+        cache_l2_evictions += b->cache_l2_evictions;
 
         check_calls += b->check_calls;
         check_allowed += b->check_allowed;
@@ -43,6 +52,13 @@ static void backend_stats(Tuplestorestate* tupstore, TupleDesc tupdesc)
         rpc_errors += b->rpc_check_error;
         rpc_latency_sum += b->rpc_check_latency_sum_us;
     }
+
+    add_row(tupstore, tupdesc, "cache.l1", "hits", cache_l1_hits);
+    add_row(tupstore, tupdesc, "cache.l1", "misses", cache_l1_misses);
+    add_row(tupstore, tupdesc, "cache.l1", "evictions", cache_l1_evictions);
+    add_row(tupstore, tupdesc, "cache.l2", "hits", cache_l2_hits);
+    add_row(tupstore, tupdesc, "cache.l2", "misses", cache_l2_misses);
+    add_row(tupstore, tupdesc, "cache.l2", "evictions", cache_l2_evictions);
 
     add_row(tupstore, tupdesc, "check", "calls", check_calls);
     add_row(tupstore, tupdesc, "check", "allowed", check_allowed);

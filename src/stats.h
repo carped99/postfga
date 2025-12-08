@@ -14,6 +14,8 @@ extern "C"
 {
 #endif
 
+#include <postgres.h>
+
     typedef struct FgaBackendStats
     {
         uint64 check_calls;
@@ -21,10 +23,12 @@ extern "C"
         uint64 check_denied;
         uint64 check_error;
 
-        uint64 l1_hits;
-        uint64 l1_misses;
-        uint64 l2_hits;
-        uint64 l2_misses;
+        uint64 cache_l1_hits;
+        uint64 cache_l1_misses;
+        uint64 cache_l1_evictions;
+        uint64 cache_l2_hits;
+        uint64 cache_l2_misses;
+        uint64 cache_l2_evictions;
 
         uint64 rpc_check_calls;
         uint64 rpc_check_error;
@@ -49,11 +53,11 @@ extern "C"
 
     void fga_stats_l1_hit(void);
     void fga_stats_l1_miss(void);
+    void fga_stats_l1_eviction(void);
 
     void fga_stats_l2_hit(void);
     void fga_stats_l2_miss(void);
-
-    FgaBackendStats* fga_stats_get_backend(void);
+    void fga_stats_l2_eviction(void);
 #ifdef __cplusplus
 }
 #endif
