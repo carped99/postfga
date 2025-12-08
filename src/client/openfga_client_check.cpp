@@ -4,7 +4,7 @@
 #include "request_variant.hpp"
 #include "util/logger.hpp"
 
-namespace postfga::client
+namespace fga::client
 {
     namespace
     {
@@ -50,7 +50,11 @@ namespace postfga::client
     {
         auto ctx = std::make_shared<BatchCheckContext>();
 
-        ctx->request.set_store_id(config_.store_id);
+        const BatchCheckItem& first = items.front();
+        ctx->request.set_store_id(first.params.store_id());
+        ctx->request.set_authorization_model_id(first.params.model_id());
+
+        // ctx->request.set_store_id(config_.store_id);
         // ctx->request.set_authorization_model_id(config_.model_id());
         // ctx->request.set_consistency(::openfga::v1::ConsistencyPreference::HIGHER_CONSISTENCY);
         for (const auto& item : items)
@@ -149,4 +153,4 @@ namespace postfga::client
 
         stub_->async()->Check(&ctx->context, &ctx->request, &ctx->response, std::move(callback));
     }
-} // namespace postfga::client
+} // namespace fga::client

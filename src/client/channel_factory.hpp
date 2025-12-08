@@ -5,9 +5,9 @@
 
 #include "config/config.hpp"
 
-namespace postfga::client
+namespace fga::client
 {
 
-    std::shared_ptr<::grpc::Channel> make_channel(const postfga::Config& cfg);
+    std::shared_ptr<::grpc::Channel> make_channel(const fga::Config& cfg);
 
-} // namespace postfga::client
+} // namespace fga::client

@@ -9,7 +9,7 @@
 
 struct FgaPayload;
 
-namespace postfga::client
+namespace fga::client
 {
 
     using ProcessCallback = std::function<void()>;
@@ -33,5 +33,5 @@ namespace postfga::client
         virtual void shutdown() = 0;
     };
 
-    std::shared_ptr<Client> make_client(const postfga::Config& cfg);
-} // namespace postfga::client
+    std::shared_ptr<Client> make_client(const fga::Config& cfg);
+} // namespace fga::client

@@ -200,7 +200,7 @@ constexpr size_t BUFFER_SIZE = 1024; // UPPER_CASE
 
 ### 네임스페이스
 ```cpp
-namespace postfga::client {}  // lower_case
+namespace fga::client {}  // lower_case
 ```
 
 ## Git Pre-commit Hook (옵션)

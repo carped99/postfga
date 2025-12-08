@@ -1,9 +1,9 @@
 #include "channel_factory.hpp"
 
-namespace postfga::client
+namespace fga::client
 {
 
-    std::shared_ptr<::grpc::Channel> make_channel(const postfga::Config& cfg)
+    std::shared_ptr<::grpc::Channel> make_channel(const fga::Config& cfg)
     {
         grpc::ChannelArguments args;
         if (!cfg.channel.load_balancing_policy.empty())
@@ -49,4 +49,4 @@ namespace postfga::client
         return grpc::CreateCustomChannel(cfg.endpoint, creds, args);
     }
 
-} // namespace postfga::client
+} // namespace fga::client

@@ -8,7 +8,7 @@
 #include <mutex>
 #include <optional>
 
-namespace postfga::bgw
+namespace fga::bgw
 {
 
     enum class SlotState : std::uint8_t
@@ -27,4 +27,4 @@ namespace postfga::bgw
         std::array<char, 64> error_msg{};
     };
 
-} // namespace postfga::bgw
+} // namespace fga::bgw

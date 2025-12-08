@@ -10,12 +10,12 @@
 struct FgaChannel;
 struct FgaChannelSlot;
 
-namespace postfga::bgw
+namespace fga::bgw
 {
     class Processor
     {
       public:
-        explicit Processor(FgaChannel* channel, const postfga::Config& config);
+        explicit Processor(FgaChannel* channel, const fga::Config& config);
         void execute();
 
       private:
@@ -29,11 +29,11 @@ namespace postfga::bgw
 
       private:
         FgaChannel* channel_ = nullptr;
-        std::shared_ptr<postfga::client::Client> client_;
-        postfga::util::Counter inflight_;
+        std::shared_ptr<fga::client::Client> client_;
+        fga::util::Counter inflight_;
 
         std::mutex completed_mu_;
         std::vector<FgaChannelSlot*> completed_queue_;
     };
 
-} // namespace postfga::bgw
+} // namespace fga::bgw

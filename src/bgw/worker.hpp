@@ -2,7 +2,7 @@
 
 struct FgaState;
 
-namespace postfga::bgw
+namespace fga::bgw
 {
 
     class Worker
@@ -18,4 +18,4 @@ namespace postfga::bgw
         FgaState* state_ = nullptr;
     };
 
-} // namespace postfga::bgw
+} // namespace fga::bgw

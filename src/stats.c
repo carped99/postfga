@@ -18,7 +18,7 @@
 /*-------------------------------------------------------------------------
  * Shared memory
  *-------------------------------------------------------------------------*/
-Size fga_stats_shmem_size()
+Size fga_stats_shmem_size(void)
 {
     Size size = offsetof(FgaStats, backends);
 

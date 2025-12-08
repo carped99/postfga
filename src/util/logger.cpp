@@ -9,7 +9,7 @@ extern "C"
 #include "logger.hpp"
 #include <string> // std::string
 
-namespace postfga::util
+namespace fga::util
 {
     static int
     to_pg_level(LogLevel level)
@@ -41,4 +41,4 @@ namespace postfga::util
                 errmsg("%s", s.c_str()));
     }
 
-} // namespace postfga
+} // namespace fga

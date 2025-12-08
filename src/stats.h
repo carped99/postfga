@@ -48,7 +48,7 @@ extern "C"
     } FgaStats;
 
     /* Initialize statistics */
-    Size fga_stats_shmem_size();
+    Size fga_stats_shmem_size(void);
     void fga_stats_shmem_init(FgaStats* stats);
 
     void fga_stats_l1_hit(void);

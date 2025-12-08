@@ -5,7 +5,7 @@
 
 #include "payload.h"
 
-namespace postfga::client
+namespace fga::client
 {
     struct InvalidRequest
     {
@@ -227,4 +227,4 @@ namespace postfga::client
             return InvalidRequest{payload};
         }
     }
-} // namespace postfga::client
+} // namespace fga::client

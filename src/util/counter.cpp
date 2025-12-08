@@ -1,6 +1,6 @@
 #include "counter.hpp"
 
-namespace postfga::util {
+namespace fga::util {
 
 // ------------------ Counter ------------------
 
@@ -87,4 +87,4 @@ void Counter::Guard::release() noexcept
     acquired_ = false;
 }
 
-} // namespace postfga::util
+} // namespace fga::util

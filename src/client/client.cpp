@@ -4,11 +4,11 @@
 #include "config/config.hpp"
 #include "openfga_client.hpp"
 
-namespace postfga::client
+namespace fga::client
 {
-    std::shared_ptr<Client> make_client(const postfga::Config& cfg)
+    std::shared_ptr<Client> make_client(const fga::Config& cfg)
     {
         return std::make_shared<OpenFgaGrpcClient>(cfg);
     }
 
-} // namespace postfga::client
+} // namespace fga::client

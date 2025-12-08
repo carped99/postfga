@@ -18,7 +18,7 @@
 #include "request_variant.hpp"
 #include "util/counter.hpp"
 
-namespace postfga::client
+namespace fga::client
 {
     struct BatchCheckItem
     {
@@ -29,7 +29,7 @@ namespace postfga::client
     class OpenFgaGrpcClient : public Client, public std::enable_shared_from_this<OpenFgaGrpcClient>
     {
       public:
-        explicit OpenFgaGrpcClient(const postfga::Config& config);
+        explicit OpenFgaGrpcClient(const fga::Config& config);
         ~OpenFgaGrpcClient();
 
         bool is_healthy() const;
@@ -49,12 +49,12 @@ namespace postfga::client
         void handle_request(DeleteStore& req, ProcessCallback cb);
         void handle_request(InvalidRequest& req, ProcessCallback cb);
 
-        postfga::Config config_;
+        fga::Config config_;
         std::shared_ptr<::grpc::Channel> channel_;
         std::unique_ptr<openfga::v1::OpenFGAService::Stub> stub_;
         mutable std::mutex mu_;
         std::atomic<bool> stopping_{false};
-        postfga::util::Counter inflight_;
+        fga::util::Counter inflight_;
     };
 
-} // namespace postfga::client
+} // namespace fga::client

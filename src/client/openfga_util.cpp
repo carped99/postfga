@@ -6,7 +6,7 @@
 #include "payload.h"
 #include "request_variant.hpp"
 
-namespace postfga::client
+namespace fga::client
 {
     namespace
     {
@@ -40,4 +40,4 @@ namespace postfga::client
         }
 
     } // anonymous namespace
-} // namespace postfga::client
+} // namespace fga::client

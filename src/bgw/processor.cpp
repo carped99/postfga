@@ -18,13 +18,13 @@ extern "C"
 #include "processor.hpp"
 #include "util/logger.hpp"
 
-namespace postfga::bgw
+namespace fga::bgw
 {
     static constexpr uint16_t MAX_BATCH = 50;
 
-    Processor::Processor(FgaChannel* channel, const postfga::Config& config)
+    Processor::Processor(FgaChannel* channel, const fga::Config& config)
         : channel_(channel),
-          client_(postfga::client::make_client(config)),
+          client_(fga::client::make_client(config)),
           inflight_(1000)
     {
     }
@@ -48,7 +48,7 @@ namespace postfga::bgw
         }
         else if (count > 1)
         {
-            postfga::client::ProcessItem items[MAX_BATCH];
+            fga::client::ProcessItem items[MAX_BATCH];
             uint16_t batch_count = 0;
 
             for (uint16_t i = 0; i < count; ++i)
@@ -70,7 +70,7 @@ namespace postfga::bgw
 
             if (batch_count > 0)
             {
-                std::span<postfga::client::ProcessItem> span(items, batch_count);
+                std::span<fga::client::ProcessItem> span(items, batch_count);
                 client_->process_batch(span);
             }
         }
@@ -177,4 +177,4 @@ namespace postfga::bgw
             fga_channel_release_slot(channel_, &slot);
         }
     }
-} // namespace postfga::bgw
+} // namespace fga::bgw

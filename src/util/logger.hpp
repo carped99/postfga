@@ -3,7 +3,7 @@
 
 #include <string_view>
 
-namespace postfga::util
+namespace fga::util
 {
 
     enum class LogLevel
@@ -38,4 +38,4 @@ namespace postfga::util
         log(LogLevel::Error, msg);
     }
 
-} // namespace postfga
+} // namespace fga

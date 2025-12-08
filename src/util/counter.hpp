@@ -3,7 +3,7 @@
 #include <semaphore>
 #include <limits>
 
-namespace postfga::util {
+namespace fga::util {
 
 /**
  * @brief C++20 std::counting_semaphore 기반 동시 실행 제한기.
@@ -92,4 +92,4 @@ private:
     bool                            acquired_;
 };
 
-} // namespace postfga::util
+} // namespace fga::util

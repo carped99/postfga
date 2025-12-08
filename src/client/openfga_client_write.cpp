@@ -3,7 +3,7 @@
 #include "request_variant.hpp"
 #include "util/logger.hpp"
 
-namespace postfga::client
+namespace fga::client
 {
     namespace
     {
@@ -104,4 +104,4 @@ namespace postfga::client
 
         stub_->async()->Write(&ctx->context, &ctx->request, &ctx->response, std::move(callback));
     }
-} // namespace postfga::client
+} // namespace fga::client

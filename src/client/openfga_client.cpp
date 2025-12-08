@@ -7,13 +7,13 @@
 
 #include "channel_factory.hpp"
 
-namespace postfga::client
+namespace fga::client
 {
 
     /* ========================================================================
      * ctor / dtor
      * ====================================================================== */
-    OpenFgaGrpcClient::OpenFgaGrpcClient(const postfga::Config& config)
+    OpenFgaGrpcClient::OpenFgaGrpcClient(const fga::Config& config)
         : config_(config),
           channel_(make_channel(config_)),
           stub_(openfga::v1::OpenFGAService::NewStub(channel_)),
@@ -148,4 +148,4 @@ namespace postfga::client
 
     void OpenFgaGrpcClient::handle_request(GetStore& req, ProcessCallback cb) {}
     void OpenFgaGrpcClient::handle_request(InvalidRequest& req, ProcessCallback cb) {}
-} // namespace postfga::client
+} // namespace fga::client

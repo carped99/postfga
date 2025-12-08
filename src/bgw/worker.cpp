@@ -7,14 +7,12 @@ extern "C"
 #include <postmaster/bgworker.h>
 #include <storage/ipc.h>
 #include <storage/latch.h>
-// #include <storage/lwlock.h>
-// #include <storage/proc.h>
 #include <utils/guc.h>
 }
 
 #include <optional>
 
-#include "config/load.hpp"
+#include "config/config.hpp"
 #include "processor.hpp"
 #include "state.h"
 #include "worker.hpp"
@@ -56,7 +54,7 @@ bgw_sighup_handler(SIGNAL_ARGS)
     errno = save_errno;
 }
 
-namespace postfga::bgw
+namespace fga::bgw
 {
     Worker::Worker(FgaState* state)
         : state_(state)
@@ -93,7 +91,7 @@ namespace postfga::bgw
 
     void Worker::process()
     {
-        auto config = postfga::load_config_from_guc();
+        auto config = fga::load_config_from_guc();
 
         std::optional<Processor> processor;
         processor.emplace(state_->channel, config);
@@ -116,7 +114,7 @@ namespace postfga::bgw
                 reload_requested = false;
                 ProcessConfigFile(PGC_SIGHUP);
 
-                auto new_config = postfga::load_config_from_guc();
+                auto new_config = fga::load_config_from_guc();
                 // 실제로 변경된 경우만 재생성
                 // if (new_config != config)  // operator!= 구현 필요
 
@@ -126,7 +124,7 @@ namespace postfga::bgw
             processor->execute();
         }
     }
-} // namespace postfga::bgw
+} // namespace fga::bgw
 
 extern "C" PGDLLEXPORT void
 postfga_bgw_work(Datum arg)
@@ -145,7 +143,7 @@ postfga_bgw_work(Datum arg)
     {
         ereport(DEBUG1, (errmsg("postfga: bgw starting")));
 
-        postfga::bgw::Worker worker(state);
+        fga::bgw::Worker worker(state);
         worker.run();
 
         ereport(DEBUG1, (errmsg("postfga: bgw finished")));
