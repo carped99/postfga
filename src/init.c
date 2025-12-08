@@ -11,7 +11,7 @@
 #include <postmaster/bgworker.h>
 #include <storage/ipc.h>
 
-#include "bgw/main.h"
+#include "bgw/bgw.h"
 #include "guc.h"
 #include "state.h"
 

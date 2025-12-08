@@ -7,8 +7,8 @@ extern "C"
 #include <postmaster/bgworker.h>
 #include <storage/ipc.h>
 #include <storage/latch.h>
-#include <storage/lwlock.h>
-#include <storage/proc.h>
+// #include <storage/lwlock.h>
+// #include <storage/proc.h>
 #include <utils/guc.h>
 }
 
@@ -19,32 +19,42 @@ extern "C"
 #include "state.h"
 #include "worker.hpp"
 
-namespace
+/* signal flags */
+static volatile sig_atomic_t shutdown_requested = 0;
+static volatile sig_atomic_t reload_requested   = 0;
+
+static void
+bgw_sigterm_handler(SIGNAL_ARGS)
 {
-    // signal flags
-    volatile sig_atomic_t shutdown_requested = false;
-    volatile sig_atomic_t reload_requested = false;
+    int save_errno = errno;
 
-    // SIGTERM handler: request shutdown
-    void bgw_sigterm_handler(SIGNAL_ARGS)
-    {
-        int save_errno = errno;
-        shutdown_requested = true;
-        if (MyLatch)
-            SetLatch(MyLatch);
-        errno = save_errno;
-    }
+    /* suppress unused parameter warning */
+    (void) postgres_signal_arg;
 
-    // SIGHUP handler: request config reload
-    void bgw_sighup_handler(SIGNAL_ARGS)
-    {
-        int save_errno = errno;
-        reload_requested = true;
-        if (MyLatch)
-            SetLatch(MyLatch);
-        errno = save_errno;
-    }
-} // anonymous namespace
+    shutdown_requested = 1;
+
+    if (MyLatch)
+        SetLatch(MyLatch);
+
+    errno = save_errno;
+}
+
+/* SIGHUP handler: request config reload */
+static void
+bgw_sighup_handler(SIGNAL_ARGS)
+{
+    int save_errno = errno;
+
+    /* suppress unused parameter warning */
+    (void) postgres_signal_arg;
+
+    reload_requested = 1;
+
+    if (MyLatch)
+        SetLatch(MyLatch);
+
+    errno = save_errno;
+}
 
 namespace postfga::bgw
 {
@@ -52,8 +62,6 @@ namespace postfga::bgw
         : state_(state)
     {
         Assert(state_ != nullptr);
-
-        initialize();
     }
 
     void Worker::run()
@@ -64,26 +72,23 @@ namespace postfga::bgw
         LWLockRelease(state_->lock);
 
         /* enter main loop */
-        process();
+        try
+        {
+            process();
+        }
+        catch (const std::exception& ex)
+        {
+            ereport(ERROR, (errmsg("postfga: bgw exception: %s", ex.what())));
+        }
+        catch (...)
+        {
+            ereport(ERROR, (errmsg("postfga: bgw unknown exception")));
+        }        
 
         /* unregister latch on exit */
         LWLockAcquire(state_->lock, LW_EXCLUSIVE);
         state_->bgw_latch = NULL;
         LWLockRelease(state_->lock);
-    }
-
-    void Worker::initialize()
-    {
-        // install signal handlers
-        pqsignal(SIGTERM, bgw_sigterm_handler);
-        pqsignal(SIGHUP, bgw_sighup_handler);
-
-        // allow signals to be delivered
-        BackgroundWorkerUnblockSignals();
-
-        /* optional: connect to database
-         * BackgroundWorkerInitializeConnection(NULL, NULL, 0);
-         */
     }
 
     void Worker::process()
@@ -98,31 +103,61 @@ namespace postfga::bgw
             // wait for work or signal
             int rc = WaitLatch(MyLatch, WL_LATCH_SET | WL_EXIT_ON_PM_DEATH, -1, PG_WAIT_EXTENSION);
 
-            // latch reset
             ResetLatch(MyLatch);
 
             CHECK_FOR_INTERRUPTS();
+
+            if (!(rc & WL_LATCH_SET))
+                continue;
 
             // handle config reload
             if (reload_requested)
             {
                 reload_requested = false;
                 ProcessConfigFile(PGC_SIGHUP);
-                auto config = postfga::load_config_from_guc();
-                ereport(LOG,
-                        (errmsg("postfga: reloaded configuration, %s, %s",
-                                config.endpoint.c_str(),
-                                config.store_id.c_str())));
-                processor.emplace(state_->channel, config);
+
+                auto new_config = postfga::load_config_from_guc();
+                // 실제로 변경된 경우만 재생성
+                // if (new_config != config)  // operator!= 구현 필요
+
+                processor.emplace(state_->channel, new_config);
             }
 
-            pgstat_report_activity(STATE_RUNNING, "postfga: processing requests");
             processor->execute();
-            pgstat_report_activity(STATE_IDLE, NULL);
         }
-
-        // report activity: stopped
-        pgstat_report_activity(STATE_IDLE, "postfga: stopped");
     }
-
 } // namespace postfga::bgw
+
+extern "C" PGDLLEXPORT void
+postfga_bgw_work(Datum arg)
+{
+    FgaState *state = fga_get_state();
+
+    (void) arg;
+
+    pqsignal(SIGTERM, bgw_sigterm_handler);
+    pqsignal(SIGHUP, bgw_sighup_handler);
+
+    // allow signals to be delivered
+    BackgroundWorkerUnblockSignals();
+
+    PG_TRY();
+    {
+        ereport(DEBUG1, (errmsg("postfga: bgw starting")));
+
+        postfga::bgw::Worker worker(state);
+        worker.run();
+
+        ereport(DEBUG1, (errmsg("postfga: bgw finished")));
+    }
+    PG_CATCH();
+    {
+        EmitErrorReport();
+        FlushErrorState();
+
+        proc_exit(1);
+    }
+    PG_END_TRY();
+    
+    proc_exit(0);
+}
