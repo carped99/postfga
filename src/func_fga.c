@@ -51,7 +51,7 @@ static inline void write_text(char* dst, size_t dst_size, const text* src)
     dst[len] = '\0';
 }
 
-static inline void fill_tuple_args(TupleArgsView v, FgaTuple* tuple)
+static inline void fill_tuple(TupleArgsView v, FgaTuple* tuple)
 {
     write_text(tuple->object_type, sizeof(tuple->object_type), v.object_type);
     write_text(tuple->object_id, sizeof(tuple->object_id), v.object_id);
@@ -75,17 +75,32 @@ static inline void fill_request(FgaRequest* request)
     }
 }
 
+static inline void build_cache_key(FgaAclCacheKey* key, const TupleArgsView* args)
+{
+    FgaConfig* config = fga_get_config();
+    
+    fga_cache_key(key,
+                  config->store_id,
+                  config->model_id,
+                  args->object_type,
+                  args->object_id,
+                  args->subject_type,
+                  args->subject_id,
+                  args->relation);
+
+}
+
 static inline void validate_not_empty(text* arg, const char* argname)
 {
     if (unlikely(arg == NULL))
     {
-        ereport(ERROR, (errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED), errmsg("%s argument must not be NULL", argname)));
+        ereport(ERROR, (errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED), errmsg("postfga: %s argument must not be NULL", argname)));
     }
 
     if (VARSIZE_ANY_EXHDR(arg) == 0)
     {
         ereport(ERROR,
-                (errcode(ERRCODE_STRING_DATA_LENGTH_MISMATCH), errmsg("%s argument must not be empty", argname)));
+                (errcode(ERRCODE_STRING_DATA_LENGTH_MISMATCH), errmsg("postfga: %s argument must not be empty", argname)));
     }
 }
 
@@ -93,61 +108,58 @@ static inline TupleArgsView read_tuple_args(FunctionCallInfo fcinfo)
 {
     TupleArgsView v;
     v.object_type = PG_ARGISNULL(0) ? NULL : PG_GETARG_TEXT_PP(0);
-    v.object_id = PG_ARGISNULL(1) ? NULL : PG_GETARG_TEXT_PP(1);
-    v.subject_type = PG_ARGISNULL(2) ? NULL : PG_GETARG_TEXT_PP(2);
-    v.subject_id = PG_ARGISNULL(3) ? NULL : PG_GETARG_TEXT_PP(3);
-    v.relation = PG_ARGISNULL(4) ? NULL : PG_GETARG_TEXT_PP(4);
-    v.options = (PG_NARGS() >= 6 && !PG_ARGISNULL(5)) ? DatumGetJsonbP(PG_GETARG_DATUM(5)) : NULL;
-
     validate_not_empty(v.object_type, "object_type");
+
+    v.object_id = PG_ARGISNULL(1) ? NULL : PG_GETARG_TEXT_PP(1);
     validate_not_empty(v.object_id, "object_id");
+
+    v.subject_type = PG_ARGISNULL(2) ? NULL : PG_GETARG_TEXT_PP(2);
     validate_not_empty(v.subject_type, "subject_type");
+
+    v.subject_id = PG_ARGISNULL(3) ? NULL : PG_GETARG_TEXT_PP(3);
     validate_not_empty(v.subject_id, "subject_id");
+
+    v.relation = PG_ARGISNULL(4) ? NULL : PG_GETARG_TEXT_PP(4);
     validate_not_empty(v.relation, "relation");
 
+    v.options = (PG_NARGS() >= 6 && !PG_ARGISNULL(5)) ? DatumGetJsonbP(PG_GETARG_DATUM(5)) : NULL;
     return v;
 }
 
 Datum postfga_check(PG_FUNCTION_ARGS)
 {
-    TupleArgsView args = read_tuple_args(fcinfo);
-    FgaConfig* config = fga_get_config();
-    uint64_t ttl_ms = config->cache_ttl_ms;
     bool allowed;
+    TupleArgsView args = read_tuple_args(fcinfo);
 
     FgaAclCacheKey key;
-    fga_cache_key(&key,
-                  config->store_id,
-                  config->model_id,
-                  args.object_type,
-                  args.object_id,
-                  args.subject_type,
-                  args.subject_id,
-                  args.relation);
+    build_cache_key(&key, &args);
 
-    if (fga_cache_lookup(&key, ttl_ms, &allowed))
+    if (fga_cache_lookup(&key, &allowed))
     {
         PG_RETURN_BOOL(allowed);
     }
 
     {
-        FgaRequest request = {0};
-        FgaResponse response = {0};
-        request.type = FGA_REQUEST_CHECK_TUPLE;
-        fill_request(&request);
-        fill_tuple_args(args, &request.body.checkTuple.tuple);
+        FgaChannelSlot* slot = fga_channel_acquire_slot();
+        FgaRequest* request = &slot->payload.request;
+        FgaResponse* response = &slot->payload.response;
+        request->type = FGA_REQUEST_CHECK;
+        fill_request(request);
+        fill_tuple(args, &request->body.checkTuple.tuple);
 
-        fga_channel_execute(&request, &response);
-        if (response.status == FGA_RESPONSE_OK)
+        fga_channel_execute_slot(slot);
+
+        if (response->status == FGA_RESPONSE_OK)
         {
-            fga_cache_store(&key, ttl_ms, response.body.checkTuple.allow);
-            PG_RETURN_BOOL(response.body.checkTuple.allow);
+            allowed = response->body.checkTuple.allow;
+        } else {
+            ereport(INFO, (errmsg("postfga: check tuple failed - %s", response->error_message)));
         }
 
-        ereport(INFO, (errmsg("postfga: check tuple failed - %s", response.error_message)));
+        fga_channel_release_slot(slot);
     }
 
-    PG_RETURN_BOOL(false);
+    PG_RETURN_BOOL(allowed);
 }
 
 Datum postfga_write_tuple(PG_FUNCTION_ARGS)
@@ -157,15 +169,15 @@ Datum postfga_write_tuple(PG_FUNCTION_ARGS)
     FgaRequest request = {0};
     FgaResponse response = {0};
     request.type = FGA_REQUEST_WRITE_TUPLE;
-
-    fill_tuple_args(args, &request.body.writeTuple.tuple);
     fill_request(&request);
+    fill_tuple(args, &request.body.writeTuple.tuple);
 
     fga_channel_execute(&request, &response);
     if (response.status != FGA_RESPONSE_OK)
     {
         ereport(ERROR, errmsg("postfga: write tuple failed - %s", response.error_message));
     }
+
     PG_RETURN_BOOL(true);
 }
 
@@ -176,17 +188,16 @@ Datum postfga_delete_tuple(PG_FUNCTION_ARGS)
     FgaRequest request = {0};
     FgaResponse response = {0};
     request.type = FGA_REQUEST_DELETE_TUPLE;
-
     fill_request(&request);
-    fill_tuple_args(args, &request.body.deleteTuple.tuple);
+    fill_tuple(args, &request.body.deleteTuple.tuple);
 
     fga_channel_execute(&request, &response);
-    if (response.status == FGA_RESPONSE_OK)
+    if (response.status != FGA_RESPONSE_OK)
     {
-        PG_RETURN_BOOL(true);
+        ereport(ERROR, errmsg("postfga: delete tuple failed - %s", response.error_message));
     }
-    ereport(INFO, errmsg("postfga: delete tuple failed - %s", response.error_message));
-    PG_RETURN_BOOL(false);
+
+    PG_RETURN_BOOL(true);
 }
 
 Datum postfga_create_store(PG_FUNCTION_ARGS)

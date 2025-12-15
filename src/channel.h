@@ -15,6 +15,8 @@ extern "C"
 
 #include "payload.h"
 
+#define FGA_CHANNEL_DRAIN_MAX 64
+
 #ifdef __cplusplus
 }
 #endif
@@ -66,13 +68,17 @@ typedef struct FgaChannel
 extern "C"
 {
 #endif
-    uint16 fga_channel_drain_slots(FgaChannel* const channel, uint16_t max_count, FgaChannelSlot** out_slots);
+    uint32 fga_channel_drain_slots(uint32 max_count, FgaChannelSlot** out_slots);
 
-    void fga_channel_release_slot(FgaChannel* const channel, FgaChannelSlot* const slot);
+    FgaChannelSlot* fga_channel_acquire_slot(void);
 
-    void fga_channel_execute(const FgaRequest* const request, FgaResponse* const response);
+    void fga_channel_release_slot(FgaChannelSlot* slot);
 
-    bool fga_channel_wake_backend(const FgaChannelSlot* const slot);
+    void fga_channel_execute_slot(FgaChannelSlot* slot);
+
+    void fga_channel_execute(const FgaRequest* request, FgaResponse* response);
+
+    bool fga_channel_wake_backend(const FgaChannelSlot* slot);
 #ifdef __cplusplus
 }
 #endif

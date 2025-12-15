@@ -68,7 +68,7 @@ void fga_cache_shmem_each_startup(void)
     l2_startup();
 }
 
-bool fga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allowed_out)
+bool fga_cache_lookup(const FgaAclCacheKey* key, bool* allowed_out)
 {
     FgaL2AclCache* l2;
     TimestampTz now_ms;
@@ -100,7 +100,7 @@ bool fga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allowed_
     return false;
 }
 
-void fga_cache_store(const FgaAclCacheKey* key, uint64_t ttl_ms, bool allowed)
+void fga_cache_store(const FgaAclCacheKey* key, bool allowed)
 {
     FgaL2AclCache* l2;
     TimestampTz now_ms;
@@ -112,8 +112,8 @@ void fga_cache_store(const FgaAclCacheKey* key, uint64_t ttl_ms, bool allowed)
 
     l2 = l2_cache();
     now_ms = get_now_ms();
-    expires_at = now_ms + ttl_ms;
-
+    expires_at = now_ms + config->cache_ttl_ms;
+    
     l1_store(key, l2->generation, expires_at, allowed);
     l2_store(l2, key, now_ms, expires_at, allowed);
 }

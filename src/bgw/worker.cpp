@@ -94,7 +94,7 @@ namespace fga::bgw
         auto config = fga::load_config_from_guc();
 
         std::optional<Processor> processor;
-        processor.emplace(state_->channel, config);
+        processor.emplace(config);
 
         while (!shutdown_requested)
         {
@@ -118,7 +118,7 @@ namespace fga::bgw
                 // 실제로 변경된 경우만 재생성
                 // if (new_config != config)  // operator!= 구현 필요
 
-                processor.emplace(state_->channel, new_config);
+                processor.emplace(new_config);
             }
 
             processor->execute();

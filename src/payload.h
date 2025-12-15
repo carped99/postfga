@@ -39,7 +39,7 @@ typedef enum FgaResponseStatus
 /* ---- Request type --------------------------- */
 typedef enum FgaRequestType
 {
-    FGA_REQUEST_CHECK_TUPLE = 1,
+    FGA_REQUEST_CHECK = 1,
     FGA_REQUEST_READ,
     FGA_REQUEST_WRITE_TUPLE,
     FGA_REQUEST_DELETE_TUPLE,

@@ -22,21 +22,18 @@ namespace fga::bgw
 {
     static constexpr uint16_t MAX_BATCH = 50;
 
-    Processor::Processor(FgaChannel* channel, const fga::Config& config)
-        : channel_(channel),
-          client_(fga::client::make_client(config)),
+    Processor::Processor(const fga::Config& config)
+          : client_(fga::client::make_client(config)),
           inflight_(1000)
     {
     }
 
     void Processor::execute()
     {
-        static constexpr uint16_t MAX_BATCH = 50;
+        static constexpr uint32 MAX_BATCH = 50;
 
-        FgaChannel* channel = channel_;
         FgaChannelSlot* slots[MAX_BATCH];
-        uint16_t count = fga_channel_drain_slots(channel, MAX_BATCH, slots);
-
+        uint32 count = fga_channel_drain_slots(MAX_BATCH, slots);
 
         if (count == 1)
         {
@@ -49,9 +46,9 @@ namespace fga::bgw
         else if (count > 1)
         {
             fga::client::ProcessItem items[MAX_BATCH];
-            uint16_t batch_count = 0;
+            uint32 batch_count = 0;
 
-            for (uint16_t i = 0; i < count; ++i)
+            for (uint32 i = 0; i < count; ++i)
             {
                 FgaChannelSlot* slot = slots[i];
 
@@ -91,7 +88,7 @@ namespace fga::bgw
              * 백엔드가 이미 이 요청을 포기함.
              * → BGW가 여기서 슬롯 정리.
              */
-            fga_channel_release_slot(channel_, &slot);
+            fga_channel_release_slot(&slot);
         }
         else
         {
@@ -140,7 +137,7 @@ namespace fga::bgw
              * - Latch 깨울 필요 없음
              * - BGW가 대신 슬롯을 반환
              */
-            fga_channel_release_slot(channel_, &slot);
+            fga_channel_release_slot(&slot);
             return;
         }
 
@@ -174,7 +171,7 @@ namespace fga::bgw
     {
         if (!fga_channel_wake_backend(&slot))
         {
-            fga_channel_release_slot(channel_, &slot);
+            fga_channel_release_slot(&slot);
         }
     }
 } // namespace fga::bgw

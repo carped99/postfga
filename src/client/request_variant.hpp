@@ -211,7 +211,7 @@ namespace fga::client
     {
         switch (static_cast<FgaRequestType>(payload.request.type))
         {
-        case FGA_REQUEST_CHECK_TUPLE:
+        case FGA_REQUEST_CHECK:
             return CheckTuple{payload};
         case FGA_REQUEST_WRITE_TUPLE:
             return WriteTuple{payload};

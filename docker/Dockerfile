@@ -9,7 +9,7 @@ ARG PG_MAJOR=18
 # Stage 0: Base build environment (build-base)
 # - Installs build toolchain and PostgreSQL server headers
 # ------------------------------------------------------------
-FROM postgres:${PG_MAJOR}-bookworm AS build-base
+FROM postgres:${PG_MAJOR} AS build-base
 
 ARG PG_MAJOR
 

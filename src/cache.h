@@ -63,9 +63,9 @@ extern "C"
                        const text* subject_id,
                        const text* relation);
 
-    bool fga_cache_lookup(const FgaAclCacheKey* key, uint64_t ttl_ms, bool* allowed_out);
+    bool fga_cache_lookup(const FgaAclCacheKey* key, bool* allowed_out);
 
-    void fga_cache_store(const FgaAclCacheKey* key, uint64_t ttl_ms, bool allowed);
+    void fga_cache_store(const FgaAclCacheKey* key, bool allowed);
 
 
 #ifdef __cplusplus

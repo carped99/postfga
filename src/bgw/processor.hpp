@@ -15,7 +15,7 @@ namespace fga::bgw
     class Processor
     {
       public:
-        explicit Processor(FgaChannel* channel, const fga::Config& config);
+        explicit Processor(const fga::Config& config);
         void execute();
 
       private:
@@ -28,7 +28,6 @@ namespace fga::bgw
         void drainCompleted() noexcept;
 
       private:
-        FgaChannel* channel_ = nullptr;
         std::shared_ptr<fga::client::Client> client_;
         fga::util::Counter inflight_;
 

@@ -116,9 +116,9 @@ extern "C"
      * - 최대 max_count 개까지 꺼내서 out 배열에 채움
      * - 실제 꺼낸 개수 반환
      */
-    static inline uint16_t queue_drain(FgaChannelSlotQueue* q, uint16_t max_count, uint16_t* out_values)
+    static inline uint32 queue_drain(FgaChannelSlotQueue* q, uint32 max_count, uint32* out_values)
     {
-        uint16_t n = 0;
+        uint32 n = 0;
         while (n < max_count && !queue_is_empty(q))
         {
             out_values[n] = q->values[q->tail & q->mask];
