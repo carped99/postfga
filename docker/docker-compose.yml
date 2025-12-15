@@ -16,7 +16,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: dev-builder
+      target: dev
       args:
         PG_MAJOR: "18"
     environment:

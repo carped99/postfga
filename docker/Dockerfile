@@ -1,64 +1,89 @@
+# syntax=docker/dockerfile:1.7
+
 # ------------------------------------------------------------
-# 1단계: 개발용 이미지
+# Global argument for PostgreSQL major version
 # ------------------------------------------------------------
 ARG PG_MAJOR=18
-FROM postgres:${PG_MAJOR} AS dev-builder
 
-# Install build toolchain and headers
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    ca-certificates \
-    gdb cmake git autoconf libtool pkg-config bear \
-    libgrpc++-dev libprotobuf-dev protobuf-compiler-grpc \
-    libxxhash-dev \
-    postgresql-server-dev-${PG_MAJOR} \
-    nodejs npm \
-    && rm -rf /var/lib/apt/lists/*
+# ------------------------------------------------------------
+# Stage 0: Base build environment (build-base)
+# - Installs build toolchain and PostgreSQL server headers
+# ------------------------------------------------------------
+FROM postgres:${PG_MAJOR}-bookworm AS build-base
 
-# Create non-root user for VSCode
+ARG PG_MAJOR
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        gdb \
+        cmake \
+        git \
+        autoconf \
+        libtool \
+        pkg-config \
+        bear \
+        libgrpc++-dev \
+        libprotobuf-dev \
+        protobuf-compiler-grpc \
+        libxxhash-dev \
+        postgresql-server-dev-${PG_MAJOR}
+
+# ------------------------------------------------------------
+# Stage 1: Development environment (dev)
+# - Used by VSCode DevContainer
+# - Includes Node.js, npm, and a non-root user
+# ------------------------------------------------------------
+FROM build-base AS dev
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        nodejs \
+        npm
+
+# Create VSCode-friendly non-root user
 RUN useradd -ms /bin/bash vscode
 
-WORKDIR /workspace
-
-# 1) 의존성 정의 파일만 복사 (CMakeLists, cmake/ 모듈, FetchContent 설정 등)
-#COPY CMakeLists.txt cmake/ ./
-# 2) 먼저 configure를 한 번 해서 FetchContent로 deps만 받아두기
-#RUN cmake -S . -B build
-
 # ------------------------------------------------------------
-# 2단계: 빌드용 이미지
+# Stage 2: Release build environment (release-builder)
 # ------------------------------------------------------------
-FROM dev-builder AS release-builder
-WORKDIR /workspace
+FROM build-base AS release-builder
+
+# Copy full project (use .dockerignore to exclude unnecessary files)
 COPY . .
-RUN cmake -S . -B build \
-    -DCMAKE_BUILD_TYPE=Release
 
-RUN cmake --build build --config Release
+# Configure and build
+# RUN cmake -S . -B build \
+#     -DCMAKE_BUILD_TYPE=Release && \
+#     cmake --build build --config Release
+RUN make
 
+# Install build artifacts into /out directory
 RUN DESTDIR=/out cmake --install build
 
 # ------------------------------------------------------------
-# 2단계: 설치용 이미지
+# Stage 3: Runtime image
 # ------------------------------------------------------------
 FROM postgis/postgis:${PG_MAJOR}-3.6 AS runtime
 
+ARG PG_MAJOR
+
+# Install runtime dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      libgrpc++1 \
-      libprotobuf32 \
-      && rm -rf /var/lib/apt/lists/*
+        libgrpc++1 \
+        libprotobuf32 \
+    && rm -rf /var/lib/apt/lists/*
 
-# 1단계에서 설치된 파일들을 복사
-# 경로는 PGXS install 결과를 보고 맞춰야 함
+# Copy extension shared libraries
 COPY --from=release-builder /out/usr/lib/postgresql/${PG_MAJOR}/lib/*.so \
     /usr/lib/postgresql/${PG_MAJOR}/lib/
 
+# Copy extension control / SQL files
 COPY --from=release-builder /out/usr/share/postgresql/${PG_MAJOR}/extension/* \
     /usr/share/postgresql/${PG_MAJOR}/extension/
-
-# 필요하다면 기본 설정도 같이 넣을 수 있음
-# 예: shared_preload_libraries에 BGW 모듈 등록
-RUN echo "shared_preload_libraries = 'postfga'" >> /usr/share/postgresql/postgresql.conf.sample
-
-# 포트/볼륨은 postgres 기본값 그대로 사용

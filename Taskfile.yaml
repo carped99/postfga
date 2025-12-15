@@ -1,6 +1,14 @@
 version: 3
 
+includes:
+  docker:
+    taskfile: ./docker/Taskfile.yaml
+
 tasks:
+  default:
+    cmds:
+      - task -l
+
   generate:
     desc: Generate the protobuf and gRPC stubs
     cmds:
