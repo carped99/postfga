@@ -7,7 +7,7 @@ find_program(PG_CONFIG pg_config REQUIRED)
 
 # # Get PostgreSQL configuration
 execute_process(COMMAND ${PG_CONFIG} --includedir-server
-                OUTPUT_VARIABLE PG_INCLUDE_SERVER
+                OUTPUT_VARIABLE PostgreSQL_TYPE_INCLUDE_DIR
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 execute_process(COMMAND ${PG_CONFIG} --includedir
                 OUTPUT_VARIABLE PG_INCLUDE

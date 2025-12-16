@@ -166,45 +166,69 @@ Datum postfga_write_tuple(PG_FUNCTION_ARGS)
 {
     TupleArgsView args = read_tuple_args(fcinfo);
 
-    FgaRequest request = {0};
-    FgaResponse response = {0};
-    request.type = FGA_REQUEST_WRITE_TUPLE;
-    fill_request(&request);
-    fill_tuple(args, &request.body.writeTuple.tuple);
+    FgaChannelSlot* const slot = fga_channel_acquire_slot();
+    FgaRequest* const request = &slot->payload.request;
+    FgaResponse* const response = &slot->payload.response;
 
-    fga_channel_execute(&request, &response);
-    if (response.status != FGA_RESPONSE_OK)
+    PG_TRY();
     {
-        ereport(ERROR, errmsg("postfga: write tuple failed - %s", response.error_message));
-    }
+        request->type = FGA_REQUEST_WRITE_TUPLE;
+        fill_request(request);
+        fill_tuple(args, &request->body.writeTuple.tuple);
 
-    PG_RETURN_BOOL(true);
+        fga_channel_execute_slot(slot);
+
+        if (slot->payload.response.status != FGA_RESPONSE_OK)
+        {
+            ereport(ERROR, errmsg("postfga: write tuple failed - %s", slot->payload.response.error_message));
+        }
+
+        fga_channel_release_slot(slot);
+        PG_RETURN_BOOL(true);
+    }
+    PG_CATCH();
+    {
+        fga_channel_release_slot(slot);
+        PG_RE_THROW();
+    }
+    PG_END_TRY();
 }
 
 Datum postfga_delete_tuple(PG_FUNCTION_ARGS)
 {
     TupleArgsView args = read_tuple_args(fcinfo);
 
-    FgaRequest request = {0};
-    FgaResponse response = {0};
-    request.type = FGA_REQUEST_DELETE_TUPLE;
-    fill_request(&request);
-    fill_tuple(args, &request.body.deleteTuple.tuple);
+    FgaChannelSlot* const slot = fga_channel_acquire_slot();
+    FgaRequest* const request = &slot->payload.request;
+    FgaResponse* const response = &slot->payload.response;
 
-    fga_channel_execute(&request, &response);
-    if (response.status != FGA_RESPONSE_OK)
+    PG_TRY();
     {
-        ereport(ERROR, errmsg("postfga: delete tuple failed - %s", response.error_message));
-    }
+        request->type = FGA_REQUEST_DELETE_TUPLE;
+        fill_request(request);
+        fill_tuple(args, &request->body.deleteTuple.tuple);
 
-    PG_RETURN_BOOL(true);
+        fga_channel_execute_slot(slot);
+
+        if (response->status != FGA_RESPONSE_OK)
+        {
+            ereport(ERROR, errmsg("postfga: delete tuple failed - %s", response->error_message));
+        }
+
+        fga_channel_release_slot(slot);
+        PG_RETURN_BOOL(true);
+    }
+    PG_CATCH();
+    {
+        fga_channel_release_slot(slot);
+        PG_RE_THROW();
+    }
+    PG_END_TRY();
 }
 
 Datum postfga_create_store(PG_FUNCTION_ARGS)
 {
     char* store_name;
-    FgaRequest request;
-    FgaResponse response;
     TupleDesc tupdesc;
     Datum values[2];
     bool nulls[2];
@@ -217,60 +241,88 @@ Datum postfga_create_store(PG_FUNCTION_ARGS)
     store_name = text_to_cstring(PG_GETARG_TEXT_PP(0));
 
     // prepare
-    MemSet(&request, 0, sizeof(request));
-    MemSet(&response, 0, sizeof(response));
-    request.type = FGA_REQUEST_CREATE_STORE;
-    strlcpy(request.body.createStore.name, store_name, sizeof(request.body.createStore.name));
+    FgaChannelSlot* const slot = fga_channel_acquire_slot();
+    FgaRequest* const request = &slot->payload.request;
+    FgaResponse* const response = &slot->payload.response;
 
-    // execute
-    fga_channel_execute(&request, &response);
-
-    // check response
-    if (response.status != FGA_RESPONSE_OK)
+    PG_TRY();
     {
-        ereport(ERROR,
-                (errcode(ERRCODE_EXTERNAL_ROUTINE_EXCEPTION),
-                 errmsg("postfga: create store failed: %s", store_name),
-                 errdetail("%s", response.error_message)));
+        request->type = FGA_REQUEST_CREATE_STORE;
+        strlcpy(request->body.createStore.name, store_name, sizeof(request->body.createStore.name));
+
+        // execute
+        fga_channel_execute_slot(slot);
+
+        // check response
+        if (response->status != FGA_RESPONSE_OK)
+        {
+            ereport(ERROR,
+                    (errcode(ERRCODE_EXTERNAL_ROUTINE_EXCEPTION),
+                    errmsg("postfga: create store failed: %s", store_name),
+                    errdetail("%s", response->error_message)));
+        }
+
+        // build return tuple
+        if (get_call_result_type(fcinfo, NULL, &tupdesc) != TYPEFUNC_COMPOSITE)
+            ereport(ERROR,
+                    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                    errmsg("function returning record called in context that cannot accept type record")));
+
+        tupdesc = BlessTupleDesc(tupdesc);
+
+        /* 결과 튜플 구성 */
+        MemSet(nulls, false, sizeof(nulls));
+
+        /* id */
+        values[0] = CStringGetTextDatum(response->body.createStore.id);
+
+        /* name */
+        values[1] = CStringGetTextDatum(response->body.createStore.name);
+
+        fga_channel_release_slot(slot);
+
+        tuple = heap_form_tuple(tupdesc, values, nulls);
+        PG_RETURN_DATUM(HeapTupleGetDatum(tuple));
     }
-
-    // build return tuple
-    if (get_call_result_type(fcinfo, NULL, &tupdesc) != TYPEFUNC_COMPOSITE)
-        ereport(ERROR,
-                (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                 errmsg("function returning record called in context that cannot accept type record")));
-
-    tupdesc = BlessTupleDesc(tupdesc);
-
-    /* 결과 튜플 구성 */
-    MemSet(nulls, false, sizeof(nulls));
-
-    /* id */
-    values[0] = CStringGetTextDatum(response.body.createStore.id);
-
-    /* name */
-    values[1] = CStringGetTextDatum(response.body.createStore.name);
-
-    tuple = heap_form_tuple(tupdesc, values, nulls);
-    PG_RETURN_DATUM(HeapTupleGetDatum(tuple));
+    PG_CATCH();
+    {
+        fga_channel_release_slot(slot);
+        PG_RE_THROW();
+    }
+    PG_END_TRY();
 }
 
 Datum postfga_delete_store(PG_FUNCTION_ARGS)
 {
     const char* store_id = text_to_cstring(PG_GETARG_TEXT_PP(0));
 
-    FgaRequest request = {0};
-    FgaResponse response = {0};
-    request.type = FGA_REQUEST_DELETE_STORE;
-    strlcpy(request.store_id, store_id, sizeof(request.store_id));
+    FgaChannelSlot* const slot = fga_channel_acquire_slot();
+    FgaRequest* const request = &slot->payload.request;
+    FgaResponse* const response = &slot->payload.response;
 
-    fga_channel_execute(&request, &response);
-    if (response.status != FGA_RESPONSE_OK)
+    PG_TRY();
     {
-        ereport(ERROR,
-                (errcode(ERRCODE_EXTERNAL_ROUTINE_EXCEPTION),
-                 errmsg("postfga: delete store failed: %s", store_id),
-                 errdetail("%s", response.error_message)));
+        request->type = FGA_REQUEST_DELETE_STORE;
+        strlcpy(request->store_id, store_id, sizeof(request->store_id));
+
+        // execute
+        fga_channel_execute_slot(slot);
+        // check response
+        if (response->status != FGA_RESPONSE_OK)
+        {
+            ereport(ERROR,
+                    (errcode(ERRCODE_EXTERNAL_ROUTINE_EXCEPTION),
+                    errmsg("postfga: delete store failed: %s", store_id),
+                    errdetail("%s", response->error_message)));
+        }
+
+        fga_channel_release_slot(slot);
+        PG_RETURN_VOID();
     }
-    PG_RETURN_VOID();
+    PG_CATCH();
+    {
+        fga_channel_release_slot(slot);
+        PG_RE_THROW();
+    }
+    PG_END_TRY();
 }

@@ -15,7 +15,7 @@ include(cmake/openfga.cmake)
 include(cmake/postgresql.cmake)
 
 file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS
-        src/*.c src/*.cc src/*.cpp
+        src/*.c src/*.cpp
 )
 
 add_library(postfga MODULE ${SRCS})

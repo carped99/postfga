@@ -32,6 +32,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         libxxhash-dev \
         postgresql-server-dev-${PG_MAJOR}
 
+WORKDIR /workspace
+
 # ------------------------------------------------------------
 # Stage 1: Development environment (dev)
 # - Used by VSCode DevContainer
@@ -58,13 +60,11 @@ FROM build-base AS release-builder
 COPY . .
 
 # Configure and build
-# RUN cmake -S . -B build \
-#     -DCMAKE_BUILD_TYPE=Release && \
-#     cmake --build build --config Release
-RUN make
+RUN cmake --preset release && \
+    cmake --build --preset=release
 
-# Install build artifacts into /out directory
-RUN DESTDIR=/out cmake --install build
+# Install to temporary location
+RUN DESTDIR=/out cmake --install build/release
 
 # ------------------------------------------------------------
 # Stage 3: Runtime image
@@ -76,12 +76,15 @@ ARG PG_MAJOR
 # Install runtime dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        libgrpc++1 \
+        libgrpc++ \
         libprotobuf32 \
     && rm -rf /var/lib/apt/lists/*
 
+
+COPY --from=release-builder --chmod=644 /workspace/initdb-postfga.sh /docker-entrypoint-initdb.d/10_postfga.sh
+
 # Copy extension shared libraries
-COPY --from=release-builder /out/usr/lib/postgresql/${PG_MAJOR}/lib/*.so \
+COPY --from=release-builder /out/usr/lib/postgresql/${PG_MAJOR}/lib/postfga.so \
     /usr/lib/postgresql/${PG_MAJOR}/lib/
 
 # Copy extension control / SQL files
