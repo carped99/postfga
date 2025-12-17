@@ -81,6 +81,7 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 
+COPY --from=release-builder --chmod=644 /workspace/initdb-database.sh /docker-entrypoint-initdb.d/10_database.sh
 COPY --from=release-builder --chmod=644 /workspace/initdb-postfga.sh /docker-entrypoint-initdb.d/10_postfga.sh
 
 # Copy extension shared libraries

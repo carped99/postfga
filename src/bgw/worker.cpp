@@ -91,10 +91,12 @@ namespace fga::bgw
 
     void Worker::process()
     {
-        auto config = fga::load_config_from_guc();
-
         std::optional<Processor> processor;
-        processor.emplace(config);
+        auto config = fga::load_config_from_guc();
+        if(!config.endpoint.empty())
+        {
+            processor.emplace(config);
+        }
 
         while (!shutdown_requested)
         {
@@ -115,13 +117,17 @@ namespace fga::bgw
                 ProcessConfigFile(PGC_SIGHUP);
 
                 auto new_config = fga::load_config_from_guc();
-                // 실제로 변경된 경우만 재생성
-                // if (new_config != config)  // operator!= 구현 필요
-
-                processor.emplace(new_config);
+                if (new_config != config)
+                {
+                    if (!new_config.endpoint.empty())
+                        processor.emplace(new_config);
+                    else
+                        processor.reset();                
+                }
             }
 
-            processor->execute();
+            if (processor)
+                processor->execute();
         }
     }
 } // namespace fga::bgw

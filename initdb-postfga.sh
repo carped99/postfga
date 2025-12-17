@@ -9,7 +9,7 @@ if [[ ",$CUR_LIBS," != *",$EXT_NAME,"* ]]; then
     echo "Configuring shared_preload_libraries to include ${EXT_NAME}"
 
     NEW_LIBS="${CUR_LIBS:+$CUR_LIBS,}${EXT_NAME}"
-    "${psql[@]}" -c "ALTER SYSTEM SET shared_preload_libraries='${NEW_LIBS}';"
+    "${psql[@]}" -q -c "ALTER SYSTEM SET shared_preload_libraries='${NEW_LIBS}';"
 
     pg_ctl -D "$PGDATA" -m fast -w restart
 fi
@@ -23,17 +23,17 @@ done
 
 if [[ -n "${FGA_ENDPOINT:-}" ]]; then
     echo "Configuring postfga.endpoint = ${FGA_ENDPOINT}"
-    "${psql[@]}" -c "ALTER SYSTEM SET postfga.endpoint = \$\$${FGA_ENDPOINT}\$\$;"
+    "${psql[@]}" -q -c "ALTER SYSTEM SET postfga.endpoint = \$\$${FGA_ENDPOINT}\$\$;"
 fi
 
 if [[ -n "${FGA_STORE_ID:-}" ]]; then
     echo "Configuring postfga.store_id = ${FGA_STORE_ID}"
-    "${psql[@]}" -c "ALTER SYSTEM SET postfga.store_id = \$\$${FGA_STORE_ID}\$\$;"
+    "${psql[@]}" -q -c "ALTER SYSTEM SET postfga.store_id = \$\$${FGA_STORE_ID}\$\$;"
 fi
 
 if [[ -n "${FGA_MODEL_ID:-}" ]]; then
     echo "Configuring postfga.model_id = ${FGA_MODEL_ID}"
-    "${psql[@]}" -c "ALTER SYSTEM SET postfga.model_id = \$\$${FGA_MODEL_ID}\$\$;"
+    "${psql[@]}" -q -c "ALTER SYSTEM SET postfga.model_id = \$\$${FGA_MODEL_ID}\$\$;"
 fi
 
 # -- Initialize postfga extension on startup

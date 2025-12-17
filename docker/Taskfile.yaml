@@ -23,3 +23,10 @@ tasks:
           --target runtime \
           -t {{.IMAGE_NAME}}:{{.IMAGE_TAG}} \
           .
+
+  push:
+    desc: Push the release Docker image
+    cmds:
+      - |
+        echo "==> Pushing image: {{.IMAGE_NAME}}:{{.IMAGE_TAG}}"
+        docker push {{.IMAGE_NAME}}:{{.IMAGE_TAG}}

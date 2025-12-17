@@ -10,11 +10,11 @@
 #include "config.h"
 #include "payload.h"
 
-PG_FUNCTION_INFO_V1(postfga_check);
-PG_FUNCTION_INFO_V1(postfga_write_tuple);
-PG_FUNCTION_INFO_V1(postfga_delete_tuple);
-PG_FUNCTION_INFO_V1(postfga_create_store);
-PG_FUNCTION_INFO_V1(postfga_delete_store);
+PG_FUNCTION_INFO_V1(fga_check);
+PG_FUNCTION_INFO_V1(fga_write_tuple);
+PG_FUNCTION_INFO_V1(fga_delete_tuple);
+PG_FUNCTION_INFO_V1(fga_create_store);
+PG_FUNCTION_INFO_V1(fga_delete_store);
 
 typedef struct TupleArgsView
 {
@@ -126,7 +126,7 @@ static inline TupleArgsView read_tuple_args(FunctionCallInfo fcinfo)
     return v;
 }
 
-Datum postfga_check(PG_FUNCTION_ARGS)
+Datum fga_check(PG_FUNCTION_ARGS)
 {
     bool allowed;
     TupleArgsView args = read_tuple_args(fcinfo);
@@ -162,7 +162,7 @@ Datum postfga_check(PG_FUNCTION_ARGS)
     PG_RETURN_BOOL(allowed);
 }
 
-Datum postfga_write_tuple(PG_FUNCTION_ARGS)
+Datum fga_write_tuple(PG_FUNCTION_ARGS)
 {
     TupleArgsView args = read_tuple_args(fcinfo);
 
@@ -194,7 +194,7 @@ Datum postfga_write_tuple(PG_FUNCTION_ARGS)
     PG_END_TRY();
 }
 
-Datum postfga_delete_tuple(PG_FUNCTION_ARGS)
+Datum fga_delete_tuple(PG_FUNCTION_ARGS)
 {
     TupleArgsView args = read_tuple_args(fcinfo);
 
@@ -226,7 +226,7 @@ Datum postfga_delete_tuple(PG_FUNCTION_ARGS)
     PG_END_TRY();
 }
 
-Datum postfga_create_store(PG_FUNCTION_ARGS)
+Datum fga_create_store(PG_FUNCTION_ARGS)
 {
     char* store_name;
     TupleDesc tupdesc;
@@ -292,7 +292,7 @@ Datum postfga_create_store(PG_FUNCTION_ARGS)
     PG_END_TRY();
 }
 
-Datum postfga_delete_store(PG_FUNCTION_ARGS)
+Datum fga_delete_store(PG_FUNCTION_ARGS)
 {
     const char* store_id = text_to_cstring(PG_GETARG_TEXT_PP(0));
 

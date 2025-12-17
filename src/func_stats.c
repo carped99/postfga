@@ -68,9 +68,9 @@ static void backend_stats(Tuplestorestate* tupstore, TupleDesc tupdesc)
     add_row(tupstore, tupdesc, "rpc", "latency_sum_us", rpc_latency_sum);
 }
 
-PG_FUNCTION_INFO_V1(postfga_stats);
+PG_FUNCTION_INFO_V1(fga_stats);
 
-Datum postfga_stats(PG_FUNCTION_ARGS)
+Datum fga_stats(PG_FUNCTION_ARGS)
 {
     ReturnSetInfo* rsinfo = (ReturnSetInfo*)fcinfo->resultinfo;
     TupleDesc tupdesc;

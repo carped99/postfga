@@ -15,6 +15,8 @@ namespace fga
 
         bool retry_unavailable = true;
         bool retry_deadline_exceeded = false;
+
+        bool operator==(const RetryOptions&) const = default;
     };
 
     struct GrpcTlsOptions
@@ -25,6 +27,8 @@ namespace fga
         std::string client_key;
         bool insecure_skip_verify = false;
         std::string server_name_override;
+
+        bool operator==(const GrpcTlsOptions&) const = default;
     };
 
     struct GrpcChannelOptions
@@ -38,12 +42,16 @@ namespace fga
         int idle_timeout_ms = 0;
 
         std::string load_balancing_policy; // 예: "round_robin"
+
+        bool operator==(const GrpcChannelOptions&) const = default;
     };
 
     struct ConcurrencyOptions
     {
         int max_concurrency = 0; // 0 = 제한 없음
         std::size_t worker_threads = std::max<std::size_t>(1, std::thread::hardware_concurrency());
+
+        bool operator==(const ConcurrencyOptions&) const = default;
     };
 
     struct Config
@@ -55,6 +63,8 @@ namespace fga
         GrpcChannelOptions channel;
         RetryOptions retry;
         ConcurrencyOptions concurrency;
+
+        bool operator==(const Config&) const = default;
     };
 
     Config load_config_from_guc();
