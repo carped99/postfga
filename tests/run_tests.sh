@@ -63,8 +63,8 @@ check_postgres() {
 
 check_extension() {
     print_info "Checking if extension is installed..."
-    if ! psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1 FROM pg_available_extensions WHERE name = 'postfga_fdw';" | grep -q 1; then
-        print_warning "Extension 'postfga_fdw' not found in pg_available_extensions"
+    if ! psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1 FROM pg_available_extensions WHERE name = 'fga_fdw';" | grep -q 1; then
+        print_warning "Extension 'fga_fdw' not found in pg_available_extensions"
         print_info "You may need to install the extension first: make install"
         return 1
     fi

@@ -56,7 +56,7 @@ bash scripts/install_extension.sh
 echo ""
 
 # Step 5: Create extension in database
-DB_NAME="${PGDATABASE:-postfga_test}"
+DB_NAME="${PGDATABASE:-fga_test}"
 echo -e "${GREEN}[5/6] Creating extension in database '${DB_NAME}'...${NC}"
 
 # Check if database exists, create if not
@@ -116,7 +116,7 @@ echo -e "     - Query permissions"
 echo ""
 echo -e "${YELLOW}Example usage:${NC}"
 echo -e "  ${BLUE}-- Create server${NC}"
-echo -e "  CREATE SERVER my_openfga FOREIGN DATA WRAPPER postfga_fdw"
+echo -e "  CREATE SERVER my_openfga FOREIGN DATA WRAPPER fga_fdw"
 echo -e "    OPTIONS (endpoint 'dns:///localhost:8081', store_id 'my-store');"
 echo ""
 echo -e "  ${BLUE}-- Create foreign table${NC}"
@@ -132,6 +132,6 @@ echo -e "      AND subject_type='user' AND subject_id='alice'"
 echo -e "      AND relation='read';"
 echo ""
 echo -e "${YELLOW}Cache management:${NC}"
-echo -e "  ${BLUE}SELECT postfga_fdw.cache_stats();     -- View cache statistics${NC}"
-echo -e "  ${BLUE}SELECT postfga_fdw.clear_cache();     -- Clear cache${NC}"
+echo -e "  ${BLUE}SELECT fga_fdw.cache_stats();     -- View cache statistics${NC}"
+echo -e "  ${BLUE}SELECT fga_fdw.clear_cache();     -- Clear cache${NC}"
 echo ""

@@ -152,4 +152,4 @@ typedef struct FgaPayload
     FgaResponse response;
 } FgaPayload;
 
-#endif // POSTFGA_PAYLOAD_H
+#endif // FGA_PAYLOAD_H

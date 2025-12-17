@@ -49,9 +49,9 @@ docker run -d \
     --name "$CONTAINER_NAME" \
     -e POSTGRES_PASSWORD="$TEST_PASSWORD" \
     -e POSTGRES_DB="$TEST_DB" \
-    -e POSTFGA_AUTO_INSTALL=true \
-    -e POSTFGA_ENDPOINT=dns:///localhost:8081 \
-    -e POSTFGA_STORE_ID=test-store \
+    -e FGA_AUTO_INSTALL=true \
+    -e FGA_ENDPOINT=dns:///localhost:8081 \
+    -e FGA_STORE_ID=test-store \
     "$IMAGE_NAME" >/dev/null
 
 echo -e "${GREEN}      ✓ Container started${NC}"
@@ -103,12 +103,12 @@ fi
 
 # Test 7: Check FDW
 echo -e "${GREEN}[7/8] Checking Foreign Data Wrapper...${NC}"
-FDW_COUNT=$(docker exec "$CONTAINER_NAME" psql -U postgres -d "$TEST_DB" -t -c "SELECT COUNT(*) FROM pg_foreign_data_wrapper WHERE fdwname='postfga_fdw';" | tr -d ' ')
+FDW_COUNT=$(docker exec "$CONTAINER_NAME" psql -U postgres -d "$TEST_DB" -t -c "SELECT COUNT(*) FROM pg_foreign_data_wrapper WHERE fdwname='fga_fdw';" | tr -d ' ')
 
 if [ "$FDW_COUNT" = "1" ]; then
-    echo -e "${GREEN}      ✓ postfga_fdw found${NC}"
+    echo -e "${GREEN}      ✓ fga_fdw found${NC}"
 else
-    echo -e "${RED}      ✗ postfga_fdw not found${NC}"
+    echo -e "${RED}      ✗ fga_fdw not found${NC}"
     exit 1
 fi
 
@@ -118,7 +118,7 @@ echo -e "${GREEN}[8/8] Testing basic functionality...${NC}"
 # Create test server
 docker exec "$CONTAINER_NAME" psql -U postgres -d "$TEST_DB" -c "
     DROP SERVER IF EXISTS test_server CASCADE;
-    CREATE SERVER test_server FOREIGN DATA WRAPPER postfga_fdw
+    CREATE SERVER test_server FOREIGN DATA WRAPPER fga_fdw
     OPTIONS (endpoint 'dns:///localhost:8081', store_id 'test-store');
 " >/dev/null
 echo -e "${GREEN}      ✓ Test server created${NC}"
@@ -136,7 +136,7 @@ docker exec "$CONTAINER_NAME" psql -U postgres -d "$TEST_DB" -c "
 echo -e "${GREEN}      ✓ Foreign table created${NC}"
 
 # Test cache functions
-CACHE_STATS=$(docker exec "$CONTAINER_NAME" psql -U postgres -d "$TEST_DB" -t -c "SELECT COUNT(*) FROM postfga_fdw.cache_stats();" | tr -d ' ')
+CACHE_STATS=$(docker exec "$CONTAINER_NAME" psql -U postgres -d "$TEST_DB" -t -c "SELECT COUNT(*) FROM fga_fdw.cache_stats();" | tr -d ' ')
 if [ "$CACHE_STATS" = "1" ]; then
     echo -e "${GREEN}      ✓ Cache stats function works${NC}"
 else
@@ -144,7 +144,7 @@ else
     exit 1
 fi
 
-docker exec "$CONTAINER_NAME" psql -U postgres -d "$TEST_DB" -c "SELECT postfga_fdw.clear_cache();" >/dev/null
+docker exec "$CONTAINER_NAME" psql -U postgres -d "$TEST_DB" -c "SELECT fga_fdw.clear_cache();" >/dev/null
 echo -e "${GREEN}      ✓ Clear cache function works${NC}"
 
 # Success summary

@@ -26,15 +26,15 @@ tests/
 ```sql
 -- sql/test_queue.sql
 -- Test: Enqueue requests
-SELECT postfga_test_enqueue(5) AS enqueued_count;
+SELECT fga_test_enqueue(5) AS enqueued_count;
 -- Expected: 5
 
 -- Test: Queue stats
-SELECT postfga_test_queue_stats();
+SELECT fga_test_queue_stats();
 -- Expected: Queue: 5/256 (2.0% full)
 
 -- Test: Clear queue
-SELECT postfga_test_clear_queue();
+SELECT fga_test_clear_queue();
 -- Expected: 5
 ```
 
@@ -56,14 +56,14 @@ diff expected/test_queue.out results/test_queue.out
 
 ```c
 // tests/test_cache.c
-PG_FUNCTION_INFO_V1(postfga_test_cache_insert);
-Datum postfga_test_cache_insert(PG_FUNCTION_ARGS) {
+PG_FUNCTION_INFO_V1(fga_test_cache_insert);
+Datum fga_test_cache_insert(PG_FUNCTION_ARGS) {
     // Test cache insertion
     // Return true/false
 }
 
-PG_FUNCTION_INFO_V1(postfga_test_cache_lookup);
-Datum postfga_test_cache_lookup(PG_FUNCTION_ARGS) {
+PG_FUNCTION_INFO_V1(fga_test_cache_lookup);
+Datum fga_test_cache_lookup(PG_FUNCTION_ARGS) {
     // Test cache lookup
 }
 ```
@@ -72,10 +72,10 @@ Datum postfga_test_cache_lookup(PG_FUNCTION_ARGS) {
 
 ```sql
 -- sql/test_cache.sql
-CREATE FUNCTION postfga_test_cache_insert() RETURNS bool
+CREATE FUNCTION fga_test_cache_insert() RETURNS bool
 AS 'MODULE_PATHNAME' LANGUAGE C;
 
-SELECT postfga_test_cache_insert() AS "Cache Insert Test";
+SELECT fga_test_cache_insert() AS "Cache Insert Test";
 ```
 
 ---
@@ -115,11 +115,11 @@ endif()
 class ClientTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        client = postfga_client_init("localhost:8080");
+        client = fga_client_init("localhost:8080");
     }
 
     void TearDown() override {
-        postfga_client_fini(client);
+        fga_client_fini(client);
     }
 
     GrpcClient *client;
@@ -127,7 +127,7 @@ protected:
 
 TEST_F(ClientTest, ClientInitialization) {
     EXPECT_NE(client, nullptr);
-    EXPECT_TRUE(postfga_client_is_healthy(client));
+    EXPECT_TRUE(fga_client_is_healthy(client));
 }
 
 TEST_F(ClientTest, SyncCheck) {
@@ -141,7 +141,7 @@ TEST_F(ClientTest, SyncCheck) {
     };
 
     CheckResponse resp;
-    bool success = postfga_client_check_sync(client, &req, &resp);
+    bool success = fga_client_check_sync(client, &req, &resp);
 
     EXPECT_TRUE(success);
 }

@@ -15,7 +15,7 @@
 //  * 3. 큐에 슬롯 인덱스 넣기
 //  * 4. BGW 깨우기
 //  */
-// bool postfga_enqueue_check_request(const FgaCheckTupleRequest *request_body,
+// bool fga_enqueue_check_request(const FgaCheckTupleRequest *request_body,
 //                                    uint16 *out_slot_index,
 //                                    uint64 *out_request_id,
 //                                    char **err_msg)
@@ -28,7 +28,7 @@
 
 //     /* 1. 슬롯 확보 */
 //     uint16 slot_index;
-//     if (!postfga_slot_acquire(slot_pool, &slot_index))
+//     if (!fga_slot_acquire(slot_pool, &slot_index))
 //     {
 //         if (err_msg)
 //             *err_msg = pstrdup("PostFGA: no free slot available");
@@ -41,7 +41,7 @@
 //     slot->backend_pid = MyProcPid;
 //     slot->request_id = request_id;
 
-//     FgaRequest *req = postfga_init_check_request(&slot->request, request_body);
+//     FgaRequest *req = fga_init_check_request(&slot->request, request_body);
 
 //     // resp = &slot->response;
 //     // memset(resp, 0, sizeof(FgaResponse));
@@ -54,16 +54,16 @@
 //     // /* 깊은 복사 / 문자열 복사는 필요한 만큼 */
 //     // slot->check_req = *req; /* POD라면 얕은 복사 가능 */
 
-//     /* 상태는 이미 PENDING 으로 set 되어 있음 (postfga_slot_acquire) */
+//     /* 상태는 이미 PENDING 으로 set 되어 있음 (fga_slot_acquire) */
 
 //     LWLockAcquire(state->lock, LW_EXCLUSIVE);
-//     bool enqueued = postfga_enqueue_slot(state->request_queue, slot_index);
+//     bool enqueued = fga_enqueue_slot(state->request_queue, slot_index);
 //     LWLockRelease(state->lock);
 
 //     if (!enqueued)
 //     {
 //         /* 큐가 가득 찬 경우: 슬롯 돌려주고 에러 */
-//         postfga_slot_release(slot_pool, slot_index);
+//         fga_slot_release(slot_pool, slot_index);
 
 //         if (err_msg)
 //             *err_msg = pstrdup("PostFGA: request queue is full");

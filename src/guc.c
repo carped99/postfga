@@ -91,12 +91,12 @@ void fga_guc_init(void)
 {
     FgaConfig* cfg = fga_get_config();
 
-    /* postfga.endpoint */
-    DefineCustomStringVariable("postfga.endpoint",
+    /* fga.endpoint */
+    DefineCustomStringVariable("fga.endpoint",
                                "OpenFGA gRPC endpoint address",
                                "Specifies the gRPC endpoint for OpenFGA server (e.g., 'dns:///openfga:8081')",
                                &cfg->endpoint,
-                               env_or_default("POSTFGA_ENDPOINT", ""),
+                               env_or_default("FGA_ENDPOINT", ""),
                                PGC_SIGHUP,
                                GUC_SUPERUSER_ONLY,
                                validate_endpoint,
@@ -104,33 +104,33 @@ void fga_guc_init(void)
                                NULL  /* show_hook */
     );
 
-    /* postfga.store_id */
-    DefineCustomStringVariable("postfga.store_id",
+    /* fga.store_id */
+    DefineCustomStringVariable("fga.store_id",
                                "OpenFGA store ID",
                                "Specifies the store ID to use in OpenFGA (can be set at system/db/role/session level).",
                                &cfg->store_id,
-                               env_or_default("POSTFGA_STORE_ID", ""),
+                               env_or_default("FGA_STORE_ID", ""),
                                PGC_USERSET,
                                0,
                                validate_store_id,
                                NULL,
                                NULL);
 
-    /* postfga.model_id */
-    DefineCustomStringVariable("postfga.model_id",
+    /* fga.model_id */
+    DefineCustomStringVariable("fga.model_id",
                                "OpenFGA model ID (optional)",
                                "Specifies the model ID to use. If empty, uses the latest model.",
                                &cfg->model_id,
-                               env_or_default("POSTFGA_MODEL_ID", ""),
+                               env_or_default("FGA_MODEL_ID", ""),
                                PGC_SUSET,
                                GUC_SUPERUSER_ONLY,
                                NULL,
                                NULL,
                                NULL);
 
-    /* postfga.cache_enabled */
-    DefineCustomBoolVariable("postfga.cache_enabled",
-                             "Enable or disable the PostFGA permission cache",
+    /* fga.cache_enabled */
+    DefineCustomBoolVariable("fga.cache_enabled",
+                             "Enable or disable the FGA permission cache",
                              "Specifies whether to enable or disable the permission cache",
                              &cfg->cache_enabled,
                              false,
@@ -140,8 +140,8 @@ void fga_guc_init(void)
                              NULL,
                              NULL);
 
-    DefineCustomIntVariable("postfga.cache_size",
-                            "Size of PostFGA cache.",
+    DefineCustomIntVariable("fga.cache_size",
+                            "Size of FGA cache.",
                             NULL,
                             &cfg->cache_size,
                             32,
@@ -153,8 +153,8 @@ void fga_guc_init(void)
                             NULL,
                             NULL);
 
-    /* postfga.cache_ttl_ms */
-    DefineCustomIntVariable("postfga.cache_ttl_ms",
+    /* fga.cache_ttl_ms */
+    DefineCustomIntVariable("fga.cache_ttl_ms",
                             "Cache entry time-to-live in milliseconds",
                             "Specifies how long cache entries remain valid (in milliseconds)",
                             &cfg->cache_ttl_ms,

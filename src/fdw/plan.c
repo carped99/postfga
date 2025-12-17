@@ -18,7 +18,7 @@ void fgaGetForeignRelSize(PlannerInfo* root, RelOptInfo* baserel, Oid foreigntab
     case FGA_FDW_TABLE_KIND_ACL:
         baserel->rows = 10000;
         if (baserel->baserestrictinfo == NIL)
-            ereport(ERROR, errmsg("full scan not allowed for postfga_tuple"));
+            ereport(ERROR, errmsg("full scan not allowed for fga_tuple"));
         break;
     case FGA_FDW_TABLE_KIND_TUPLE:
         baserel->rows = 10000; /* TODO: 적당히 추정 */

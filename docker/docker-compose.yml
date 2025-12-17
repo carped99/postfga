@@ -21,8 +21,8 @@ services:
         PG_MAJOR: "18"
     environment:
       POSTGRES_PASSWORD: postgres
-      POSTFGA_ENDPOINT: "openfga:8081"
-      POSTFGA_STORE_ID: "changeme"
+      FGA_ENDPOINT: "openfga:8081"
+      FGA_STORE_ID: "changeme"
     volumes:
       - ..:/workspace:cached
       - pg_lib:/usr/lib/postgresql/18/lib

@@ -13,7 +13,7 @@ BEGIN;
 
 -- Test 1: Extension loads successfully
 -- SELECT lives_ok(
---     'CREATE EXTENSION IF NOT EXISTS postfga_fdw',
+--     'CREATE EXTENSION IF NOT EXISTS fga_fdw',
 --     'PostFGA extension loads without errors'
 -- );
 

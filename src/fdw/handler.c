@@ -18,14 +18,14 @@
 
 #include "fdw.h"
 
-PG_FUNCTION_INFO_V1(postfga_fdw_handler);
+PG_FUNCTION_INFO_V1(fga_fdw_handler);
 
-extern Datum postfga_fdw_handler(PG_FUNCTION_ARGS);
+extern Datum fga_fdw_handler(PG_FUNCTION_ARGS);
 
 static List* fgaImportForeignSchema(ImportForeignSchemaStmt* stmt, Oid serverOid);
 
 
-Datum postfga_fdw_handler(PG_FUNCTION_ARGS)
+Datum fga_fdw_handler(PG_FUNCTION_ARGS)
 {
     FdwRoutine* routine = makeNode(FdwRoutine);
 
@@ -55,7 +55,7 @@ static List* fgaImportForeignSchema(ImportForeignSchemaStmt* stmt, Oid serverOid
     appendStringInfo(&buf,
                      "CREATE FOREIGN TABLE IF NOT EXISTS %s.%s (",
                      quote_identifier(stmt->local_schema),
-                     quote_identifier("postfga_acl"));
+                     quote_identifier("fga_acl"));
     appendStringInfo(&buf, "object_type text NOT NULL, ");
     appendStringInfo(&buf, "object_id text NOT NULL, ");
     appendStringInfo(&buf, "subject_type text NOT NULL, ");
@@ -71,7 +71,7 @@ static List* fgaImportForeignSchema(ImportForeignSchemaStmt* stmt, Oid serverOid
     appendStringInfo(&buf,
                      "CREATE FOREIGN TABLE IF NOT EXISTS %s.%s (",
                      quote_identifier(stmt->local_schema),
-                     quote_identifier("postfga_store"));
+                     quote_identifier("fga_store"));
     appendStringInfo(&buf, "id text NOT NULL, ");
     appendStringInfo(&buf, "name text NOT NULL, ");
     appendStringInfo(&buf, "created_at timestamptz NOT NULL, ");
@@ -84,7 +84,7 @@ static List* fgaImportForeignSchema(ImportForeignSchemaStmt* stmt, Oid serverOid
     appendStringInfo(&buf,
                      "CREATE FOREIGN TABLE IF NOT EXISTS %s.%s (",
                      quote_identifier(stmt->local_schema),
-                     quote_identifier("postfga_tuple"));
+                     quote_identifier("fga_tuple"));
     appendStringInfo(&buf, "object_type text NOT NULL, ");
     appendStringInfo(&buf, "object_id text NOT NULL, ");
     appendStringInfo(&buf, "subject_type text NOT NULL, ");

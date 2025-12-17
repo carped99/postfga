@@ -13,12 +13,12 @@ Comprehensive test suite that verifies:
    - Verifies extension is registered in `pg_extension`
 
 2. **FDW Setup**
-   - Checks that `postfga_fdw` foreign data wrapper is created
+   - Checks that `fga_fdw` foreign data wrapper is created
    - Verifies FDW handler and validator functions exist
 
 3. **Function Verification**
-   - `postfga_fdw_handler` - FDW handler function
-   - `postfga_fdw_validator` - FDW validator function
+   - `fga_fdw_handler` - FDW handler function
+   - `fga_fdw_validator` - FDW validator function
    - `clear_cache()` - Cache clearing function
    - `cache_stats()` - Cache statistics function
 
@@ -51,14 +51,14 @@ Comprehensive test suite that verifies:
 
 ```bash
 # Connect to test database and run tests
-sudo -u postgres psql -d postfga_test -f tests/test_extension.sql
+sudo -u postgres psql -d fga_test -f tests/test_extension.sql
 ```
 
 ### In psql
 
 ```sql
 -- Connect to database
-\c postfga_test
+\c fga_test
 
 -- Run test file
 \i tests/test_extension.sql
@@ -83,15 +83,15 @@ Step 2: Verifying extension...
 Step 3: Verifying FDW...
   fdwname
 ------------
- postfga_fdw
+ fga_fdw
 
 Step 4: Verifying functions...
         proname         | pronargs
 ------------------------+----------
  cache_stats            |        0
  clear_cache            |        0
- postfga_fdw_handler    |        0
- postfga_fdw_validator  |        2
+ fga_fdw_handler    |        0
+ fga_fdw_validator  |        2
 
 ... (continued)
 
@@ -99,7 +99,7 @@ Step 4: Verifying functions...
 
 Summary:
   - Extension created: postfga
-  - FDW created: postfga_fdw
+  - FDW created: fga_fdw
   - Test server created: test_openfga_server
   - Foreign table created: acl_permission
   - Cache functions working: clear_cache(), cache_stats()
@@ -160,7 +160,7 @@ For integration tests with OpenFGA:
 
 3. **Run:**
    ```bash
-   psql -d postfga_test -f tests/integration_test.sql
+   psql -d fga_test -f tests/integration_test.sql
    ```
 
 ## Performance Tests
@@ -182,7 +182,7 @@ SELECT COUNT(*) FROM (
 ) AS results;
 
 -- Check cache statistics
-SELECT * FROM postfga_fdw.cache_stats();
+SELECT * FROM fga_fdw.cache_stats();
 ```
 
 ## CI/CD Integration
@@ -227,7 +227,7 @@ exit $?
 
 1. Clear cache and retry:
    ```sql
-   SELECT postfga_fdw.clear_cache();
+   SELECT fga_fdw.clear_cache();
    ```
 
 2. Drop and recreate extension:

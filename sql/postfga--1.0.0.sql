@@ -82,23 +82,23 @@ LANGUAGE C VOLATILE;
 
 
 -- -- Grant usage to public (can be restricted later)
--- GRANT USAGE ON FOREIGN DATA WRAPPER postfga_fdw TO PUBLIC;
+-- GRANT USAGE ON FOREIGN DATA WRAPPER fga_fdw TO PUBLIC;
 
 -- -- Comment on extension
--- COMMENT ON FOREIGN DATA WRAPPER postfga_fdw
+-- COMMENT ON FOREIGN DATA WRAPPER fga_fdw
 --   IS 'Foreign data wrapper for PostFGA permission checking';
 -- -- Utility functions for cache management (future extension)
 -- -- These will be expanded in later versions
--- CREATE FUNCTION postfga_fdw.clear_cache()
+-- CREATE FUNCTION fga_fdw.clear_cache()
 --   RETURNS void
 --   LANGUAGE C
---   AS 'MODULE_PATHNAME', 'postfga_fdw_clear_cache'
+--   AS 'MODULE_PATHNAME', 'fga_fdw_clear_cache'
 --   STRICT;
 
--- COMMENT ON FUNCTION postfga_fdw.clear_cache()
+-- COMMENT ON FUNCTION fga_fdw.clear_cache()
 --   IS 'Clear the shared memory cache for ACL permissions';
 
--- CREATE FUNCTION postfga_fdw.cache_stats()
+-- CREATE FUNCTION fga_fdw.cache_stats()
 --   RETURNS TABLE (
 --     total_entries bigint,
 --     cached_entries bigint,
@@ -106,8 +106,8 @@ LANGUAGE C VOLATILE;
 --     cache_misses bigint
 --   )
 --   LANGUAGE C
---   AS 'MODULE_PATHNAME', 'postfga_fdw_cache_stats'
+--   AS 'MODULE_PATHNAME', 'fga_fdw_cache_stats'
 --   STRICT;
 
--- COMMENT ON FUNCTION postfga_fdw.cache_stats()
+-- COMMENT ON FUNCTION fga_fdw.cache_stats()
 --   IS 'Get statistics about the shared memory cache';

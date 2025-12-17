@@ -52,7 +52,7 @@ extern "C"
     void fga_cache_shmem_each_startup(void);
 
     /* generation bump (invalidation) */
-    // void postfga_l2_bump_generation(FgaL2AclCache* cache);
+    // void fga_l2_bump_generation(FgaL2AclCache* cache);
 
     void fga_cache_key(FgaAclCacheKey* key,
                        const char* store_id,

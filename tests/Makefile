@@ -4,7 +4,7 @@ MODULE_big = test_guc
 OBJS = test_guc.o
 
 # PostgreSQL extension settings
-EXTENSION = postfga_fdw
+EXTENSION = fga_fdw
 DATA = sql/guc_test.sql sql/guc_pgtap_test.sql
 
 # Regression test settings
@@ -34,7 +34,7 @@ test-sql:
 test-unit: test_guc.so
 	@echo "=== Running Unit Tests ==="
 	@echo "Note: Unit tests require PostgreSQL server to be running"
-	psql -d postgres -c "CREATE EXTENSION IF NOT EXISTS postfga_fdw;"
+	psql -d postgres -c "CREATE EXTENSION IF NOT EXISTS fga_fdw;"
 	psql -d postgres -c "DROP FUNCTION IF EXISTS test_guc_run();"
 	psql -d postgres -c "CREATE FUNCTION test_guc_run() RETURNS BOOLEAN AS '$(shell pwd)/test_guc', 'test_guc_run' LANGUAGE C STRICT;"
 	psql -d postgres -c "SELECT test_guc_run();"

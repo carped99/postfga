@@ -52,7 +52,7 @@ get_generation(const char *scope_key)
     uint64 generation = 0;
     HTAB *gen_map;
 
-    shared_state = postfga_get_sheme_state();
+    shared_state = fga_get_sheme_state();
     if (!shared_state)
     {
         elog(WARNING, "PostFGA: Get generation called before initialization");
@@ -106,7 +106,7 @@ void increment_generation(const char *scope_key)
     bool found;
     HTAB *gen_map;
 
-    shared_state = postfga_get_sheme_state();
+    shared_state = fga_get_sheme_state();
     if (!shared_state)
     {
         elog(WARNING, "PostFGA: Increment generation called before initialization");
@@ -214,7 +214,7 @@ determine_generation_map(const char *scope_key)
     FgaState *shared_state;
     char *colon;
 
-    shared_state = postfga_get_sheme_state();
+    shared_state = fga_get_sheme_state();
     if (!scope_key || !shared_state)
         return NULL;
 

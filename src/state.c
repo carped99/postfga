@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * postfga_shmem.c
+ * fga_shmem.c
  *    Shared memory lifecycle management for PostFGA extension.
  *
  * Responsibilities:

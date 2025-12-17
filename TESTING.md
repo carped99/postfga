@@ -71,16 +71,16 @@ psql -U postgres < /workspace/sql/test_queue.sql
 **또는 대화형으로:**
 ```sql
 -- 큐 상태 확인
-SELECT postfga_test_queue_stats();
+SELECT fga_test_queue_stats();
 
 -- 10개 요청 한번에 추가
-SELECT postfga_test_enqueue(10);
+SELECT fga_test_enqueue(10);
 
 -- 1초에 하나씩 10개 요청 추가 (10초 소요)
-SELECT postfga_test_enqueue_continuous();
+SELECT fga_test_enqueue_continuous();
 
 -- 완료된 요청 정리
-SELECT postfga_test_clear_queue();
+SELECT fga_test_clear_queue();
 ```
 
 ---
@@ -125,7 +125,7 @@ docker run -p 8080:8080 -p 8081:8081 openfga/openfga run
 pg_ctl -D /tmp/pgdata -l /tmp/pgdata/logfile start
 
 # Terminal 3: Extension 내부에서 요청 생성
-psql -U postgres -c "SELECT postfga_test_enqueue_continuous();"
+psql -U postgres -c "SELECT fga_test_enqueue_continuous();"
 
 # Terminal 4: BGW 로그 확인
 tail -f /tmp/pgdata/logfile | grep "PostFGA BGW"
@@ -159,7 +159,7 @@ curl http://localhost:8080/healthz
 ### test_queue 함수를 찾을 수 없음
 
 ```
-ERROR:  function postfga_test_enqueue(integer) does not exist
+ERROR:  function fga_test_enqueue(integer) does not exist
 ```
 
 **해결:** Extension 재빌드 및 재설치 필요
@@ -174,7 +174,7 @@ pg_ctl -D /tmp/pgdata -l /tmp/pgdata/logfile restart
 **확인사항:**
 1. BGW가 실행 중인지 확인:
    ```sql
-   SELECT * FROM pg_stat_activity WHERE backend_type = 'postfga_worker';
+   SELECT * FROM pg_stat_activity WHERE backend_type = 'fga_worker';
    ```
 
 2. GUC 설정 확인:
@@ -196,8 +196,8 @@ pg_ctl -D /tmp/pgdata -l /tmp/pgdata/logfile restart
 
 ```sql
 -- 256개 요청 (큐 최대 크기)
-SELECT postfga_test_enqueue(256);
-SELECT postfga_test_queue_stats();
+SELECT fga_test_enqueue(256);
+SELECT fga_test_queue_stats();
 ```
 
 ### 동시성 테스트
@@ -205,7 +205,7 @@ SELECT postfga_test_queue_stats();
 ```bash
 # 여러 psql 세션에서 동시 실행
 for i in {1..5}; do
-  psql -U postgres -c "SELECT postfga_test_enqueue(50);" &
+  psql -U postgres -c "SELECT fga_test_enqueue(50);" &
 done
 wait
 ```

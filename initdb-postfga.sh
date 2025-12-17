@@ -22,18 +22,18 @@ EOSQL
 done
 
 if [[ -n "${FGA_ENDPOINT:-}" ]]; then
-    echo "Configuring postfga.endpoint = ${FGA_ENDPOINT}"
-    "${psql[@]}" -q -c "ALTER SYSTEM SET postfga.endpoint = \$\$${FGA_ENDPOINT}\$\$;"
+    echo "Configuring fga.endpoint = ${FGA_ENDPOINT}"
+    "${psql[@]}" -q -c "ALTER SYSTEM SET fga.endpoint = \$\$${FGA_ENDPOINT}\$\$;"
 fi
 
 if [[ -n "${FGA_STORE_ID:-}" ]]; then
-    echo "Configuring postfga.store_id = ${FGA_STORE_ID}"
-    "${psql[@]}" -q -c "ALTER SYSTEM SET postfga.store_id = \$\$${FGA_STORE_ID}\$\$;"
+    echo "Configuring fga.store_id = ${FGA_STORE_ID}"
+    "${psql[@]}" -q -c "ALTER SYSTEM SET fga.store_id = \$\$${FGA_STORE_ID}\$\$;"
 fi
 
 if [[ -n "${FGA_MODEL_ID:-}" ]]; then
-    echo "Configuring postfga.model_id = ${FGA_MODEL_ID}"
-    "${psql[@]}" -q -c "ALTER SYSTEM SET postfga.model_id = \$\$${FGA_MODEL_ID}\$\$;"
+    echo "Configuring fga.model_id = ${FGA_MODEL_ID}"
+    "${psql[@]}" -q -c "ALTER SYSTEM SET fga.model_id = \$\$${FGA_MODEL_ID}\$\$;"
 fi
 
 # -- Initialize postfga extension on startup
@@ -42,8 +42,8 @@ fi
 # CREATE EXTENSION IF NOT EXISTS postfga;
 
 # -- Create test server
-# CREATE SERVER IF NOT EXISTS postfga_server
-#   FOREIGN DATA WRAPPER postfga_fdw
+# CREATE SERVER IF NOT EXISTS fga_server
+#   FOREIGN DATA WRAPPER fga_fdw
 #   OPTIONS (
 #     endpoint 'dns:///openfga:8081',
 #     store_id 'test-store'

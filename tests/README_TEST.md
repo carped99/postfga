@@ -38,10 +38,10 @@ PostgreSQL extension test functions for testing the request queue.
 
 **Functions:**
 
-1. `postfga_test_enqueue(count int)` - Enqueue multiple test requests at once
-2. `postfga_test_enqueue_continuous()` - Enqueue 1 request per second for 10 seconds
-3. `postfga_test_queue_stats()` - Display current queue statistics
-4. `postfga_test_clear_queue()` - Clear completed requests
+1. `fga_test_enqueue(count int)` - Enqueue multiple test requests at once
+2. `fga_test_enqueue_continuous()` - Enqueue 1 request per second for 10 seconds
+3. `fga_test_queue_stats()` - Display current queue statistics
+4. `fga_test_clear_queue()` - Clear completed requests
 
 **Build:**
 
@@ -65,19 +65,19 @@ cmake --install .
 
 ```sql
 -- Check queue state
-SELECT postfga_test_queue_stats();
+SELECT fga_test_queue_stats();
 
 -- Enqueue 10 test requests
-SELECT postfga_test_enqueue(10);
+SELECT fga_test_enqueue(10);
 
 -- Check queue again
-SELECT postfga_test_queue_stats();
+SELECT fga_test_queue_stats();
 
 -- Run continuous test (blocks for 10 seconds)
-SELECT postfga_test_enqueue_continuous();
+SELECT fga_test_enqueue_continuous();
 
 -- Clear completed requests
-SELECT postfga_test_clear_queue();
+SELECT fga_test_clear_queue();
 ```
 
 ---
@@ -149,7 +149,7 @@ docker run -p 8080:8080 -p 8081:8081 -p 3000:3000 openfga/openfga run
 ### test_queue functions not found
 
 ```
-ERROR:  function postfga_test_enqueue(integer) does not exist
+ERROR:  function fga_test_enqueue(integer) does not exist
 ```
 
 **Solution:** The test functions need to be built into the extension. Add to CMakeLists.txt:
@@ -176,7 +176,7 @@ docker run -p 8080:8080 -p 8081:8081 openfga/openfga run
 
 **Terminal 2: Start PostgreSQL with extension**
 ```bash
-psql -U postgres -c "SELECT postfga_test_enqueue_continuous();"
+psql -U postgres -c "SELECT fga_test_enqueue_continuous();"
 ```
 
 **Terminal 3: Monitor BGW logs**

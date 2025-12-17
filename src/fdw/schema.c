@@ -14,7 +14,7 @@ List* fgaImportForeignSchema(ImportForeignSchemaStmt* stmt, Oid serverOid)
     appendStringInfo(&buf,
                      "CREATE FOREIGN TABLE IF NOT EXISTS %s.%s (",
                      quote_identifier(stmt->local_schema),
-                     quote_identifier("postfga_acl"));
+                     quote_identifier("fga_acl"));
     appendStringInfo(&buf, "object_type text NOT NULL, ");
     appendStringInfo(&buf, "object_id text NOT NULL, ");
     appendStringInfo(&buf, "subject_type text NOT NULL, ");
@@ -31,7 +31,7 @@ List* fgaImportForeignSchema(ImportForeignSchemaStmt* stmt, Oid serverOid)
     appendStringInfo(&buf,
                      "CREATE FOREIGN TABLE IF NOT EXISTS %s.%s (",
                      quote_identifier(stmt->local_schema),
-                     quote_identifier("postfga_store"));
+                     quote_identifier("fga_store"));
     appendStringInfo(&buf, "id text NOT NULL, ");
     appendStringInfo(&buf, "name text NOT NULL, ");
     appendStringInfo(&buf, "created_at timestamptz NOT NULL, ");
@@ -45,7 +45,7 @@ List* fgaImportForeignSchema(ImportForeignSchemaStmt* stmt, Oid serverOid)
     appendStringInfo(&buf,
                      "CREATE FOREIGN TABLE IF NOT EXISTS %s.%s (",
                      quote_identifier(stmt->local_schema),
-                     quote_identifier("postfga_tuple"));
+                     quote_identifier("fga_tuple"));
     appendStringInfo(&buf, "object_type text NOT NULL, ");
     appendStringInfo(&buf, "object_id text NOT NULL, ");
     appendStringInfo(&buf, "subject_type text NOT NULL, ");

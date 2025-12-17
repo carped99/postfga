@@ -132,7 +132,7 @@ extern "C"
     /*
      * 맨 앞 요소를 제거 없이 조회 (index는 0이 가장 오래된 요소)
      *
-     * - index 범위: 0 <= index < postfga_queue_size(q)
+     * - index 범위: 0 <= index < fga_queue_size(q)
      * - 범위 밖이면 false 반환
      */
     static inline bool queue_peek(const FgaChannelSlotQueue* q, uint16_t index, uint16_t* out_slot)

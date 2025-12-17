@@ -15,19 +15,19 @@ SELECT extname, extversion FROM pg_extension WHERE extname = 'postfga';
 
 -- Step 3: Verify FDW is created
 \echo 'Step 3: Verifying FDW...'
-SELECT fdwname FROM pg_foreign_data_wrapper WHERE fdwname = 'postfga_fdw';
+SELECT fdwname FROM pg_foreign_data_wrapper WHERE fdwname = 'fga_fdw';
 
 -- Step 4: Verify functions are created
 \echo 'Step 4: Verifying functions...'
 SELECT proname, pronargs FROM pg_proc
-WHERE proname IN ('postfga_fdw_handler', 'postfga_fdw_validator', 'clear_cache', 'cache_stats')
+WHERE proname IN ('fga_fdw_handler', 'fga_fdw_validator', 'clear_cache', 'cache_stats')
 ORDER BY proname;
 
 -- Step 5: Create a test server (will need OpenFGA configuration)
 \echo 'Step 5: Creating test server...'
 DROP SERVER IF EXISTS test_openfga_server CASCADE;
 CREATE SERVER test_openfga_server
-    FOREIGN DATA WRAPPER postfga_fdw
+    FOREIGN DATA WRAPPER fga_fdw
     OPTIONS (
         endpoint 'dns:///localhost:8081',
         store_id 'test-store-id',
@@ -62,10 +62,10 @@ WHERE c.relname = 'acl_permission' AND c.relkind = 'f';
 -- Step 9: Test cache management functions
 \echo 'Step 9: Testing cache functions...'
 \echo '  - Clearing cache...'
-SELECT postfga_fdw.clear_cache();
+SELECT fga_fdw.clear_cache();
 
 \echo '  - Getting cache stats...'
-SELECT * FROM postfga_fdw.cache_stats();
+SELECT * FROM fga_fdw.cache_stats();
 
 -- Step 10: Test query (will fail if OpenFGA is not running, but that's ok for structure test)
 \echo 'Step 10: Testing query structure (may fail if OpenFGA not running)...'
@@ -95,7 +95,7 @@ END $$;
 \echo ''
 \echo 'Summary:'
 \echo '  - Extension created: postfga'
-\echo '  - FDW created: postfga_fdw'
+\echo '  - FDW created: fga_fdw'
 \echo '  - Test server created: test_openfga_server'
 \echo '  - Foreign table created: acl_permission'
 \echo '  - Cache functions working: clear_cache(), cache_stats()'

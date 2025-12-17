@@ -156,7 +156,7 @@ tests/
 -- Test my new feature
 
 -- Setup
-CREATE EXTENSION postfga_fdw;
+CREATE EXTENSION fga_fdw;
 
 -- Test case 1
 SELECT 1 AS test_value;
@@ -166,7 +166,7 @@ SET openfga.endpoint = 'dns:///test:8081';
 SHOW openfga.endpoint;
 
 -- Cleanup
-DROP EXTENSION postfga_fdw;
+DROP EXTENSION fga_fdw;
 ```
 
 **예상 출력 생성:**
@@ -319,7 +319,7 @@ psql -c "SHOW log_directory;"
 ```bash
 # 해결: 확장 설치 확인
 make install
-psql -c "CREATE EXTENSION postfga_fdw;"
+psql -c "CREATE EXTENSION fga_fdw;"
 ```
 
 ### 문제: "test_guc_run function not found"

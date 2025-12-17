@@ -60,7 +60,7 @@ else
 fi
 
 # Create test database if it doesn't exist
-DB_NAME="${PGDATABASE:-postfga_test}"
+DB_NAME="${PGDATABASE:-fga_test}"
 echo -e "${YELLOW}Checking for test database: ${DB_NAME}${NC}"
 
 if sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
@@ -83,19 +83,19 @@ if [ -f "$PG_CONF" ]; then
     fi
 
     # Add postfga configuration (if not already present)
-    if ! grep -q "postfga_fdw" "$PG_CONF"; then
+    if ! grep -q "fga_fdw" "$PG_CONF"; then
         echo -e "${YELLOW}Adding postfga configuration to postgresql.conf...${NC}"
         sudo tee -a "$PG_CONF" > /dev/null <<EOF
 
 # PostFGA Extension Configuration
 # Added by init_postgres.sh on $(date)
-#postfga_fdw.endpoint = 'dns:///localhost:8081'
-#postfga_fdw.store_id = 'your-store-id'
-#postfga_fdw.relations = 'read,write,edit,delete,download,owner'
-#postfga_fdw.cache_ttl_ms = 60000
-#postfga_fdw.max_cache_entries = 10000
-#postfga_fdw.bgw_workers = 1
-#postfga_fdw.fallback_to_grpc_on_miss = true
+#fga_fdw.endpoint = 'dns:///localhost:8081'
+#fga_fdw.store_id = 'your-store-id'
+#fga_fdw.relations = 'read,write,edit,delete,download,owner'
+#fga_fdw.cache_ttl_ms = 60000
+#fga_fdw.max_cache_entries = 10000
+#fga_fdw.bgw_workers = 1
+#fga_fdw.fallback_to_grpc_on_miss = true
 EOF
         echo -e "${GREEN}Configuration added (commented out - edit as needed)${NC}"
         echo -e "${YELLOW}Note: You'll need to restart PostgreSQL for changes to take effect${NC}"

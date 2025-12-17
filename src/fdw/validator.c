@@ -16,9 +16,9 @@
 
 #include "fdw.h"
 
-PG_FUNCTION_INFO_V1(postfga_fdw_validator);
+PG_FUNCTION_INFO_V1(fga_fdw_validator);
 
-extern Datum postfga_fdw_validator(PG_FUNCTION_ARGS);
+extern Datum fga_fdw_validator(PG_FUNCTION_ARGS);
 
 static void fga_validate_server_options(List* options)
 {
@@ -134,7 +134,7 @@ static void fga_validate_table_options(List* options)
     }
 }
 
-Datum postfga_fdw_validator(PG_FUNCTION_ARGS)
+Datum fga_fdw_validator(PG_FUNCTION_ARGS)
 {
     List* options = untransformRelOptions(PG_GETARG_DATUM(0));
     Oid catalog = PG_GETARG_OID(1);
@@ -159,7 +159,7 @@ Datum postfga_fdw_validator(PG_FUNCTION_ARGS)
 
     default:
         ereport(ERROR,
-                (errcode(ERRCODE_FDW_ERROR), errmsg("postfga_fdw_validator: unexpected catalog OID %u", catalog)));
+                (errcode(ERRCODE_FDW_ERROR), errmsg("fga_fdw_validator: unexpected catalog OID %u", catalog)));
     }
 
     PG_RETURN_VOID();

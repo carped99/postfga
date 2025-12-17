@@ -376,7 +376,7 @@ test:
 ### "extension does not exist"
 ```bash
 make install
-psql -c "CREATE EXTENSION postfga_fdw;"
+psql -c "CREATE EXTENSION fga_fdw;"
 ```
 
 ### "pg_config not found"

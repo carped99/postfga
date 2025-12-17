@@ -2,7 +2,7 @@
 -- Test GUC variables for PostFGA extension
 
 -- Load the extension (if not already loaded)
--- CREATE EXTENSION IF NOT EXISTS postfga_fdw;
+-- CREATE EXTENSION IF NOT EXISTS fga_fdw;
 
 -- Test 1: Check default values
 SHOW openfga.endpoint;

@@ -51,18 +51,18 @@ extern "C"
  */
 #define FGA_IS_POWER_OF_TWO(sz) (((sz) & ((sz) - 1u)) == 0u)
     /*
-     * postfga_init_queue
+     * fga_init_queue
      *
      * - buffer      : 사전에 할당된 RequestPayload 배열
      * - capacity    : 배열 길이(요소 개수). 반드시 2의 거듭제곱이어야 함.
      * - 실제로 저장 가능한 요소 최대 개수는 (capacity - 1).
      */
     static inline void
-    postfga_ch_stream_init(FgaChannelStream *s, uint16_t capacity)
+    fga_ch_stream_init(FgaChannelStream *s, uint16_t capacity)
     {
         assert(s != NULL);
         assert(capacity > 1u);
-        assert(POSTFGA_IS_POWER_OF_TWO(capacity));
+        assert(fga_IS_POWER_OF_TWO(capacity));
 
         s->mask = capacity - 1u;
         s->head = 0u;
@@ -70,21 +70,21 @@ extern "C"
     }
 
     static inline uint16_t
-    postfga_ch_stream_size(const FgaChannelStream *s)
+    fga_ch_stream_size(const FgaChannelStream *s)
     {
         return (s->head - s->tail) & s->mask;
     }
 
     static inline bool
-    postfga_ch_stream_is_empty(const FgaChannelStream *s)
+    fga_ch_stream_is_empty(const FgaChannelStream *s)
     {
         return s->head == s->tail;
     }
 
     static inline bool
-    postfga_ch_stream_is_full(const FgaChannelStream *s)
+    fga_ch_stream_is_full(const FgaChannelStream *s)
     {
-        return postfga_ch_stream_size(s) == s->mask;
+        return fga_ch_stream_size(s) == s->mask;
     }
 
     /*
@@ -92,10 +92,10 @@ extern "C"
      * 최대값은 (capacity - 1)
      */
     static inline uint16_t
-    postfga_ch_stream_available(const FgaChannelStream *s)
+    fga_ch_stream_available(const FgaChannelStream *s)
     {
         uint16_t capacity = s->mask + 1u;
-        return (capacity - 1u) - postfga_ch_stream_size(s);
+        return (capacity - 1u) - fga_ch_stream_size(s);
     }
 
     /*
@@ -105,9 +105,9 @@ extern "C"
      * - 동시성 제어(LWLock 등)는 호출자가 담당
      */
     static inline bool
-    postfga_ch_stream_push(FgaChannelStream *s, const FgaChannelStreamChunk *chunk)
+    fga_ch_stream_push(FgaChannelStream *s, const FgaChannelStreamChunk *chunk)
     {
-        if (postfga_ch_stream_is_full(s))
+        if (fga_ch_stream_is_full(s))
             return false;
 
         s->chunks[s->head & s->mask] = *chunk;
@@ -124,10 +124,10 @@ extern "C"
      * - 동시성 제어는 호출자가 담당
      */
     static inline bool
-    postfga_ch_stream_pop(FgaChannelStream *s, FgaChannelStreamChunk *out_chunk)
+    fga_ch_stream_pop(FgaChannelStream *s, FgaChannelStreamChunk *out_chunk)
     {
         pg_read_barrier();
-        if (postfga_ch_stream_is_empty(s))
+        if (fga_ch_stream_is_empty(s))
             return false;
 
         *out_chunk = s->chunks[s->tail & s->mask];
@@ -139,13 +139,13 @@ extern "C"
     /*
      * 맨 앞 요소를 제거 없이 조회 (index는 0이 가장 오래된 요소)
      *
-     * - index 범위: 0 <= index < postfga_queue_size(q)
+     * - index 범위: 0 <= index < fga_queue_size(q)
      * - 범위 밖이면 false 반환
      */
     static inline bool
-    postfga_ch_stream_peek(const FgaChannelStream *s, uint16_t index, FgaChannelStreamChunk *out_chunk)
+    fga_ch_stream_peek(const FgaChannelStream *s, uint16_t index, FgaChannelStreamChunk *out_chunk)
     {
-        uint16_t size = postfga_ch_stream_size(s);
+        uint16_t size = fga_ch_stream_size(s);
         if (index >= size)
             return false;
 

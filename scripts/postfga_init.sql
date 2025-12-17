@@ -1,30 +1,30 @@
-CREATE SCHEMA IF NOT EXISTS postfga_bench;
+CREATE SCHEMA IF NOT EXISTS fga_bench;
 
 -- 1) object_type 목록
-CREATE TABLE IF NOT EXISTS postfga_bench.object_types (
+CREATE TABLE IF NOT EXISTS fga_bench.object_types (
     object_type text PRIMARY KEY
 );
 
 -- 2) subject_type 목록
-CREATE TABLE IF NOT EXISTS postfga_bench.subject_types (
+CREATE TABLE IF NOT EXISTS fga_bench.subject_types (
     subject_type text PRIMARY KEY
 );
 
 -- 3) 객체(type + id)
-CREATE TABLE IF NOT EXISTS postfga_bench.objects (
-    object_type text NOT NULL REFERENCES postfga_bench.object_types(object_type),
+CREATE TABLE IF NOT EXISTS fga_bench.objects (
+    object_type text NOT NULL REFERENCES fga_bench.object_types(object_type),
     object_id   text NOT NULL,
     PRIMARY KEY (object_type, object_id)
 );
 
 -- 4) 주체(type + id) : user, group, service 등
-CREATE TABLE IF NOT EXISTS postfga_bench.subjects (
-    subject_type text NOT NULL REFERENCES postfga_bench.subject_types(subject_type),
+CREATE TABLE IF NOT EXISTS fga_bench.subjects (
+    subject_type text NOT NULL REFERENCES fga_bench.subject_types(subject_type),
     subject_id   text NOT NULL,
     PRIMARY KEY (subject_type, subject_id)
 );
 
-CREATE TABLE IF NOT EXISTS postfga_bench.tuples (
+CREATE TABLE IF NOT EXISTS fga_bench.tuples (
     id            bigserial PRIMARY KEY,
     object_type   text NOT NULL,
     object_id     text NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS postfga_bench.tuples (
     relation      text NOT NULL
 );
 
-INSERT INTO postfga_bench.object_types (object_type) VALUES
+INSERT INTO fga_bench.object_types (object_type) VALUES
     ('doc'),
     ('folder'),
     ('image'),
@@ -44,39 +44,39 @@ INSERT INTO postfga_bench.object_types (object_type) VALUES
     ('notebook')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO postfga_bench.subject_types (subject_type) VALUES
+INSERT INTO fga_bench.subject_types (subject_type) VALUES
     ('user'),
     ('group')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO postfga_bench.subjects (subject_type, subject_id)
+INSERT INTO fga_bench.subjects (subject_type, subject_id)
 SELECT 'user', gen_random_uuid()
 FROM generate_series(1, 100000) AS g
 ON CONFLICT DO NOTHING;
 
-INSERT INTO postfga_bench.subjects (subject_type, subject_id)
+INSERT INTO fga_bench.subjects (subject_type, subject_id)
 SELECT 'group', gen_random_uuid()
 FROM generate_series(1, 1000) AS g
 ON CONFLICT DO NOTHING;
 
-INSERT INTO postfga_bench.objects (object_type, object_id)
+INSERT INTO fga_bench.objects (object_type, object_id)
 SELECT 'doc', gen_random_uuid()
 FROM generate_series(1, 200000) AS g
 ON CONFLICT DO NOTHING;
 
-INSERT INTO postfga_bench.objects (object_type, object_id)
+INSERT INTO fga_bench.objects (object_type, object_id)
 SELECT 'folder', gen_random_uuid()
 FROM generate_series(1, 2000) AS g
 ON CONFLICT DO NOTHING;
 
 
-INSERT INTO postfga_bench.tuples (object_type, object_id, relation, subject_type, subject_id)
+INSERT INTO fga_bench.tuples (object_type, object_id, relation, subject_type, subject_id)
 WITH rels AS (
     SELECT ARRAY['owner','viewer']::text[] AS rels
 ),
 all_subjects AS (
     SELECT subject_type, subject_id
-    FROM postfga_bench.subjects
+    FROM fga_bench.subjects
 )
 SELECT
     o.object_type,
@@ -84,7 +84,7 @@ SELECT
     rels.rels[1 + (random() * 1)::int] AS relation,
     s.subject_type,
     s.subject_id
-FROM postfga_bench.objects o
+FROM fga_bench.objects o
 CROSS JOIN LATERAL (
     -- object 하나당 랜덤 subject 10명
     SELECT subject_type, subject_id
